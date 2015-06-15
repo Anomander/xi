@@ -1,0 +1,8 @@
+/build/
+/.clang_complete
+/.projectile
+/src/GPATH
+/src/GRTAGS
+/src/GSYMS
+/src/GTAGS
+/TAGS
