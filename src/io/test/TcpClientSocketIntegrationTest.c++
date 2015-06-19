@@ -120,7 +120,7 @@ TEST_F (TestFixture, RemoteCloseAfterHeader) {
   executor->runOnce();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
-  ASSERT_EQ (false, handler->registered);
+  ASSERT_EQ (handler->registered, false);
 }
 
 // Since header is not actually read before full
@@ -141,7 +141,7 @@ TEST_F (TestFixture, RemoteCloseMidHeader) {
   executor->runOnce();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
-  ASSERT_EQ (true, handler->registered);
+  ASSERT_EQ (handler->registered, true);
 }
 
 TEST_F (TestFixture, RemoteCloseAfterPayloadSameEvent) {
@@ -151,7 +151,7 @@ TEST_F (TestFixture, RemoteCloseAfterPayloadSameEvent) {
   executor->runOnce();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
-  ASSERT_EQ (false, handler->registered);
+  ASSERT_EQ (handler->registered, false);
   ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);
   ASSERT_EQ (0, memcmp(PAYLOAD, handler->lastMessage->data()->readableRange().data, sizeof(PAYLOAD)));
 }
@@ -168,7 +168,7 @@ TEST_F (TestFixture, RemoteCloseAfterPayload) {
   executor->runOnce();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
-  ASSERT_EQ (false, handler->registered);
+  ASSERT_EQ (handler->registered, false);
   ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);
   ASSERT_EQ (0, memcmp(PAYLOAD, handler->lastMessage->data()->readableRange().data, sizeof(PAYLOAD)));
 }
@@ -188,7 +188,7 @@ TEST_F (TestFixture, RemoteCloseMidPayload) {
   executor->runOnce();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
-  ASSERT_EQ (false, handler->registered);
+  ASSERT_EQ (handler->registered, false);
 }
 
 TEST_F (TestFixture, ReadPayloadSeveralEvents) {

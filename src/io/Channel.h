@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ext/Configure.h"
-#include "async/libevent/EventHandler.h"
 #include "io/Message.h"
 
 namespace xi {

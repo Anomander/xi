@@ -1,7 +1,9 @@
 #pragma once
 
+#include "async/Executor.h"
+#include "async/WakeUpEvent.h"
+#include "async/libevent/Event.h"
 #include "async/libevent/EventLoop.h"
-#include "io/AsyncChannel.h"
 #include "ext/Configure.h"
 
 namespace xi {
@@ -10,29 +12,21 @@ namespace xi {
 
       class Executor
         : public EventLoop
-        , virtual public ownership::StdShared
+        , public async::Executor
       {
       public:
-        virtual ~Executor() noexcept {
+        Executor() {
+          _wakeUp = make <WakeUpEvent> ();
+          attachHandler (_wakeUp);
         }
 
-        void attachHandler(own<EventHandler> handler) {
-          handler->attachExecutor (this);
-          _handlers [addressOf (handler)] = move (handler);
-        }
-
-        void detachHandler(mut<EventHandler> handler) {
-          handler->detachExecutor();
-          auto it = _handlers.find (handler);
-          if (end(_handlers) != it) {
-            auto handler = move(it->second);
-            _handlers.erase(it);
-          }
+        own<async::Event> createEvent(mut<async::EventHandler> handler) override {
+          return make <Event> (this, handler->expectedState(), handler);
         }
 
         void run() {
-          while(_shouldRun.load(std::memory_order_acquire)) {
-            dispatchEvents(false);
+          while(true) {
+            dispatchEvents(true);
           }
         }
 
@@ -41,8 +35,8 @@ namespace xi {
         }
 
       private:
-        atomic<bool> _shouldRun { true };
         unordered_map <addressOf_t <own<EventHandler>>, own<EventHandler>> _handlers;
+        own <WakeUpEvent> _wakeUp;
       };
 
     }

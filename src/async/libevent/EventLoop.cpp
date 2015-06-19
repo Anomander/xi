@@ -1,10 +1,12 @@
 #include "async/libevent/EventLoop.h"
+#include "async/libevent/detail/EventStateToShort.h"
 
 #include <event2/event.h>
 
 namespace xi {
   namespace async {
     namespace libevent {
+
       EventLoop::EventLoop()
         : _eventBase(event_base_new())
       {
@@ -22,33 +24,19 @@ namespace xi {
       }
 
       void EventLoop::eventCallback(int descriptor, short what, void* arg) noexcept {
-        try {
+        if (arg) {
           auto * handler = reinterpret_cast<EventHandler*>(arg);
-          handler->handle(static_cast<EventHandler::State>(what));
-        } catch (...) {
-          //TODO: Add exception handling.
+          handler->handle(detail::ShortToEventState(what));
         }
       }
 
-      void EventLoop::prepareEvent(struct event** e, int d, short f, EventHandler* arg) noexcept {
-        if (* e == nullptr) {
-          * e = event_new(_eventBase, d, f, &EventLoop::eventCallback, arg);
+      struct event * EventLoop::prepareEvent(struct event* e, EventState state, async::EventHandler* arg) noexcept {
+        auto s = detail::EventStateToShort (state);
+        if (e == nullptr) {
+          return event_new(_eventBase, arg->descriptor(), s, &EventLoop::eventCallback, arg);
         } else {
-          event_assign(* e, _eventBase, d, f, &EventLoop::eventCallback, arg);
-        }
-      }
-
-      void EventLoop::cancelEvent(struct event* e) noexcept {
-        event_del(e);
-      }
-
-      void EventLoop::armEvent(struct event* e, opt<milliseconds> timeout) noexcept {
-        if (timeout == none) {
-          event_add(e, NULL);
-        } else {
-          auto && ms = timeout.get();
-          struct timeval tv = { ms.count() / 1000, ms.count() % 1000 };
-          event_add(e, & tv);
+          event_assign(e, _eventBase, arg->descriptor(), s, &EventLoop::eventCallback, arg);
+          return e;
         }
       }
     }

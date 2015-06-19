@@ -1,12 +1,14 @@
 #pragma once
 
-#include "async/libevent/EventHandler.h"
+#include "async/EventHandler.h"
 
 struct event_base;
+struct event;
 
 namespace xi {
   namespace async {
     namespace libevent {
+
       class EventLoop
         : virtual public ownership::StdShared
       {
@@ -18,10 +20,7 @@ namespace xi {
         void dispatchEvents(bool blocking);
 
       public:
-        using Callback = void(int,short,void*);
-        void prepareEvent(struct event**, int, short, EventHandler*) noexcept;
-        void cancelEvent(struct event*) noexcept;
-        void armEvent(struct event*, opt<milliseconds>) noexcept;
+        struct event * prepareEvent(struct event* e, EventState state, async::EventHandler* arg) noexcept;
 
       private:
         static void eventCallback(int, short, void*) noexcept;

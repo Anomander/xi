@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ext/Configure.h"
-#include "async/libevent/EventHandler.h"
+#include "async/EventHandler.h"
 #include "io/detail/SocketOps.h"
 #include "io/Endpoint.h"
 #include "io/Enumerations.h"
@@ -15,7 +15,7 @@ namespace xi {
   namespace io {
 
     class AsyncChannel
-      : public async::libevent::IoHandler
+      : public async::IoHandler
       , public pipeline::Channel
     {
     public:
@@ -28,7 +28,7 @@ namespace xi {
         detail::socket::close(descriptor());
       }
 
-      void attachExecutor (mut <async::libevent::Executor> loop) override {
+      void attachExecutor (mut <async::Executor> loop) override {
         IoHandler::attachExecutor (loop);
         pipeline()->channelRegistered();
       }
@@ -156,7 +156,7 @@ namespace xi {
               return;
             }
             // std::cout << "Readable " << sz << " bytes." << std::endl;
-            if (sz >= sizeof (hdr)) {
+            if ((size_t)sz >= sizeof (hdr)) {
               // std::cout << "Message size: " << hdr.size << std::endl;
               _remainingSize = sizeof(ProtocolMessage) + hdr.size;
               _messageCursor = _currentMessage = (uint8_t*)::malloc (_remainingSize);

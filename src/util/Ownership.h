@@ -131,6 +131,10 @@ namespace xi {
            template <class T> inline mut<T> edit(intrusive_ptr<T> t) { return mut <T> (t.get()); }
            template <class T> inline mut<T> edit(unique_ptr<T> & t) { return mut <T> (t.get()); }
 
+           template <class T> inline void release(unique_ptr<T> t) { /* no-op */ }
+           template <class T> inline void release(shared_ptr<T> t) { /* no-op */ }
+           template <class T> inline void release(intrusive_ptr<T> t) { /* no-op */ }
+
            template <class T> inline decltype(auto) val(T && t) { return t; }
            template <class T> inline decltype(auto) val(T * t) { return *t; }
            template <class T> inline decltype(auto) val(shared_ptr<T> const & t) { return *t; }
