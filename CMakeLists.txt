@@ -12,7 +12,7 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
-find_package( Boost 1.55 REQUIRED timer thread )
+find_package( Boost 1.55 REQUIRED COMPONENTS system timer thread )
 
 # libevent
 find_package( Event )
