@@ -2,6 +2,7 @@
 #include "io/DataMessage.h"
 #include "async/libevent/Executor.h"
 #include "io/test/TcpSocketMock.h"
+#include "io/pipeline/Util.h"
 
 #include <gtest/gtest.h>
 
@@ -65,10 +66,14 @@ protected:
     auto ch = make <ServerChannel<kInet, kTCP>>();
     ch->setOption (ReuseAddress::yes);
     ch->bind(12345);
-    ch->childHandler ([&](auto ch) {
-        ch->pipeline()->pushBack(handler);
-        executor->attachHandler(move(ch));
-      });
+    ch->pipeline()->pushBack(
+      pipeline::makeInboundHandler <ClientChannelConnected> (
+        [&] (auto cx, auto msg) {
+          msg->channel()->pipeline()->pushBack(handler);
+          executor->attachHandler(msg->extractChannel());
+        }
+      )
+    );
     executor->attachHandler (move(ch));
 
     mock.connect (12345);

@@ -178,6 +178,21 @@ namespace xi {
       size_t _remainingSize = 0UL;
     };
 
+    class ClientChannelConnected
+      : public FastCastGroupMember <ClientChannelConnected, Message>
+    {
+    public:
+      ClientChannelConnected (own<AsyncChannel> ch)
+        : _channel (move(ch))
+      {}
+
+      mut<AsyncChannel> channel() { return edit(_channel); }
+      own<AsyncChannel> extractChannel() { return move(_channel); }
+
+    private:
+      own<AsyncChannel> _channel;
+    };
+
     template <AddressFamily af, Protocol proto = kNone>
     class ServerChannel
       : public ChannelBase <af, kStream, proto>
@@ -185,7 +200,6 @@ namespace xi {
     public:
       using Endpoint_t = Endpoint <af>;
       using ClientChannel_t = ClientChannel <af, proto>;
-      using ChildHandler_t = function <void(own<ClientChannel_t>)>;
 
     public:
       void bind(Endpoint_t ep) {
@@ -195,8 +209,6 @@ namespace xi {
           throw system_error (ret.error());
         }
       }
-
-      void childHandler (ChildHandler_t h) { _childHandler = move(h); }
 
     private:
       void doWrite(own<DataMessage>) final override {}
@@ -211,11 +223,8 @@ namespace xi {
         // setsockopt(i, IPPROTO_TCP, TCP_NODELAY, &T, sizeof(T));
         auto child = make <ClientChannel_t> (i, move(remote));
         child->open();
-        _childHandler (move(child));
+        this->pipeline()->channelRead(make <ClientChannelConnected> (move(child)));
       }
-
-    private:
-      ChildHandler_t _childHandler;
     };
 
     template <AddressFamily af, Protocol proto = kNone>

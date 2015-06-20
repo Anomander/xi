@@ -16,20 +16,5 @@ namespace xi {
       virtual void write(own<Message>) = 0;
     };
 
-    class ClientChannelConnected
-      : public FastCastGroupMember <ClientChannelConnected, Message>
-    {
-    public:
-      ClientChannelConnected (own<Channel> ch)
-        : _channel (move(ch))
-      {}
-
-      mut<Channel> channelRef() { return edit(_channel); }
-      own<Channel> extractChannel() { return move(_channel); }
-
-    private:
-      own<Channel> _channel;
-    };
-
   }
 }

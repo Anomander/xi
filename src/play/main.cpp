@@ -1,5 +1,6 @@
 #include "async/libevent/Executor.h"
 #include "io/AsyncChannel.h"
+#include "io/pipeline/Util.h"
 
 #include <boost/thread.hpp>
 
@@ -27,12 +28,14 @@ int main() {
   int currentChild = 0;
   auto ch = make <ServerChannel<kInet, kTCP>>();
   ch->bind(19999);
-  ch->childHandler ([&](auto ch) {
-      // ch->expectWrite (false);
-      ch->pipeline()->pushBack(make<MessageHandler>());
-      child[currentChild = (currentChild + 1) % 4].attachHandler(move(ch));
-      std::cout << "Connected" << std::endl;
-    });
+  ch->pipeline()->pushBack(
+    pipeline::makeInboundHandler <ClientChannelConnected> (
+      [&] (auto cx, auto msg) {
+        msg->channel()->pipeline()->pushBack(make<MessageHandler>());
+        child[currentChild = (currentChild + 1) % 4].attachHandler(msg->extractChannel());
+      }
+    )
+  );
   e.attachHandler (move(ch));
   boost::thread_group g;
   for (auto & ch : child) {
