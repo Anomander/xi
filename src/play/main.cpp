@@ -22,9 +22,10 @@ public:
   }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
+  int number = (argc > 1 ? atoi (argv[1]) : 1);
   Executor e;
-  Executor child[4];
+  vector<Executor> child (number);
   int currentChild = 0;
   auto ch = make <ServerChannel<kInet, kTCP>>();
   ch->bind(19999);
@@ -32,7 +33,7 @@ int main() {
     pipeline::makeInboundHandler <ClientChannelConnected> (
       [&] (auto cx, auto msg) {
         msg->channel()->pipeline()->pushBack(make<MessageHandler>());
-        child[currentChild = (currentChild + 1) % 4].attachHandler(msg->extractChannel());
+        child [currentChild = (currentChild + 1) % number].attachHandler(msg->extractChannel());
       }
     )
   );

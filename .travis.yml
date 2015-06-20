@@ -8,5 +8,7 @@ script: cmake . && make && make test
 os: linux
 
 before_install:
+  - sudo apt-get install python-software-properties
+  - sudo add-apt-repository ppa:boost-latest/ppa
   - sudo apt-get update -qq
-  - sudo apt-get install -y libjemalloc-dev libboost-all-dev libevent-dev
+  - sudo apt-get install -y libjemalloc-dev libboost1.55-dev libevent-dev

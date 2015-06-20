@@ -88,12 +88,13 @@ namespace xi {
         : ChannelBase <af, kStream, proto> (descriptor)
         , _remote (move(remote))
       {}
+
     public:
       void doWrite(own<DataMessage> msg) override {
         static const error_code EAgain = make_error_code (SystemError::resource_unavailable_try_again);
         static const error_code EWouldBlock = make_error_code (SystemError::operation_would_block);
 
-        // std::cout << "Message written" << std::endl;
+        auto destructionGuard = this->self();
         auto data = msg->data();
         auto written = detail::socket::write (this->descriptor(), data, data->header().size + sizeof(ProtocolMessage));
         if (written.hasError()) {
@@ -111,6 +112,7 @@ namespace xi {
           return;
         }
       }
+
       void handleRead() override {
         static const error_code EAgain = make_error_code (SystemError::resource_unavailable_try_again);
         static const error_code EWouldBlock = make_error_code (SystemError::operation_would_block);
@@ -118,7 +120,6 @@ namespace xi {
         auto destructionGuard = this->self();
         while (this->isActive()) {
           if (_currentMessage) {
-            // std::cout << "Message present: " << _remainingSize << " bytes needed." << std::endl;
             auto read = detail::socket::read (this->descriptor(), _messageCursor, _remainingSize);
             if (read.hasError()) {
               auto error = read.error();
@@ -132,7 +133,6 @@ namespace xi {
               this->pipeline()->channelError(error);
               return;
             }
-            // std::cout << "Read " << read << " bytes." << std::endl;
             if (0 == (_remainingSize -= read)) {
               auto * message = _currentMessage;
               _messageCursor = _currentMessage = nullptr;
@@ -155,9 +155,7 @@ namespace xi {
               this->pipeline()->channelError(error);
               return;
             }
-            // std::cout << "Readable " << sz << " bytes." << std::endl;
             if ((size_t)sz >= sizeof (hdr)) {
-              // std::cout << "Message size: " << hdr.size << std::endl;
               _remainingSize = sizeof(ProtocolMessage) + hdr.size;
               _messageCursor = _currentMessage = (uint8_t*)::malloc (_remainingSize);
             } else {
