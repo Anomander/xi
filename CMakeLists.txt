@@ -12,10 +12,9 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
-find_package( Boost 1.55 REQUIRED system timer chrono program_options regex thread )
+find_package( Boost 1.55 REQUIRED timer thread )
 
 # libevent
-set(EVENT_INCLUDE_DIR /home/anomander/dev/lib/event/include)
 find_package( Event )
 
 # jemalloc
