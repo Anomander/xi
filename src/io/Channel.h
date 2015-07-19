@@ -4,17 +4,15 @@
 #include "io/Message.h"
 
 namespace xi {
-  namespace io {
+namespace io {
 
-    class Channel
-      : virtual public ownership::StdShared
-    {
-    protected:
-      virtual ~Channel() noexcept = default;
-    public:
-      virtual void close() = 0;
-      virtual void write(own<Message>) = 0;
-    };
+class Channel : virtual public ownership::StdShared {
+protected:
+  virtual ~Channel() noexcept = default;
 
-  }
+public:
+  virtual void close() = 0;
+  virtual void write(own< Message >) = 0;
+};
+}
 }

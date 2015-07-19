@@ -24,7 +24,7 @@ using namespace xi::async::libevent;
 // }
 
 class MessageHandler
-  : public pipeline::SimpleInboundPipelineFastCastHandler <DataMessage>
+  : public pipeline::SimpleInboundPipelineHandler <DataMessage>
 {
 public:
   // void channelOpened (mut<pipeline::HandlerContext> cx) override {
@@ -33,18 +33,22 @@ public:
   // void channelClosed (mut<pipeline::HandlerContext> cx) override {
   //   opened = false;
   // }
-  void channelRegistered (mut<pipeline::HandlerContext> cx) override {
+  void handleEvent (mut<pipeline::HandlerContext> cx, pipeline::ChannelRegistered) override {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
     registered = true;
   }
-  void channelDeregistered (mut<pipeline::HandlerContext> cx) override {
+  void handleEvent (mut<pipeline::HandlerContext> cx, pipeline::ChannelDeregistered) override {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
     registered = false;
   }
   void messageReceived(mut<pipeline::HandlerContext> cx, own <DataMessage> msg) override {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
     ++messagesReceived;
     lastMessage = move(msg);
   }
-  void channelError (mut<pipeline::HandlerContext> cx, error_code error) override {
-    lastError = error;
+  void handleEvent (mut<pipeline::HandlerContext> cx, pipeline::ChannelError error) override {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    lastError = error.error();
   }
 
 public:

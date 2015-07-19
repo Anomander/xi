@@ -1,29 +1,23 @@
 #pragma once
 
-#include "io/pipeline/Pipeline.h"
+#include "io/pipeline/SimpleInboundPipelineHandler.h"
 #include "ext/Configure.h"
 
 namespace xi {
-  namespace io {
-    namespace pipeline {
-      template<class Msg, class F>
-      auto makeInboundHandler(F && f) {
-        struct InboundHandler
-          : public SimpleInboundPipelineFastCastHandler <Msg> {
-          InboundHandler (F && f)
-            : _f (forward <F> (f))
-          {}
+namespace io {
+namespace pipeline {
+template < class Msg, class F > auto makeInboundHandler(F&& f) {
+  struct InboundHandler : public SimpleInboundPipelineHandler< Msg > {
+    InboundHandler(F&& f) : _f(forward< F >(f)) {}
 
-          void messageReceived (mut <HandlerContext> cx, own <Msg> msg) override{
-            _f (cx, move (msg));
-          }
+    void messageReceived(mut< HandlerContext > cx, own< Msg > msg) override { _f(cx, move(msg)); }
 
-        private:
-          F _f;
-        };
+  private:
+    F _f;
+  };
 
-        return make <InboundHandler> (forward <F> (f));
-      }
-    }
-  }
+  return make< InboundHandler >(forward< F >(f));
+}
+}
+}
 }

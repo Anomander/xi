@@ -6,53 +6,46 @@
 #include <boost/format.hpp>
 #include <boost/utility/string_ref.hpp>
 
-namespace xi { 
+namespace xi {
 inline namespace ext {
 
-    using ::std::string;
-    using ::std::to_string;
+using ::std::string;
+using ::std::to_string;
 
-    using ::boost::format;
-    using ::boost::str;
+using ::boost::format;
+using ::boost::str;
 
-    template<typename CharT, typename Traits>
-    class BasicStringRef : public ::boost::basic_string_ref <CharT, Traits> {
-        using Base = ::boost::basic_string_ref <CharT, Traits>;
-    public:
-        constexpr BasicStringRef ()
-            : Base () {}
+template < typename CharT, typename Traits > class BasicStringRef : public ::boost::basic_string_ref< CharT, Traits > {
+  using Base = ::boost::basic_string_ref< CharT, Traits >;
 
-        constexpr BasicStringRef (BasicStringRef const & rhs)
-            : Base (rhs) {}
+public:
+  constexpr BasicStringRef() : Base() {}
 
-        using Base::operator=;
+  constexpr BasicStringRef(BasicStringRef const& rhs) : Base(rhs) {}
 
-        template <size_t N>
-        BasicStringRef(const CharT (&str)[N])
-            : BasicStringRef (str, N - 1) {}
+  using Base::operator=;
 
-        constexpr BasicStringRef(const CharT* str, size_t len)
-            : Base (str, len) {}
+  template < size_t N > BasicStringRef(const CharT (&str)[N]) : BasicStringRef(str, N - 1) {}
 
-        template<typename Allocator>
-        BasicStringRef(const std::basic_string<CharT, Traits, Allocator> & str)
-            : Base (str) {}
+  constexpr BasicStringRef(const CharT* str, size_t len) : Base(str, len) {}
 
-        /// Explicitly disallow construction from expiring string
-        template<typename Allocator>
-        BasicStringRef(std::basic_string<CharT, Traits, Allocator> && str) = delete;
+  template < typename Allocator >
+  BasicStringRef(const std::basic_string< CharT, Traits, Allocator >& str)
+      : Base(str) {}
 
-    private:
-        /// Hide all constructors
-        using Base::basic_string_ref;
-    };
+  /// Explicitly disallow construction from expiring string
+  template < typename Allocator > BasicStringRef(std::basic_string< CharT, Traits, Allocator >&& str) = delete;
 
-    template<typename CharT, typename Traits>
-    inline auto to_string(BasicStringRef <CharT, Traits> const & ref) {
-        return ref.to_string();
-    }
+private:
+  /// Hide all constructors
+  using Base::basic_string_ref;
+};
 
-    using StringRef = BasicStringRef <char, ::std::char_traits<char>>;
+template < typename CharT, typename Traits > inline auto to_string(BasicStringRef< CharT, Traits > const& ref) {
+  return ref.to_string();
+}
+
+using StringRef = BasicStringRef< char, ::std::char_traits< char > >;
 
 } // inline namespace ext
 } // namespace xi

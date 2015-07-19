@@ -5,25 +5,17 @@
 #include "io/IpAddress.h"
 
 namespace xi {
-  namespace io {
+namespace io {
 
-    template<AddressFamily af>
-    class Endpoint;
-      
-    template<>
-    class Endpoint <kInet> {
-    public:
-      Ip4Address address;
-      uint16_t port;
+template < AddressFamily af > class Endpoint;
 
-      Endpoint ()
-        : Endpoint ( -1 )
-      {}
-      Endpoint (uint16_t p)
-        : address (Ip4Address::any())
-        , port (p)
-      {}
-    };
+template <> class Endpoint< kInet > {
+public:
+  Ip4Address address;
+  uint16_t port;
 
-  }
+  Endpoint() : Endpoint(-1) {}
+  Endpoint(uint16_t p) : address(Ip4Address::any()), port(p) {}
+};
+}
 }

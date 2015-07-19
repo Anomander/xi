@@ -6,25 +6,24 @@ struct event_base;
 struct event;
 
 namespace xi {
-  namespace async {
-    namespace libevent {
+namespace async {
+namespace libevent {
 
-      class EventLoop
-        : virtual public ownership::StdShared
-      {
-        struct event_base * _eventBase;
-      public:
-        EventLoop();
-        ~EventLoop();
+class EventLoop : virtual public ownership::StdShared {
+  struct event_base* _eventBase;
 
-        void dispatchEvents(bool blocking);
+public:
+  EventLoop();
+  ~EventLoop();
 
-      public:
-        struct event * prepareEvent(struct event* e, EventState state, async::EventHandler* arg) noexcept;
+  void dispatchEvents(bool blocking);
 
-      private:
-        static void eventCallback(int, short, void*) noexcept;
-      };
-    }
-  }
+public:
+  struct event* prepareEvent(struct event* e, EventState state, async::EventHandler* arg) noexcept;
+
+private:
+  static void eventCallback(int, short, void*) noexcept;
+};
+}
+}
 }
