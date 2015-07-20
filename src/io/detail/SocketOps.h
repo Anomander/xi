@@ -3,7 +3,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <netinet/sctp.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <stdio.h>
