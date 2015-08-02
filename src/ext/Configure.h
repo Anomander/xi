@@ -12,6 +12,8 @@
 #include "ext/Meta.h"
 #include "ext/Optional.h"
 #include "ext/Pointer.h"
+#include "ext/Require.h"
+#include "ext/Scope.h"
 #include "ext/String.h"
 #include "ext/TypeTraits.h"
 

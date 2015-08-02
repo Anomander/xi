@@ -6,18 +6,23 @@
 
 namespace xi {
 namespace io {
-namespace pipeline {
+  namespace pipeline {
 
-class MessageWrite : public DownstreamEvent {
-public:
-  MessageWrite(own< Message > msg) : _message(move(msg)) {}
+    class MessageWrite : public DownstreamEvent {
+    public:
+      MessageWrite(own< Message > msg) : _message(move(msg)) {
+      }
 
-  mut< Message > message() noexcept { return edit(_message); }
-  own< Message > extractMessage() noexcept { return move(_message); }
+      mut< Message > message() noexcept {
+        return edit(_message);
+      }
+      own< Message > extractMessage() noexcept {
+        return move(_message);
+      }
 
-private:
-  own< Message > _message;
-};
-}
+    private:
+      own< Message > _message;
+    };
+  }
 }
 }

@@ -6,15 +6,16 @@
 namespace xi {
 inline namespace ext {
 
-using ::boost::uuids::uuid;
+  using ::boost::uuids::uuid;
 
-template < class > struct TaggedType {
-  TaggedType() noexcept = default;
-  static auto const& getTypeUUID() noexcept {
-    static const uuid TAG{ ::boost::uuids::random_generator() };
-    return TAG;
-  }
-};
+  template < class >
+  struct TaggedType {
+    TaggedType() noexcept = default;
+    static auto const& getTypeUUID() noexcept {
+      static const uuid TAG{::boost::uuids::random_generator()};
+      return TAG;
+    }
+  };
 
 } // inline namespace ext
 } // namespace xi

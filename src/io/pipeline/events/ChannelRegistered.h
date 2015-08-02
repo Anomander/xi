@@ -5,9 +5,9 @@
 
 namespace xi {
 namespace io {
-namespace pipeline {
+  namespace pipeline {
 
-class ChannelRegistered : public UpstreamEvent {};
-}
+    class ChannelRegistered : public UpstreamEvent {};
+  }
 }
 }

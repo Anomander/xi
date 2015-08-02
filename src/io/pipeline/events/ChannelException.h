@@ -5,17 +5,20 @@
 
 namespace xi {
 namespace io {
-namespace pipeline {
+  namespace pipeline {
 
-class ChannelException : public UpstreamEvent {
-public:
-  ChannelException(exception_ptr ex) : _exception(ex) {}
+    class ChannelException : public UpstreamEvent {
+    public:
+      ChannelException(exception_ptr ex) : _exception(ex) {
+      }
 
-  exception_ptr exception() noexcept { return _exception; }
+      exception_ptr exception() noexcept {
+        return _exception;
+      }
 
-private:
-  exception_ptr _exception;
-};
-}
+    private:
+      exception_ptr _exception;
+    };
+  }
 }
 }

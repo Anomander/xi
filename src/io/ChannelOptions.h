@@ -7,6 +7,6 @@
 namespace xi {
 namespace io {
 
-using ReuseAddress = BooleanSocketOption< SOL_SOCKET, SO_REUSEADDR >;
+  using ReuseAddress = BooleanSocketOption< SOL_SOCKET, SO_REUSEADDR >;
 }
 }

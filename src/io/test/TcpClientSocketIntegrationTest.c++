@@ -1,6 +1,6 @@
 #include "io/AsyncChannel.h"
 #include "io/DataMessage.h"
-#include "async/libevent/Executor.h"
+#include "async/libevent/Reactor.h"
 #include "io/test/TcpSocketMock.h"
 #include "io/pipeline/Util.h"
 
@@ -11,17 +11,6 @@
 using namespace xi;
 using namespace xi::io;
 using namespace xi::async::libevent;
-
-// void * operator new(size_t count) {
-//   auto * ret = ::malloc (count);
-//   std::cout << "Newd " << ret << std::endl;
-//   return ret;
-// }
-
-// void operator delete (void * p) {
-//   std::cout << "deleted " << p << std::endl;
-//   ::free (p);
-// }
 
 class MessageHandler
   : public pipeline::SimpleInboundPipelineHandler <DataMessage>
@@ -64,7 +53,7 @@ uint8_t PAYLOAD [10] = {0,1,2,3,4,5,6,7,8,9};
 class TestFixture : public ::testing::Test {
 protected:
   void SetUp() override {
-    executor = make <Executor>();
+    reactor = make <Reactor>();
     handler = make <MessageHandler>();
     mock = make <test::TcpSocketMock> ();
     auto ch = make <ServerChannel<kInet, kTCP>>();
@@ -74,24 +63,24 @@ protected:
       pipeline::makeInboundHandler <ClientChannelConnected> (
         [&] (auto cx, auto msg) {
           msg->channel()->pipeline()->pushBack(handler);
-          executor->attachHandler(msg->extractChannel());
+          reactor->attachHandler(msg->extractChannel());
         }
       )
     );
-    executor->attachHandler (move(ch));
+    reactor->attachHandler (move(ch));
 
     mock.connect (12345);
-    executor->runOnce();
+    reactor->poll();
   }
 
 protected:
-  own<Executor> executor;
+  own<Reactor> reactor;
   own<MessageHandler> handler;
   own<test::TcpSocketMock> mock;
 };
 
 TEST_F (TestFixture, RegisterOnConnect) {
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ(true, handler->registered);
 }
@@ -99,7 +88,7 @@ TEST_F (TestFixture, RegisterOnConnect) {
 TEST_F (TestFixture, Read) {
   mock.sendMessage (PAYLOAD, sizeof(PAYLOAD));
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
   ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);
@@ -109,7 +98,7 @@ TEST_F (TestFixture, Read) {
 TEST_F (TestFixture, ReadNoPayload) {
   mock.sendMessage (nullptr, 0);
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
   ASSERT_EQ (0UL, handler->lastMessage->data()->header().size);
@@ -120,13 +109,13 @@ TEST_F (TestFixture, RemoteCloseAfterHeader) {
   hdr.size = 100;
   mock.send(&hdr, sizeof(hdr));
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
 
   mock.close();
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
   ASSERT_EQ (handler->registered, false);
@@ -141,13 +130,13 @@ TEST_F (TestFixture, RemoteCloseMidHeader) {
   ProtocolHeader hdr;
   mock.send(&hdr, sizeof(hdr)/ 2);
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
 
   mock.close();
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
   ASSERT_EQ (handler->registered, true);
@@ -157,7 +146,7 @@ TEST_F (TestFixture, RemoteCloseAfterPayloadSameEvent) {
   mock.sendMessage (PAYLOAD, sizeof(PAYLOAD));
   mock.close();
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
   ASSERT_EQ (handler->registered, false);
@@ -168,13 +157,13 @@ TEST_F (TestFixture, RemoteCloseAfterPayloadSameEvent) {
 TEST_F (TestFixture, RemoteCloseAfterPayload) {
   mock.sendMessage (PAYLOAD, sizeof(PAYLOAD));
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
 
   mock.close();
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
   ASSERT_EQ (handler->registered, false);
@@ -188,13 +177,13 @@ TEST_F (TestFixture, RemoteCloseMidPayload) {
   mock.send(&hdr, sizeof(hdr));
   mock.send(PAYLOAD, sizeof(PAYLOAD));
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
 
   mock.close();
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
   ASSERT_EQ (handler->registered, false);
@@ -207,13 +196,13 @@ TEST_F (TestFixture, ReadPayloadSeveralEvents) {
   /// size better be even
   mock.send(PAYLOAD, sizeof(PAYLOAD) / 2);
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (0UL, handler->messagesReceived);
 
   mock.send(PAYLOAD + sizeof(PAYLOAD)/2, sizeof(PAYLOAD) / 2);
 
-  executor->runOnce();
+  reactor->poll();
 
   ASSERT_EQ (1UL, handler->messagesReceived);
   ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);

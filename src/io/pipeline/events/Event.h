@@ -4,10 +4,10 @@
 
 namespace xi {
 namespace io {
-namespace pipeline {
+  namespace pipeline {
 
-struct DownstreamEvent {};
-struct UpstreamEvent {};
-}
+    struct DownstreamEvent {};
+    struct UpstreamEvent {};
+  }
 }
 } // namespace pipeline // namespace io // namespace xi

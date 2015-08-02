@@ -6,15 +6,16 @@
 namespace xi {
 namespace async {
 
-class WakeUpEvent : public IoHandler {
-public:
-  WakeUpEvent();
+  class WakeUpEvent : public IoHandler {
+  public:
+    WakeUpEvent();
 
-  void fire() noexcept;
+    void fire() noexcept;
 
-protected:
-  void handleRead() override;
-  void handleWrite() final override {}
-};
+  protected:
+    void handleRead() override;
+    void handleWrite() final override {
+    }
+  };
 }
 }

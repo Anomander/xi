@@ -21,11 +21,16 @@ using ip::tcp;
 
 class session {
 public:
-  session(io_service& io_service) : socket_(io_service) {}
+  session(io_service& io_service) : socket_(io_service) {
+  }
 
-  tcp::socket& socket() { return socket_; }
+  tcp::socket& socket() {
+    return socket_;
+  }
 
-  void start() { schedule_read(); }
+  void start() {
+    schedule_read();
+  }
 
   void schedule_read() {
     async_read(socket_, buffer(data_, 0),
