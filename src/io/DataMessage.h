@@ -42,28 +42,17 @@ namespace io {
     //////////////////////////////////
 
   public:
-    ProtocolHeader const& header() const noexcept {
-      return _header;
-    }
-    ByteRange readableRange() noexcept {
-      return {_data, readableSize()};
-    }
-    size_t readableSize() const noexcept {
-      return _header.size;
-    }
+    ProtocolHeader const& header() const noexcept { return _header; }
+    ByteRange readableRange() noexcept { return {_data, readableSize()}; }
+    size_t readableSize() const noexcept { return _header.size; }
   };
 
   struct DataMessage : FastCastGroupMember< DataMessage, Message > {
   public:
-    DataMessage(ProtocolMessage* msg) : _message(move(msg)) {
-    }
-    ~DataMessage() noexcept {
-      ::free(_message);
-    }
+    DataMessage(ProtocolMessage* msg) : _message(move(msg)) {}
+    ~DataMessage() noexcept { ::free(_message); }
 
-    ProtocolMessage* data() const noexcept {
-      return _message;
-    }
+    ProtocolMessage* data() const noexcept { return _message; }
 
   private:
     ProtocolMessage* _message;

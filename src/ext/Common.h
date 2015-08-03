@@ -3,6 +3,7 @@
 #include <map>
 #include <array>
 #include <deque>
+#include <tuple>
 #include <atomic>
 #include <memory>
 #include <vector>
@@ -28,6 +29,9 @@ inline namespace ext {
   using ::std::deque;
   using ::std::vector;
   using ::std::unordered_map;
+
+  using ::std::tuple;
+  using ::std::make_tuple;
 
   using ::std::atomic;
 

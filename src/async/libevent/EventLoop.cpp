@@ -13,9 +13,7 @@ namespace async {
       }
     }
 
-    EventLoop::~EventLoop() {
-      event_base_free(_eventBase);
-    }
+    EventLoop::~EventLoop() { event_base_free(_eventBase); }
 
     void EventLoop::dispatchEvents(bool blocking) {
       event_base_loop(_eventBase, EVLOOP_ONCE | (blocking ? 0 : EVLOOP_NONBLOCK));

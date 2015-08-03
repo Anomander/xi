@@ -14,8 +14,7 @@ namespace async {
 
   protected:
     void handleRead() override;
-    void handleWrite() final override {
-    }
+    void handleWrite() final override {}
   };
 }
 }

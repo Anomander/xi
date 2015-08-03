@@ -21,8 +21,7 @@ inline namespace ext {
   struct Future : public ::boost::future< T > {
     using Base = ::boost::future< T >;
     using Base::future;
-    Future(Base&& f) : Base(::std::forward< Base >(f)) {
-    }
+    Future(Base&& f) : Base(::std::forward< Base >(f)) {}
   };
 
   template < class T >

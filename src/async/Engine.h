@@ -8,12 +8,11 @@ namespace async2 {
 
   class Executor {
   public:
-    Executor(size_t id, TaskQueue **queues, size_t coreCount) : _id(id), _queues(queues), _cores(coreCount) {
-    }
+    Executor(size_t id, TaskQueue **queues, size_t coreCount) : _id(id), _queues(queues), _cores(coreCount) {}
     Executor() = default;
     template < class Func >
     void submit(Func &&f) {
-      auto &localExec = Context::local< Executor >();
+      auto &localExec = local< Executor >();
       auto &q = localExec.getOutboundQueue(id());
       q.submit(forward< Func >(f));
     }
@@ -27,24 +26,18 @@ namespace async2 {
       }
     }
 
-    virtual void run(function< void() > f) {
-    }
-    virtual void join() {
-    }
+    virtual void run(function< void() > f) {}
+    virtual void join() {}
 
-    size_t id() const noexcept {
-      return _id;
-    }
+    size_t id() const noexcept { return _id; }
 
   protected:
     void setup() {
-      Context::setLocal< Executor >(*this);
-      assert(&Context::local< Executor >() == this);
+      setLocal< Executor >(*this);
+      assert(&local< Executor >() == this);
     }
 
-    void cleanup() {
-      Context::resetLocal< Executor >();
-    }
+    void cleanup() { resetLocal< Executor >(); }
 
     TaskQueue &getOutboundQueue(size_t coreId) {
       // std::cout << "Queue for submission " << id() << "->" << coreId << " @ " << &_queues[coreId][id()] << std::endl;
@@ -72,9 +65,7 @@ namespace async2 {
           try {
             this->setup();
 
-            XI_SCOPE(exit) {
-              this->cleanup();
-            };
+            XI_SCOPE(exit) { this->cleanup(); };
             f();
           } catch (...) {
             std::cout << "Exception in executor " << id() << std::endl;
@@ -86,9 +77,7 @@ namespace async2 {
       }
     }
 
-    void join() override {
-      _thread.join();
-    }
+    void join() override { _thread.join(); }
 
   public:
     boost::thread _thread;
@@ -150,15 +139,14 @@ namespace async2 {
   template < class E, class R >
   class Engine {
   public:
-    void run(function<void()> f) {
+    void run(function< void() > f) {
       auto coreCount = 8UL;                 // get from config
       auto perCoreQueueSize = 100 * 1024UL; // get from config
-      Context::initialize();
-      atomic<size_t> readyCount {0};
+      atomic< size_t > readyCount{0};
       _executors = make< ExecutorGroup< E > >(coreCount, perCoreQueueSize);
-      _executors->run([&, f=move(f)] {
-        auto &exec = Context::local< Executor >();
-        auto &reactor = Context::local< R >();
+      _executors->run([&, f = move(f) ] {
+        auto &exec = local< Executor >();
+        auto &reactor = local< R >();
 
         std::cout << "Executor " << exec.id() << std::endl;
         _executors->executeOn((exec.id() + 1) % coreCount,
@@ -186,7 +174,7 @@ namespace async2 {
   private:
     Engine() = default;
     template < class >
-    friend class Context::LocalStorage;
+    friend class LocalStorage;
 
   private:
     own< ExecutorGroup< E > > _executors;
@@ -194,7 +182,7 @@ namespace async2 {
 
   /// Override to always return the same Engine object.
   template < class E, class R >
-  struct Context::LocalStorage< Engine< E, R > > {
+  struct LocalStorage< Engine< E, R > > {
     static Engine< E, R > &get() {
       static Engine< E, R > OBJ;
       return OBJ;

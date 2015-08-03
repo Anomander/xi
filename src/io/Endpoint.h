@@ -16,10 +16,8 @@ namespace io {
     Ip4Address address;
     uint16_t port;
 
-    Endpoint() : Endpoint(-1) {
-    }
-    Endpoint(uint16_t p) : address(Ip4Address::any()), port(p) {
-    }
+    Endpoint() : Endpoint(-1) {}
+    Endpoint(uint16_t p) : address(Ip4Address::any()), port(p) {}
   };
 }
 }

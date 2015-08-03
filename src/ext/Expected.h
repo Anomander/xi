@@ -11,19 +11,13 @@ inline namespace ext {
   template < class T >
   class Expected {
   public:
-    Expected(T val) : _value(move(val)) {
-    }
+    Expected(T val) : _value(move(val)) {}
 
-    Expected(error_code error) : _value(error) {
-    }
+    Expected(error_code error) : _value(error) {}
 
-    bool hasError() const noexcept {
-      return nullptr != get< error_code >(&_value);
-    }
+    bool hasError() const noexcept { return nullptr != get< error_code >(&_value); }
 
-    operator T const &() const noexcept {
-      return value();
-    }
+    operator T const &() const noexcept { return value(); }
 
     error_code error() const noexcept {
       error_code er;
@@ -49,20 +43,13 @@ inline namespace ext {
   public:
     Expected() = default;
 
-    Expected(error_code error) : _error(error) {
-    }
+    Expected(error_code error) : _error(error) {}
 
-    bool hasError() const noexcept {
-      return (bool)_error;
-    }
+    bool hasError() const noexcept { return (bool)_error; }
 
-    operator bool() const noexcept {
-      return !hasError();
-    }
+    operator bool() const noexcept { return !hasError(); }
 
-    error_code error() const noexcept {
-      return _error;
-    }
+    error_code error() const noexcept { return _error; }
 
   private:
     error_code _error;
@@ -72,16 +59,12 @@ inline namespace ext {
     template < class T, class F, class R = ::std::result_of_t< F(T) > >
     struct ExpectedFromReturn {
       using type = Expected< R >;
-      static Expected< R > create(Expected< T > const &val, F &f) {
-        return f(val.value());
-      }
+      static Expected< R > create(Expected< T > const &val, F &f) { return f(val.value()); }
     };
     template < class F >
     struct ExpectedFromReturn< void, F, ::std::result_of_t< F() > > {
       using type = Expected< ::std::result_of_t< F() > >;
-      static Expected< ::std::result_of_t< F() > > create(Expected< void > const &val, F &f) {
-        return f();
-      }
+      static Expected< ::std::result_of_t< F() > > create(Expected< void > const &val, F &f) { return f(); }
     };
     template < class T, class F >
     struct ExpectedFromReturn< T, F, void > {

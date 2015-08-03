@@ -10,15 +10,10 @@ namespace io {
 
     class MessageRead : public UpstreamEvent {
     public:
-      MessageRead(own< Message > msg) : _message(move(msg)) {
-      }
+      MessageRead(own< Message > msg) : _message(move(msg)) {}
 
-      mut< Message > message() noexcept {
-        return edit(_message);
-      }
-      own< Message > extractMessage() noexcept {
-        return move(_message);
-      }
+      mut< Message > message() noexcept { return edit(_message); }
+      own< Message > extractMessage() noexcept { return move(_message); }
 
     private:
       own< Message > _message;

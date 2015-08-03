@@ -21,15 +21,9 @@ inline namespace ext {
   namespace detail {
     class UndefinedBoostErrorCategory final : public error_category {
     public:
-      const char* name() const noexcept override {
-        return "Undefined boost error category";
-      }
-      string message(int ev) const override {
-        return "Undefined boost error " + to_string(ev);
-      }
-      error_condition default_error_condition(int ev) const noexcept {
-        return error_condition{ev, *this};
-      };
+      const char* name() const noexcept override { return "Undefined boost error category"; }
+      string message(int ev) const override { return "Undefined boost error " + to_string(ev); }
+      error_condition default_error_condition(int ev) const noexcept { return error_condition{ev, *this}; };
     };
   }
 
@@ -42,9 +36,7 @@ inline namespace ext {
     return error_code{error.value(), detail::UndefinedBoostErrorCategory()};
   }
 
-  inline auto ErrorFromErrno() {
-    return error_code(errno, generic_category());
-  }
+  inline auto ErrorFromErrno() { return error_code(errno, generic_category()); }
 
 #define XI_DECLARE_ERROR_ENUM(E)                                                                                       \
   namespace std {                                                                                                      \
@@ -54,9 +46,7 @@ inline namespace ext {
 
 #define XI_DECLARE_ERROR_CATEGORY(C, Name)                                                                             \
   struct C : error_category {                                                                                          \
-    const char* name() const noexcept override {                                                                       \
-      return Name;                                                                                                     \
-    }                                                                                                                  \
+    const char* name() const noexcept override { return Name; }                                                        \
     std::error_condition default_error_condition(int e) const noexcept override {                                      \
       return std::error_condition(e, *this);                                                                           \
     }                                                                                                                  \
@@ -70,9 +60,7 @@ inline namespace ext {
   inline std::string C::message(int code) const
 
 #define XI_DECLARE_STANDARD_ERROR_FUNCTIONS(C)                                                                         \
-  inline std::error_code make_error_code(Enumeration value) {                                                          \
-    return std::error_code((int)value, C::instance());                                                                 \
-  }                                                                                                                    \
+  inline std::error_code make_error_code(Enumeration value) { return std::error_code((int)value, C::instance()); }     \
                                                                                                                        \
   inline std::error_condition make_error_condition(Enumeration value) {                                                \
     return std::error_condition((int)value, C::instance());                                                            \

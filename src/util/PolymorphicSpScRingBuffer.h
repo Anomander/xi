@@ -7,6 +7,15 @@ namespace xi {
 inline namespace util {
 
   /// Explicitly SPSC ring buffer.
+  /// This class is not designed to support multiple readers or writers.
+  /// With multiple writers there will be a problem of parallel writes to
+  /// the same region of the ring before commiting position.
+  /// It's possible to work around this by commiting position first in a CAS loop
+  /// and then doing the write, but it brings forth another problem - namely suspended writers,
+  /// when the reading thread arrives at the committed region before the writer
+  /// has finished writing.
+  /// Multiple readers are potentially less damaging and should only cause
+  /// re-reads of the same objects.
   /// TODO: The next optimization will be to allow to read batches of items and
   ///       then pop the entire batch in one go.
   template < class T >
@@ -23,8 +32,7 @@ inline namespace util {
     vector< char > _data;
 
   public:
-    PolymorphicSpScRingBuffer(size_t size) : _SIZE(size), _data(size) {
-    }
+    PolymorphicSpScRingBuffer(size_t size) : _SIZE(size), _data(size) {}
 
   protected:
     static size_t writeAvailable(size_t writerIdx, size_t readerIdx, size_t size) {
@@ -128,7 +136,7 @@ inline namespace util {
           _readIdx.store(readerIdx, std::memory_order_release);
           continue;
         } else {
-          reinterpret_cast < T*> (&_data[readerIdx + sizeof(size_t)])->~T();
+          reinterpret_cast< T * >(&_data[readerIdx + sizeof(size_t)])->~T();
           _readIdx.store(readerIdx + *reinterpret_cast< size_t * >(&_data[readerIdx]), std::memory_order_release);
         }
       } while (false);

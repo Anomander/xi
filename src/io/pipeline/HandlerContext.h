@@ -12,8 +12,7 @@ namespace io {
     class HandlerContext : virtual public ownership::StdShared {
     public:
       HandlerContext(mut< Channel > channel, own< PipelineHandler > handler)
-          : _channel(channel), _handler(move(handler)) {
-      }
+          : _channel(channel), _handler(move(handler)) {}
 
       template < class Event >
       void fire(Event e) {
@@ -53,9 +52,7 @@ namespace io {
         ctx->_nextWrite = this;
       }
 
-      mut< Channel > channel() noexcept {
-        return _channel;
-      }
+      mut< Channel > channel() noexcept { return _channel; }
 
     private:
       template < class Event >

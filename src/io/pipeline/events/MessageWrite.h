@@ -10,15 +10,10 @@ namespace io {
 
     class MessageWrite : public DownstreamEvent {
     public:
-      MessageWrite(own< Message > msg) : _message(move(msg)) {
-      }
+      MessageWrite(own< Message > msg) : _message(move(msg)) {}
 
-      mut< Message > message() noexcept {
-        return edit(_message);
-      }
-      own< Message > extractMessage() noexcept {
-        return move(_message);
-      }
+      mut< Message > message() noexcept { return edit(_message); }
+      own< Message > extractMessage() noexcept { return move(_message); }
 
     private:
       own< Message > _message;

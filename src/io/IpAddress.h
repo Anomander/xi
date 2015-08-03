@@ -9,15 +9,9 @@ namespace io {
     using Bytes = array< uint8_t, 4 >;
 
   public:
-    Ip4Address() {
-      _address = 0;
-    }
-    Ip4Address(ref< Bytes > bytes) {
-      *this = bytes;
-    }
-    Ip4Address(uint32_t longAddr) {
-      *this = longAddr;
-    }
+    Ip4Address() { _address = 0; }
+    Ip4Address(ref< Bytes > bytes) { *this = bytes; }
+    Ip4Address(uint32_t longAddr) { *this = longAddr; }
 
     Ip4Address& operator=(ref< Bytes > bytes) {
       using namespace std;
@@ -29,13 +23,9 @@ namespace io {
       return *this;
     }
 
-    static Ip4Address any() noexcept {
-      return Ip4Address(INADDR_ANY);
-    }
+    static Ip4Address any() noexcept { return Ip4Address(INADDR_ANY); }
 
-    in_addr_t const& native() const noexcept {
-      return _address;
-    }
+    in_addr_t const& native() const noexcept { return _address; }
 
   private:
     in_addr_t _address;

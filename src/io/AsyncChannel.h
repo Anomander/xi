@@ -19,8 +19,7 @@ namespace io {
   public:
     AsyncChannel(Expected< int > descriptor)
         : IoHandler(descriptor.value()) // will throw on error
-        , _descriptor(descriptor.value()) {
-    }
+        , _descriptor(descriptor.value()) {}
 
     virtual ~AsyncChannel() noexcept {
       std::cout << __PRETTY_FUNCTION__ << std::endl;
@@ -37,9 +36,7 @@ namespace io {
       pipeline()->channelDeregistered();
     }
 
-    void doClose() override {
-      IoHandler::remove();
-    }
+    void doClose() override { IoHandler::remove(); }
 
     template < class Option >
     void setOption(Option option) {
@@ -50,9 +47,7 @@ namespace io {
     }
 
   protected:
-    int descriptor() const noexcept {
-      return _descriptor;
-    }
+    int descriptor() const noexcept { return _descriptor; }
 
   private:
     int _descriptor = -1;
@@ -61,10 +56,8 @@ namespace io {
   template < AddressFamily af, SocketType sock, Protocol proto = kNone >
   class ChannelBase : public AsyncChannel {
   public:
-    ChannelBase() : AsyncChannel(detail::socket::create(af, sock, proto)) {
-    }
-    ChannelBase(int descriptor) : AsyncChannel(descriptor) {
-    }
+    ChannelBase() : AsyncChannel(detail::socket::create(af, sock, proto)) {}
+    ChannelBase(int descriptor) : AsyncChannel(descriptor) {}
 
   public:
     virtual void open() {
@@ -80,8 +73,7 @@ namespace io {
 
   public:
     ClientChannel(int descriptor, Endpoint_t remote)
-        : ChannelBase< af, kStream, proto >(descriptor), _remote(move(remote)) {
-    }
+        : ChannelBase< af, kStream, proto >(descriptor), _remote(move(remote)) {}
 
   public:
     void doWrite(own< DataMessage > msg) override {
@@ -173,15 +165,10 @@ namespace io {
 
   class ClientChannelConnected : public FastCastGroupMember< ClientChannelConnected, Message > {
   public:
-    ClientChannelConnected(own< AsyncChannel > ch) : _channel(move(ch)) {
-    }
+    ClientChannelConnected(own< AsyncChannel > ch) : _channel(move(ch)) {}
 
-    mut< AsyncChannel > channel() {
-      return edit(_channel);
-    }
-    own< AsyncChannel > extractChannel() {
-      return move(_channel);
-    }
+    mut< AsyncChannel > channel() { return edit(_channel); }
+    own< AsyncChannel > extractChannel() { return move(_channel); }
 
   private:
     own< AsyncChannel > _channel;
@@ -203,10 +190,8 @@ namespace io {
     }
 
   private:
-    void doWrite(own< DataMessage >) final override {
-    }
-    void handleWrite() final override {
-    }
+    void doWrite(own< DataMessage >) final override {}
+    void handleWrite() final override {}
     void handleRead() override {
       Endpoint_t remote;
       auto i = detail::socket::accept(this->descriptor(), edit(remote));

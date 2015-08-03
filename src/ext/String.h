@@ -20,26 +20,21 @@ inline namespace ext {
     using Base = ::boost::basic_string_ref< CharT, Traits >;
 
   public:
-    constexpr BasicStringRef() : Base() {
-    }
+    constexpr BasicStringRef() : Base() {}
 
-    constexpr BasicStringRef(BasicStringRef const& rhs) : Base(rhs) {
-    }
+    constexpr BasicStringRef(BasicStringRef const& rhs) : Base(rhs) {}
 
     using Base::operator=;
 
     template < size_t N >
     BasicStringRef(const CharT (&str)[N])
-        : BasicStringRef(str, N - 1) {
-    }
+        : BasicStringRef(str, N - 1) {}
 
-    constexpr BasicStringRef(const CharT* str, size_t len) : Base(str, len) {
-    }
+    constexpr BasicStringRef(const CharT* str, size_t len) : Base(str, len) {}
 
     template < typename Allocator >
     BasicStringRef(const std::basic_string< CharT, Traits, Allocator >& str)
-        : Base(str) {
-    }
+        : Base(str) {}
 
     /// Explicitly disallow construction from expiring string
     template < typename Allocator >

@@ -34,12 +34,8 @@ inline namespace ext {
 
   template < typename T >
   struct FastCastableNode {
-    virtual T* cast(T* overloadOnly = nullptr) {
-      return nullptr;
-    }
-    virtual T const* cast(T* overloadOnly = nullptr) const {
-      return nullptr;
-    }
+    virtual T* cast(T* overloadOnly = nullptr) { return nullptr; }
+    virtual T const* cast(T* overloadOnly = nullptr) const { return nullptr; }
 
   protected:
     /// Needs not be public, should not be accessible from outside
@@ -122,12 +118,8 @@ inline namespace ext {
     }
 
   public:
-    T* cast(T* overloadOnly = nullptr) override {
-      return _doCast(this, IsFastCastAllowed< T, D >{});
-    }
-    T const* cast(T* overloadOnly = nullptr) const override {
-      return _doCast(this, IsFastCastAllowed< T, D >{});
-    }
+    T* cast(T* overloadOnly = nullptr) override { return _doCast(this, IsFastCastAllowed< T, D >{}); }
+    T const* cast(T* overloadOnly = nullptr) const override { return _doCast(this, IsFastCastAllowed< T, D >{}); }
   };
 
   template < class D, class Group >

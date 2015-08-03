@@ -5,21 +5,12 @@ namespace io {
 
   template < class ValueType, int Level, int Name, int Length = sizeof(ValueType) >
   struct SocketOption {
-    SocketOption(ValueType value) : _value(value) {
-    }
+    SocketOption(ValueType value) : _value(value) {}
 
-    constexpr int name() {
-      return Name;
-    }
-    constexpr int level() {
-      return Level;
-    }
-    constexpr int length() {
-      return Length;
-    }
-    ValueType value() {
-      return _value;
-    }
+    constexpr int name() { return Name; }
+    constexpr int level() { return Level; }
+    constexpr int length() { return Length; }
+    ValueType value() { return _value; }
 
   private:
     ValueType _value;
@@ -31,12 +22,9 @@ namespace io {
 
     using Base::SocketOption;
 
-    BooleanSocketOption(bool value) : Base(value ? 1 : 0) {
-    }
+    BooleanSocketOption(bool value) : Base(value ? 1 : 0) {}
 
-    operator bool() {
-      return (bool)Base::value();
-    }
+    operator bool() { return (bool)Base::value(); }
 
     static BooleanSocketOption yes;
     static BooleanSocketOption no;

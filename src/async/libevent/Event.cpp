@@ -17,9 +17,7 @@ namespace async {
       }
     }
 
-    void Event::cancel() {
-      event_del(_event);
-    }
+    void Event::cancel() { event_del(_event); }
 
     void Event::arm() {
       std::cout << "Event::arm" << std::endl;
@@ -40,13 +38,9 @@ namespace async {
       arm();
     }
 
-    void Event::addState(EventState newState) {
-      changeState(static_cast< EventState >(_state | newState));
-    }
+    void Event::addState(EventState newState) { changeState(static_cast< EventState >(_state | newState)); }
 
-    void Event::removeState(EventState newState) {
-      changeState(static_cast< EventState >(_state & ~newState));
-    }
+    void Event::removeState(EventState newState) { changeState(static_cast< EventState >(_state & ~newState)); }
   }
 }
 }

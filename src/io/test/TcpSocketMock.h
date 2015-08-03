@@ -11,8 +11,7 @@ namespace io {
   namespace test {
     class TcpAcceptorMock {
     public:
-      TcpAcceptorMock() : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
-      }
+      TcpAcceptorMock() : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {}
 
       /// Will only be connecting to classes under test,
       /// so localhost only
@@ -43,8 +42,7 @@ namespace io {
 
     class TcpSocketMock {
     public:
-      TcpSocketMock() : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
-      }
+      TcpSocketMock() : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {}
 
       /// Will only be connecting to classes under test,
       /// so localhost only

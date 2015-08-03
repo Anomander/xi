@@ -5,8 +5,7 @@
 namespace xi {
 namespace async {
 
-  WakeUpEvent::WakeUpEvent() : IoHandler(eventfd(0, 0)) {
-  }
+  WakeUpEvent::WakeUpEvent() : IoHandler(eventfd(0, 0)) {}
 
   void WakeUpEvent::fire() noexcept {
     auto result = eventfd_write(descriptor(), 1);

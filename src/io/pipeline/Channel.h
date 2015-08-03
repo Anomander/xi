@@ -13,17 +13,11 @@ namespace io {
       virtual ~Channel() noexcept = default;
 
     public:
-      mut< Pipeline > pipeline() noexcept {
-        return edit(_pipeline);
-      }
+      mut< Pipeline > pipeline() noexcept { return edit(_pipeline); }
 
     public:
-      void close() final override {
-        pipeline()->channelClosed();
-      }
-      void write(own< Message > msg) final override {
-        pipeline()->fire(MessageWrite(move(msg)));
-      }
+      void close() final override { pipeline()->channelClosed(); }
+      void write(own< Message > msg) final override { pipeline()->fire(MessageWrite(move(msg))); }
 
     protected:
       friend class HeadPipelineHandler;

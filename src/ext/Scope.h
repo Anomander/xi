@@ -14,8 +14,7 @@ inline namespace ext {
     Action _action;
 
   public:
-    ScopeAction(Action &&action) : _action(move(action)) {
-    }
+    ScopeAction(Action &&action) : _action(move(action)) {}
     ~ScopeAction() {
       if (condition())
         _action();
@@ -35,9 +34,7 @@ inline namespace ext {
   bool not__() {
     return !function();
   }
-  inline bool AlwaysTrue() {
-    return true;
-  }
+  inline bool AlwaysTrue() { return true; }
 
   using success_ActionBuilder = ScopeActionBuilder< &not__< &std::uncaught_exception > >;
   using failure_ActionBuilder = ScopeActionBuilder< &std::uncaught_exception >;

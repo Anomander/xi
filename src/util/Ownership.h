@@ -23,21 +23,15 @@ inline namespace util {
     struct Shared {};
     template <>
     struct Shared< SharedPolicy::kStd > : public ::std::enable_shared_from_this< Shared< SharedPolicy::kStd > > {
-      auto self() {
-        return shared_from_this();
-      }
+      auto self() { return shared_from_this(); }
     };
     template <>
     struct Shared< SharedPolicy::kRc > : public RcCounter< Shared< SharedPolicy::kRc > > {
-      auto self() {
-        return intrusive_ptr< Shared< SharedPolicy::kRc > >(this);
-      }
+      auto self() { return intrusive_ptr< Shared< SharedPolicy::kRc > >(this); }
     };
     template <>
     struct Shared< SharedPolicy::kArc > : public ArcCounter< Shared< SharedPolicy::kArc > > {
-      auto self() {
-        return intrusive_ptr< Shared< SharedPolicy::kArc > >(this);
-      }
+      auto self() { return intrusive_ptr< Shared< SharedPolicy::kArc > >(this); }
     };
     struct Unique {};
 

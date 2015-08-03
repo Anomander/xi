@@ -27,8 +27,7 @@ inline namespace util {
   static_assert(ObjectsStored< 16 >::Count< Foo >() == 16 * 24, "");
 
   struct NoLockStrategy {
-    auto lock() {
-      struct EmptyLock {};
+    auto lock() { struct EmptyLock { };
       return EmptyLock{};
     }
   };
@@ -50,9 +49,7 @@ inline namespace util {
       }
       return result;
     }
-    void free(T *) {
-      auto lock = _lockStrategy.lock();
-    }
+    void free(T *) { auto lock = _lockStrategy.lock(); }
   };
 
   template < size_t N, size_t DefaultChunkSize = N * 64, size_t InitialChunks = 2 >
@@ -67,9 +64,7 @@ inline namespace util {
       aligned_storage_t< sizeof(uint8_t[N]), alignof(uint8_t[N]) > data[DefaultChunkSize];
       char tail[0];
 
-      Chunk() {
-        firstUnallocated.store(data, ::std::memory_order_relaxed);
-      }
+      Chunk() { firstUnallocated.store(data, ::std::memory_order_relaxed); }
       void *allocate() {
         auto *free = firstFree.load(::std::memory_order_relaxed);
         auto *nextFree = kEof;
@@ -92,9 +87,7 @@ inline namespace util {
     };
 
   public:
-    void *allocate() {
-      return nullptr;
-    }
+    void *allocate() { return nullptr; }
   };
 }
 }

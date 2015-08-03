@@ -18,19 +18,14 @@ namespace async {
     struct DelegateTask : public Task {
       Delegate _delegate;
 
-      DelegateTask(Delegate const& d) : _delegate(d) {
-      }
-      DelegateTask(Delegate&& d) : _delegate(forward< Delegate >(d)) {
-      }
+      DelegateTask(Delegate const& d) : _delegate(d) {}
+      DelegateTask(Delegate&& d) : _delegate(forward< Delegate >(d)) {}
 
-      void run() override {
-        _delegate();
-      }
+      void run() override { _delegate(); }
     };
 
   public:
-    TaskQueue(size_t sizeInBytes) : _ringBuffer(sizeInBytes) {
-    }
+    TaskQueue(size_t sizeInBytes) : _ringBuffer(sizeInBytes) {}
 
     template < class Work >
     void submit(Work&& work) {

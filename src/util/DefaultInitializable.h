@@ -14,11 +14,9 @@ inline namespace util {
   struct DefaultInitializable {
     using Initializer = function< own< T >() >;
 
-    DefaultInitializable(Initializer init) : _initializer(move(init)) {
-    }
+    DefaultInitializable(Initializer init) : _initializer(move(init)) {}
 
-    DefaultInitializable() : _initializer(&DefaultInitializer< T >) {
-    }
+    DefaultInitializable() : _initializer(&DefaultInitializer< T >) {}
 
     mut< T > get() {
       if (!_initialized) {
@@ -33,9 +31,7 @@ inline namespace util {
       _initialized = true;
     }
 
-    T* operator->() {
-      return get();
-    }
+    T* operator->() { return get(); }
 
   private:
     bool _initialized = false;

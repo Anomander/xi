@@ -14,9 +14,7 @@ namespace io {
       virtual void handleEvent(mut< HandlerContext > cx, own< E > e);
 
     protected:
-      void onEvent(mut< HandlerContext > cx, own< E > e) {
-        this->handleEvent(cx, std::move(e));
-      }
+      void onEvent(mut< HandlerContext > cx, own< E > e) { this->handleEvent(cx, std::move(e)); }
     };
 
     class PipelineHandler : virtual public ownership::StdShared,

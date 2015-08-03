@@ -29,9 +29,7 @@ namespace async {
     _active = false;
   }
 
-  bool EventHandler::isActive() const noexcept {
-    return _active;
-  }
+  bool EventHandler::isActive() const noexcept { return _active; }
 
   void IoHandler::handle(EventState state) {
     if (state & kWrite) {
@@ -62,8 +60,6 @@ namespace async {
     }
   }
 
-  opt< milliseconds > IoHandler::expectedTimeout() const noexcept {
-    return none;
-  }
+  opt< milliseconds > IoHandler::expectedTimeout() const noexcept { return none; }
 }
 }

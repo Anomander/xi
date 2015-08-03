@@ -26,30 +26,14 @@ namespace io {
       void pushBack(own< PipelineHandler >);
       void pushFront(own< PipelineHandler >);
 
-      void channelRead(own< Message > msg) {
-        fire(MessageRead(move(msg)));
-      }
-      void channelWrite(own< Message > msg) {
-        fire(MessageWrite(move(msg)));
-      }
-      void channelRegistered() {
-        fire(ChannelRegistered());
-      }
-      void channelDeregistered() {
-        fire(ChannelDeregistered());
-      }
-      void channelOpened() {
-        fire(ChannelOpened());
-      }
-      void channelClosed() {
-        fire(ChannelClosed());
-      }
-      void channelError(error_code error) {
-        fire(ChannelError(error));
-      }
-      void channelException(exception_ptr ex) {
-        fire(ChannelException(ex));
-      }
+      void channelRead(own< Message > msg) { fire(MessageRead(move(msg))); }
+      void channelWrite(own< Message > msg) { fire(MessageWrite(move(msg))); }
+      void channelRegistered() { fire(ChannelRegistered()); }
+      void channelDeregistered() { fire(ChannelDeregistered()); }
+      void channelOpened() { fire(ChannelOpened()); }
+      void channelClosed() { fire(ChannelClosed()); }
+      void channelError(error_code error) { fire(ChannelError(error)); }
+      void channelException(exception_ptr ex) { fire(ChannelException(ex)); }
 
     private:
       template < class Event >

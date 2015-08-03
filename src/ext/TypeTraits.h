@@ -38,37 +38,27 @@ inline namespace ext {
     template < class T >
     struct AddressOf {
       using type = decltype(::std::addressof(*((const T *)0)));
-      static type value(T const &t) {
-        return ::std::addressof(t);
-      }
+      static type value(T const &t) { return ::std::addressof(t); }
     };
     template < class T >
     struct AddressOf< T * > {
       using type = T *;
-      static type value(T *const &t) {
-        return t;
-      }
+      static type value(T *const &t) { return t; }
     };
     template < class T >
     struct AddressOf< shared_ptr< T > > {
       using type = T *;
-      static type value(shared_ptr< T > const &t) {
-        return t.get();
-      }
+      static type value(shared_ptr< T > const &t) { return t.get(); }
     };
     template < class T >
     struct AddressOf< intrusive_ptr< T > > {
       using type = T *;
-      static type value(intrusive_ptr< T > const &t) {
-        return t.get();
-      }
+      static type value(intrusive_ptr< T > const &t) { return t.get(); }
     };
     template < class T >
     struct AddressOf< unique_ptr< T > > {
       using type = T *;
-      static type value(unique_ptr< T > const &t) {
-        return t.get();
-      }
+      static type value(unique_ptr< T > const &t) { return t.get(); }
     };
   }
   template < class T >

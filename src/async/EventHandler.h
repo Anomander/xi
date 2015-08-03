@@ -30,8 +30,7 @@ namespace async {
 
   class IoHandler : public EventHandler {
   public:
-    IoHandler(int descriptor) : _descriptor(descriptor) {
-    }
+    IoHandler(int descriptor) : _descriptor(descriptor) {}
 
     void expectRead(bool) noexcept;
     void expectWrite(bool) noexcept;
@@ -42,12 +41,8 @@ namespace async {
 
     void handle(EventState) override;
     opt< milliseconds > expectedTimeout() const noexcept override;
-    int descriptor() const noexcept override {
-      return _descriptor;
-    }
-    EventState expectedState() const noexcept override {
-      return kRead;
-    }
+    int descriptor() const noexcept override { return _descriptor; }
+    EventState expectedState() const noexcept override { return kRead; }
 
   private:
     int _descriptor = -1;

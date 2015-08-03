@@ -9,12 +9,9 @@ namespace io {
     template < class Msg, class F >
     auto makeInboundHandler(F&& f) {
       struct InboundHandler : public SimpleInboundPipelineHandler< Msg > {
-        InboundHandler(F&& f) : _f(forward< F >(f)) {
-        }
+        InboundHandler(F&& f) : _f(forward< F >(f)) {}
 
-        void messageReceived(mut< HandlerContext > cx, own< Msg > msg) override {
-          _f(cx, move(msg));
-        }
+        void messageReceived(mut< HandlerContext > cx, own< Msg > msg) override { _f(cx, move(msg)); }
 
       private:
         F _f;

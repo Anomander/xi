@@ -10,8 +10,7 @@ class SpinLock {
   atomic< LockState > _state;
 
 public:
-  SpinLock() : _state(Unlocked) {
-  }
+  SpinLock() : _state(Unlocked) {}
 
   void lock() {
     for (size_t attempt = 0; _state.exchange(Locked, memory_order_acquire) == Locked; ++attempt) {
@@ -23,9 +22,7 @@ public:
       }
     }
   }
-  void unlock() {
-    _state.store(Unlocked, memory_order_release);
-  }
+  void unlock() { _state.store(Unlocked, memory_order_release); }
 };
 
 } // namespace xi

@@ -24,7 +24,7 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-  auto& engine = Context::local< Engine< ThreadExecutor, libevent::Reactor > >();
+  auto& engine = local< Engine< ThreadExecutor, libevent::Reactor > >();
   auto ch = make< ServerChannel< kInet, kTCP > >();
   ch->bind(19999);
   ch->pipeline()->pushBack(pipeline::makeInboundHandler< ClientChannelConnected >([&](auto cx, auto msg) {
