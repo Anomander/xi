@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ext/Common.h"
+
 #include <memory>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
@@ -29,6 +31,11 @@ inline namespace ext {
       ptr.release();
     }
     return unique_ptr< T >(cast);
+  }
+
+  template < class T >
+  auto makeSharedCopy(T&& t) {
+    return make_shared< typename ::std::decay< T >::type >(forward< T >(t));
   }
 
 } // inline namespace ext

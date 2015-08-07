@@ -17,6 +17,7 @@ inline namespace ext {
   using ::std::add_const_t;
   using ::std::remove_const_t;
   using ::std::remove_cv_t;
+  using ::std::result_of_t;
 
   using ::boost::is_same;
   using ::boost::is_base_of;

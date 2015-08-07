@@ -7,6 +7,7 @@
 #include <boost/mpl/push_back.hpp>
 #include <boost/mpl/pop_back.hpp>
 #include <boost/mpl/back.hpp>
+#include <boost/mpl/greater.hpp>
 
 namespace xi {
 inline namespace ext {
@@ -21,6 +22,12 @@ inline namespace ext {
 
     using FalseType = ::boost::mpl::false_;
     using TrueType = ::boost::mpl::true_;
+    template < bool B >
+    using BoolType = ::boost::mpl::bool_< B >;
+
+    template < size_t A, size_t B >
+    using ulongGreater =
+        typename boost::mpl::greater< boost::mpl::integral_c< size_t, A >, boost::mpl::integral_c< size_t, B > >;
 
     enum class enabled {};
 

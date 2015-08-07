@@ -1,8 +1,9 @@
 #pragma once
 
+#include "ext/Common.h"
+#include "ext/Meta.h"
 #include "ext/Pointer.h"
 #include "ext/TypeTraits.h"
-#include "ext/Meta.h"
 
 namespace xi {
 inline namespace util {
@@ -22,17 +23,11 @@ inline namespace util {
     template < SharedPolicy >
     struct Shared {};
     template <>
-    struct Shared< SharedPolicy::kStd > : public ::std::enable_shared_from_this< Shared< SharedPolicy::kStd > > {
-      auto self() { return shared_from_this(); }
-    };
+    struct Shared< SharedPolicy::kStd > : public ::std::enable_shared_from_this< Shared< SharedPolicy::kStd > > {};
     template <>
-    struct Shared< SharedPolicy::kRc > : public RcCounter< Shared< SharedPolicy::kRc > > {
-      auto self() { return intrusive_ptr< Shared< SharedPolicy::kRc > >(this); }
-    };
+    struct Shared< SharedPolicy::kRc > : public RcCounter< Shared< SharedPolicy::kRc > > {};
     template <>
-    struct Shared< SharedPolicy::kArc > : public ArcCounter< Shared< SharedPolicy::kArc > > {
-      auto self() { return intrusive_ptr< Shared< SharedPolicy::kArc > >(this); }
-    };
+    struct Shared< SharedPolicy::kArc > : public ArcCounter< Shared< SharedPolicy::kArc > > {};
     struct Unique {};
 
     using StdShared = Shared< SharedPolicy::kStd >;
@@ -134,7 +129,25 @@ inline namespace util {
         return make_unique< T >(::std::forward< Args >(args)...);
       }
     };
+
+    template < class T, XI_REQUIRE_DECL(is_base_of<ownership::Shared< ownership::SharedPolicy::kStd >, T>)>
+    auto share(T* obj) {
+      return std::shared_ptr< T >(obj->shared_from_this(), reinterpret_cast< T* >(obj));
+    }
+    template < class T, XI_REQUIRE_DECL(is_base_of<ownership::Shared< ownership::SharedPolicy::kRc >, T>)>
+    auto share(T* obj) {
+      return intrusive_ptr< T >(reinterpret_cast< T* >(obj));
+    }
+    template < class T, XI_REQUIRE_DECL(is_base_of<ownership::Shared< ownership::SharedPolicy::kArc >, T>)>
+    auto share(T* obj) {
+      return intrusive_ptr< T >(reinterpret_cast< T* >(obj));
+    }
   } // namespace detail
+
+  template < class T >
+  auto share(T* t) {
+    return detail::share(t);
+  }
 
   template < class T >
   using own = typename detail::own< T, meta::enabled >::type;

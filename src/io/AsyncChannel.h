@@ -80,7 +80,7 @@ namespace io {
       static const error_code EAgain = make_error_code(SystemError::resource_unavailable_try_again);
       static const error_code EWouldBlock = make_error_code(SystemError::operation_would_block);
 
-      auto destructionGuard = this->self();
+      auto destructionGuard = share(this);
       auto data = msg->data();
       auto written = detail::socket::write(this->descriptor(), data, data->header().size + sizeof(ProtocolMessage));
       if (written.hasError()) {
@@ -103,7 +103,7 @@ namespace io {
       static const error_code EAgain = make_error_code(SystemError::resource_unavailable_try_again);
       static const error_code EWouldBlock = make_error_code(SystemError::operation_would_block);
 
-      auto destructionGuard = this->self();
+      auto destructionGuard = share(this);
       while (this->isActive()) {
         if (_currentMessage) {
           auto read = detail::socket::read(this->descriptor(), _messageCursor, _remainingSize);

@@ -30,13 +30,15 @@ inline namespace ext {
   using ::std::vector;
   using ::std::unordered_map;
 
-  using ::std::tuple;
-  using ::std::make_tuple;
-
   using ::std::atomic;
 
   using ::boost::regex;
   using ::boost::cmatch; /// match_results <char*>
+
+  template < class T >
+  decltype(auto) reference(T& t) {
+    return ::std::ref(t);
+  }
 
   using ::boost::multiprecision::uint128_t;
   using ::boost::multiprecision::uint256_t;

@@ -9,6 +9,7 @@
 #include "ext/Expected.h"
 #include "ext/FastCast.h"
 #include "ext/Hash.h"
+#include "ext/Lock.h"
 #include "ext/Meta.h"
 #include "ext/Optional.h"
 #include "ext/Pointer.h"
@@ -16,6 +17,7 @@
 #include "ext/Scope.h"
 #include "ext/String.h"
 #include "ext/TypeTraits.h"
+#include "ext/Tuple.h"
 
 /// Include files that require the declarations above
 #include "util/Ownership.h"

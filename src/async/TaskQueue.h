@@ -3,26 +3,13 @@
 #include "ext/Configure.h"
 #include "ext/OverloadRank.h"
 #include "util/PolymorphicSpScRingBuffer.h"
+#include "async/Task.h"
 
 namespace xi {
 namespace async {
-  struct Task {
-    virtual ~Task() = default;
-    virtual void run() = 0;
-  };
 
   class TaskQueue {
     PolymorphicSpScRingBuffer< Task > _ringBuffer;
-
-    template < class Delegate >
-    struct DelegateTask : public Task {
-      Delegate _delegate;
-
-      DelegateTask(Delegate const& d) : _delegate(d) {}
-      DelegateTask(Delegate&& d) : _delegate(forward< Delegate >(d)) {}
-
-      void run() override { _delegate(); }
-    };
 
   public:
     TaskQueue(size_t sizeInBytes) : _ringBuffer(sizeInBytes) {}
@@ -42,16 +29,11 @@ namespace async {
   private:
     template < class Work >
     void _submit(Work&& work, meta::FalseType) {
-      _ringBuffer.push(makeDelegateTask(forward< Work >(work)));
+      _ringBuffer.push(makeTask(forward< Work >(work)));
     }
     template < class Work >
     void _submit(Work&& work, meta::TrueType) {
       _ringBuffer.push(forward< Work >(work));
-    }
-
-    template < class Work >
-    auto makeDelegateTask(Work&& work) {
-      return DelegateTask< decay_t< Work > >(forward< Work >(work));
     }
   };
 }

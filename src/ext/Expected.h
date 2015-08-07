@@ -56,15 +56,15 @@ inline namespace ext {
   };
 
   namespace detail {
-    template < class T, class F, class R = ::std::result_of_t< F(T) > >
+    template < class T, class F, class R = result_of_t< F(T) > >
     struct ExpectedFromReturn {
       using type = Expected< R >;
       static Expected< R > create(Expected< T > const &val, F &f) { return f(val.value()); }
     };
     template < class F >
-    struct ExpectedFromReturn< void, F, ::std::result_of_t< F() > > {
-      using type = Expected< ::std::result_of_t< F() > >;
-      static Expected< ::std::result_of_t< F() > > create(Expected< void > const &val, F &f) { return f(); }
+    struct ExpectedFromReturn< void, F, result_of_t< F() > > {
+      using type = Expected< result_of_t< F() > >;
+      static Expected< result_of_t< F() > > create(Expected< void > const &val, F &f) { return f(); }
     };
     template < class T, class F >
     struct ExpectedFromReturn< T, F, void > {

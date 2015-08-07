@@ -32,6 +32,7 @@ namespace async2 {
     size_t id() const noexcept { return _id; }
 
   protected:
+    virtual ~Executor() { cleanup(); }
     void setup() {
       setLocal< Executor >(*this);
       assert(&local< Executor >() == this);
@@ -55,6 +56,11 @@ namespace async2 {
     TaskQueue **_queues;
     size_t _cores;
   };
+
+  template < class Func >
+  void schedule(Func &&f) {
+    local< Executor >().submit(forward< Func >(f));
+  }
 
   class ThreadExecutor : public Executor {
   public:
@@ -98,6 +104,15 @@ namespace async2 {
       for (size_t i = 0; i < count; ++i) {
         _executors.emplace_back(E{i, _queues, count});
       }
+    }
+
+    virtual ~ExecutorGroup() {
+      for (size_t dst = 0; dst < _executors.size(); ++dst) {
+        _queues[dst]->~TaskQueue();
+        free(_queues[dst]);
+      }
+      _executors.clear();
+      delete[] _queues;
     }
 
     template < class Func >
