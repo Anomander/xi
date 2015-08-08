@@ -52,11 +52,6 @@ inline namespace ext {
       static type value(shared_ptr< T > const &t) { return t.get(); }
     };
     template < class T >
-    struct AddressOf< intrusive_ptr< T > > {
-      using type = T *;
-      static type value(intrusive_ptr< T > const &t) { return t.get(); }
-    };
-    template < class T >
     struct AddressOf< unique_ptr< T > > {
       using type = T *;
       static type value(unique_ptr< T > const &t) { return t.get(); }

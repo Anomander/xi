@@ -24,10 +24,12 @@ inline namespace util {
     struct Shared {};
     template <>
     struct Shared< SharedPolicy::kStd > : public ::std::enable_shared_from_this< Shared< SharedPolicy::kStd > > {};
+    /// Pointing these to StdShared until either intrusive_ptr comes back
+    /// or an alternative is found.
     template <>
-    struct Shared< SharedPolicy::kRc > : public RcCounter< Shared< SharedPolicy::kRc > > {};
+    struct Shared< SharedPolicy::kRc > : public Shared< SharedPolicy::kStd > {};
     template <>
-    struct Shared< SharedPolicy::kArc > : public ArcCounter< Shared< SharedPolicy::kArc > > {};
+    struct Shared< SharedPolicy::kArc > : public Shared< SharedPolicy::kStd > {};
     struct Unique {};
 
     using StdShared = Shared< SharedPolicy::kStd >;
@@ -67,24 +69,12 @@ inline namespace util {
     struct ref< unique_ptr< T > > : ref< T > {};
     template < class T >
     struct ref< shared_ptr< T > > : ref< T > {};
-    template < class T >
-    struct ref< intrusive_ptr< T > > : ref< T > {};
 
     template < class T >
     struct mut< unique_ptr< T > > : mut< T > {};
     template < class T >
     struct mut< shared_ptr< T > > : mut< T > {};
-    template < class T >
-    struct mut< intrusive_ptr< T > > : mut< T > {};
 
-    template < class T >
-    struct own< T, EnableIfShared< T, ownership::SharedPolicy::kArc > > {
-      using type = intrusive_ptr< T >;
-    };
-    template < class T >
-    struct own< T, EnableIfShared< T, ownership::SharedPolicy::kRc > > {
-      using type = intrusive_ptr< T >;
-    };
     template < class T >
     struct own< T, EnableIfShared< T, ownership::SharedPolicy::kStd > > {
       using type = shared_ptr< T >;
@@ -109,20 +99,6 @@ inline namespace util {
       }
     };
     template < class T >
-    struct Maker< T, EnableIfShared< T, ownership::SharedPolicy::kRc > > {
-      template < class... Args >
-      static auto make(Args&&... args) {
-        return intrusive_ptr< T >(new T(::std::forward< Args >(args)...));
-      }
-    };
-    template < class T >
-    struct Maker< T, EnableIfShared< T, ownership::SharedPolicy::kArc > > {
-      template < class... Args >
-      static auto make(Args&&... args) {
-        return intrusive_ptr< T >(new T(::std::forward< Args >(args)...));
-      }
-    };
-    template < class T >
     struct Maker< T, EnableIfUnique< T > > {
       template < class... Args >
       static auto make(Args&&... args) {
@@ -130,17 +106,9 @@ inline namespace util {
       }
     };
 
-    template < class T, XI_REQUIRE_DECL(is_base_of<ownership::Shared< ownership::SharedPolicy::kStd >, T>)>
+    template < class T, XI_REQUIRE_DECL(is_base_of< ownership::Shared< ownership::SharedPolicy::kStd >, T >)>
     auto share(T* obj) {
       return std::shared_ptr< T >(obj->shared_from_this(), reinterpret_cast< T* >(obj));
-    }
-    template < class T, XI_REQUIRE_DECL(is_base_of<ownership::Shared< ownership::SharedPolicy::kRc >, T>)>
-    auto share(T* obj) {
-      return intrusive_ptr< T >(reinterpret_cast< T* >(obj));
-    }
-    template < class T, XI_REQUIRE_DECL(is_base_of<ownership::Shared< ownership::SharedPolicy::kArc >, T>)>
-    auto share(T* obj) {
-      return intrusive_ptr< T >(reinterpret_cast< T* >(obj));
     }
   } // namespace detail
 
@@ -174,10 +142,6 @@ inline namespace util {
     return ref< T >(*t);
   }
   template < class T >
-  inline ref< T > cref(intrusive_ptr< T > t) {
-    return ref< T >(*t);
-  }
-  template < class T >
   inline ref< T > cref(unique_ptr< T >& t) {
     return ref< T >(*t);
   }
@@ -194,17 +158,11 @@ inline namespace util {
     return mut< T >(t.get());
   }
   template < class T >
-  inline mut< T > edit(intrusive_ptr< T > t) {
-    return mut< T >(t.get());
-  }
-  template < class T >
   inline mut< T > edit(unique_ptr< T >& t) {
     return mut< T >(t.get());
   }
   template < class T >
   inline mut< T > edit(T const& t) = delete;
-  // template <class T> inline mut<T> edit(shared_ptr<T> const t) = delete;
-  // template <class T> inline mut<T> edit(intrusive_ptr<T> const t) = delete;
   template < class T >
   inline mut< T > edit(unique_ptr< T > const& t) = delete;
 
@@ -213,9 +171,6 @@ inline namespace util {
   }
   template < class T >
   inline void release(shared_ptr< T > t) { /* no-op */
-  }
-  template < class T >
-  inline void release(intrusive_ptr< T > t) { /* no-op */
   }
 
   template < class T >
@@ -228,10 +183,6 @@ inline namespace util {
   }
   template < class T >
   inline decltype(auto) val(shared_ptr< T > const& t) {
-    return *t;
-  }
-  template < class T >
-  inline decltype(auto) val(intrusive_ptr< T > const& t) {
     return *t;
   }
   template < class T >

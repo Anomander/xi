@@ -3,8 +3,6 @@
 #include "ext/Common.h"
 
 #include <memory>
-#include <boost/intrusive_ptr.hpp>
-#include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 namespace xi {
 inline namespace ext {
@@ -17,12 +15,6 @@ inline namespace ext {
 
   using ::std::static_pointer_cast;
   using ::std::dynamic_pointer_cast;
-
-  using ::boost::intrusive_ptr;
-  template < class T >
-  using RcCounter = ::boost::intrusive_ref_counter< T, ::boost::thread_unsafe_counter >;
-  template < class T >
-  using ArcCounter = ::boost::intrusive_ref_counter< T, ::boost::thread_safe_counter >;
 
   template < class T, class U >
   auto dynamic_pointer_cast(unique_ptr< U >&& ptr) noexcept {

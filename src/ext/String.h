@@ -3,7 +3,6 @@
 #include <string>
 #include <cstring>
 
-#include <boost/format.hpp>
 #include <boost/utility/string_ref.hpp>
 
 namespace xi {
@@ -11,9 +10,6 @@ inline namespace ext {
 
   using ::std::string;
   using ::std::to_string;
-
-  using ::boost::format;
-  using ::boost::str;
 
   template < typename CharT, typename Traits >
   class BasicStringRef : public ::boost::basic_string_ref< CharT, Traits > {

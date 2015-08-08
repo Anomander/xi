@@ -16,3 +16,21 @@
 [submodule "third-party/boost/core"]
 	path = third-party/boost/core
 	url = https://github.com/boostorg/core.git
+[submodule "third-party/boost/type_traits"]
+	path = third-party/boost/type_traits
+	url = https://github.com/boostorg/type_traits.git
+[submodule "third-party/boost/functional"]
+	path = third-party/boost/functional
+	url = https://github.com/boostorg/functional.git
+[submodule "third-party/boost/utility"]
+	path = third-party/boost/utility
+	url = https://github.com/boostorg/utility.git
+[submodule "third-party/boost/variant"]
+	path = third-party/boost/variant
+	url = https://github.com/boostorg/variant.git
+[submodule "third-party/boost/type_index"]
+	path = third-party/boost/type_index
+	url = https://github.com/boostorg/type_index.git
+[submodule "third-party/boost/move"]
+	path = third-party/boost/move
+	url = https://github.com/boostorg/move.git
