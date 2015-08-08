@@ -1,3 +1,18 @@
 [submodule "third-party/googletest"]
 	path = third-party/googletest
 	url = https://github.com/Anomander/googletest.git
+[submodule "third-party/libevent"]
+	path = third-party/libevent
+	url = https://github.com/Anomander/libevent.git
+[submodule "third-party/boost/mpl"]
+	path = third-party/boost/mpl
+	url = https://github.com/boostorg/mpl.git
+[submodule "third-party/boost/preprocessor"]
+	path = third-party/boost/preprocessor
+	url = https://github.com/boostorg/preprocessor.git
+[submodule "third-party/boost/optional"]
+	path = third-party/boost/optional
+	url = https://github.com/boostorg/optional.git
+[submodule "third-party/boost/core"]
+	path = third-party/boost/core
+	url = https://github.com/boostorg/core.git

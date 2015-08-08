@@ -292,6 +292,28 @@ TEST(Continuation, FutureFromContinuationIsUnwrapped_Promise) {
   ASSERT_EQ(42*42, val);
 }
 
+TEST(Continuation, FutureFromContinuationIsUnwrapped_Void_Future) {
+  auto r = makeReadyFuture(42).then([](int j) { return makeReadyFuture(); });
+
+  ASSERT_TRUE(r.isReady());
+  ASSERT_FALSE(r.isException());
+}
+
+TEST(Continuation, FutureFromContinuationIsUnwrapped_Void_Promise) {
+  Promise< int > p;
+  auto f = p.getFuture();
+
+  auto r = f.then([](int j) { return makeReadyFuture(); });
+
+  ASSERT_FALSE(r.isReady());
+  ASSERT_FALSE(r.isException());
+
+  p.setValue(42);
+
+  ASSERT_TRUE(r.isReady());
+  ASSERT_FALSE(r.isException());
+}
+
 TEST(Continuation, FutureFromContinuationIsUnwrapped_Exception_Future) {
   auto r = makeReadyFuture(42).then([](int j) { throw std::exception{}; });
 

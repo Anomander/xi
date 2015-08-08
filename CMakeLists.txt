@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.8.0 FATAL_ERROR)
 
 project(Xi)
 
@@ -12,13 +12,30 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
-find_package( Boost 1.55 REQUIRED COMPONENTS system timer thread )
+# boost
+# find_package( Boost 1.55 REQUIRED thread )
+FILE(GLOB children third-party/boost/*)
+FOREACH(child ${children})
+  IF(IS_DIRECTORY ${curdir}/${child})
+    INCLUDE_DIRECTORIES( ${child}/include )
+    MESSAGE("Including Boost headers from " ${child})
+  ENDIF()
+ENDFOREACH()
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+foreach(dir ${dirs})
+  message(STATUS "dir='${dir}'")
+endforeach()
 
 # libevent
-find_package( Event )
+# find_package( Event )
+add_subdirectory(third-party/libevent)
+INCLUDE_DIRECTORIES( ${libevent_SOURCE_DIR}/include )
+INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR}/third-party/libevent/include )
 
 # jemalloc
-find_package( JeMalloc )
+# Will revisit when working with memory
+#find_package( JeMalloc )
 
 # googletest
 add_subdirectory(third-party/googletest)
@@ -46,7 +63,6 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 
-INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 INCLUDE_DIRECTORIES( ${PROJECT_SOURCE_DIR}/src )
 
 add_subdirectory(src)

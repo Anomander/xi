@@ -3,7 +3,6 @@
 #include "ext/String.h"
 
 #include <system_error>
-#include <boost/system/error_code.hpp>
 
 namespace xi {
 inline namespace ext {
@@ -25,15 +24,6 @@ inline namespace ext {
       string message(int ev) const override { return "Undefined boost error " + to_string(ev); }
       error_condition default_error_condition(int ev) const noexcept { return error_condition{ev, *this}; };
     };
-  }
-
-  inline error_code BoostToStd(boost::system::error_code error) {
-    if (error.category() == boost::system::generic_category())
-      return error_code{error.value(), std::generic_category()};
-    if (error.category() == boost::system::system_category())
-      return error_code{error.value(), std::system_category()};
-
-    return error_code{error.value(), detail::UndefinedBoostErrorCategory()};
   }
 
   inline auto ErrorFromErrno() { return error_code(errno, generic_category()); }

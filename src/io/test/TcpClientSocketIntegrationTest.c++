@@ -6,8 +6,6 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/thread.hpp>
-
 using namespace xi;
 using namespace xi::io;
 using namespace xi::async::libevent;

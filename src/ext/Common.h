@@ -5,12 +5,12 @@
 #include <deque>
 #include <tuple>
 #include <memory>
+#include <thread>
 #include <vector>
 #include <functional>
 #include <unordered_map>
 
 #include <boost/regex.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
 
 namespace xi {
 inline namespace ext {
@@ -29,6 +29,8 @@ inline namespace ext {
   using ::std::vector;
   using ::std::unordered_map;
 
+  using ::std::thread;
+
   using ::boost::regex;
   using ::boost::cmatch; /// match_results <char*>
 
@@ -36,11 +38,6 @@ inline namespace ext {
   decltype(auto) reference(T& t) {
     return ::std::ref(t);
   }
-
-  using ::boost::multiprecision::uint128_t;
-  using ::boost::multiprecision::uint256_t;
-  using ::boost::multiprecision::uint512_t;
-  using ::boost::multiprecision::uint1024_t;
 
 } // inline namespace ext
 } // namespace xi

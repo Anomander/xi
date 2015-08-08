@@ -4,8 +4,6 @@
 #include "async/Engine.h"
 #include "async/ThreadExecutor.h"
 
-#include <boost/thread.hpp>
-
 using namespace xi;
 using namespace xi::async;
 using namespace xi::async::libevent;

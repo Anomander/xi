@@ -1,6 +1,6 @@
 #include "async/Event.h"
 
-#include <event2/event.h>
+#include <event.h>
 
 namespace xi {
 namespace async {

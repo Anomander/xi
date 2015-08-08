@@ -11,7 +11,7 @@ namespace async {
     using Executor::Executor;
     void run(function< void() > f) noexcept override {
       try {
-        _thread = boost::thread([ this, f = move(f) ] {
+        _thread = thread([ this, f = move(f) ] {
           try {
             this->setup();
 
@@ -30,7 +30,7 @@ namespace async {
     void join() override { _thread.join(); }
 
   public:
-    boost::thread _thread;
+    thread _thread;
   };
 
 }

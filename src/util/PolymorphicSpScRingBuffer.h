@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ext/Configure.h"
-#include <boost/thread.hpp>
 
 namespace xi {
 inline namespace util {

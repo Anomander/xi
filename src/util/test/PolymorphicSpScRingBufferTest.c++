@@ -1,7 +1,6 @@
 #include "util/PolymorphicSpScRingBuffer.h"
 
 #include <gtest/gtest.h>
-#include <boost/thread.hpp>
 
 using namespace xi;
 
@@ -251,7 +250,7 @@ TEST(Polymorphic, CallsDestructorOnPop) {
 
 // TEST(Parallel, Load) {
 //   RingBuffer< Base > rb(100 * MiB);
-//   boost::thread producer{ [&] {
+//   thread producer{ [&] {
 //     size_t c = 0;
 //     while (true) {
 //       bool result = false;
@@ -271,7 +270,7 @@ TEST(Polymorphic, CallsDestructorOnPop) {
 //       }
 //     }
 //   } };
-//   boost::thread consumer{ [&] {
+//   thread consumer{ [&] {
 //     size_t counts[3] = { 0, 0, 0 };
 //     size_t c = 0;
 //     Base* n = nullptr;
