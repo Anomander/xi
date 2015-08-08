@@ -10,8 +10,6 @@
 #include <functional>
 #include <unordered_map>
 
-#include <boost/regex.hpp>
-
 namespace xi {
 inline namespace ext {
 
@@ -30,9 +28,6 @@ inline namespace ext {
   using ::std::unordered_map;
 
   using ::std::thread;
-
-  using ::boost::regex;
-  using ::boost::cmatch; /// match_results <char*>
 
   template < class T >
   decltype(auto) reference(T& t) {
