@@ -4,7 +4,6 @@
 #include <array>
 #include <deque>
 #include <tuple>
-#include <atomic>
 #include <memory>
 #include <vector>
 #include <functional>
@@ -29,8 +28,6 @@ inline namespace ext {
   using ::std::deque;
   using ::std::vector;
   using ::std::unordered_map;
-
-  using ::std::atomic;
 
   using ::boost::regex;
   using ::boost::cmatch; /// match_results <char*>

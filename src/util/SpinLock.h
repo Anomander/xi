@@ -13,7 +13,7 @@ public:
   SpinLock() : _state(Unlocked) {}
 
   void lock() {
-    for (size_t attempt = 0; _state.exchange(Locked, std::memory_order_acquire) == Locked; ++attempt) {
+    for (size_t attempt = 0; _state.exchange(Locked, memory_order_acquire) == Locked; ++attempt) {
       if (attempt < 4) { /* do nothing */
       } else if (attempt < 16) {
         __asm__ __volatile__("rep; nop" : : : "memory");
@@ -21,9 +21,9 @@ public:
         ::sched_yield();
       }
     }
-    assert (_state.load(std::memory_order_relaxed) == Locked);
+    assert(_state.load(memory_order_relaxed) == Locked);
   }
-  void unlock() { _state.store(Unlocked, std::memory_order_release); }
+  void unlock() { _state.store(Unlocked, memory_order_release); }
 };
 
 } // namespace xi

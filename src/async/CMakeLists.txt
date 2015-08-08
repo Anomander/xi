@@ -7,3 +7,4 @@ target_link_libraries(xi-async event)
 
 register_test(TaskQueueTest)
 register_test(FutureTest)
+register_test(LatchTest)

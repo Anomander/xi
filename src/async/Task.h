@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ext/Configure.h"
+#include "async/Context.h"
 
 namespace xi {
 namespace async {

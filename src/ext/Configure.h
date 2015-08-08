@@ -2,6 +2,7 @@
 
 #define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
 
+#include "ext/Atomic.h"
 #include "ext/Chrono.h"
 #include "ext/Common.h"
 #include "ext/Error.h"

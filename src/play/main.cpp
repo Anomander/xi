@@ -2,12 +2,12 @@
 #include "io/pipeline/Util.h"
 #include "async/libevent/Reactor.h"
 #include "async/Engine.h"
+#include "async/ThreadExecutor.h"
 
 #include <boost/thread.hpp>
 
 using namespace xi;
 using namespace xi::async;
-using namespace xi::async2;
 using namespace xi::async::libevent;
 using namespace xi::io;
 
@@ -34,13 +34,14 @@ int main(int argc, char* argv[]) {
       std::cout << ch.use_count() << std::endl;
       reactor.attachHandler(move(ch));
       std::cout << "Local reactor @ " << &reactor << std::endl;
-      std::cout << "Channel attached, exec id " << local< async2::Executor >().id() << std::endl;
+      std::cout << "Channel attached, exec id " << local< Executor >().id() << std::endl;
     });
   }));
-  engine.run([&, ch = move(ch) ] {
+  engine.setup().then([&, ch = move(ch) ] {
     auto& reactor = local< libevent::Reactor >();
     reactor.attachHandler(move(ch));
     std::cout << "Local reactor @ " << &reactor << std::endl;
     std::cout << "Acceptor attached." << std::endl;
   });
+  engine.run();
 }

@@ -7,15 +7,15 @@
 using namespace xi;
 using namespace xi::async;
 
-struct UnitTestExecutor : public async2::Executor {
-  using async2::Executor::Executor;
+struct UnitTestExecutor : public Executor {
+  using Executor::Executor;
   void run(function< void() > f) override { setup(); }
 };
 
-async2::ExecutorGroup< UnitTestExecutor > group(1, 1000);
+ExecutorGroup< UnitTestExecutor > group(1, 1000);
 
 class ExecutableTest : public ::testing::Test {
-  using UnitTestExecutorGroup = async2::ExecutorGroup< UnitTestExecutor >;
+  using UnitTestExecutorGroup = ExecutorGroup< UnitTestExecutor >;
 
 public:
   void SetUp() override {
@@ -25,11 +25,18 @@ public:
 
   mut< UnitTestExecutorGroup > executors() { return edit(_executors); }
 
-  void pollEvents() { async2::local< async2::Executor >().processQueues(); }
+  void pollEvents() { local< Executor >().processQueues(); }
 
 private:
   own< UnitTestExecutorGroup > _executors;
 };
+
+template<class T>
+T getValueFromFuture(Future<T> & f){
+  T val;
+  f.then(kInline, [&val](T v){ val = v; });
+  return val;
+}
 
 TEST(Simple, FutureIsMoveConstructible) {
   auto fut1 = makeReadyFuture(1);
@@ -258,6 +265,55 @@ TEST(Continuation, ExceptionFromContinuationPropagates_Future) {
   ASSERT_TRUE(r.isException());
 }
 
+TEST(Continuation, FutureFromContinuationIsUnwrapped_Future) {
+  auto r = makeReadyFuture(42).then([](int j) { return makeReadyFuture<int>(j * j); });
+
+  ASSERT_TRUE(r.isReady());
+  ASSERT_FALSE(r.isException());
+
+  auto val = getValueFromFuture(r);
+  ASSERT_EQ(42*42, val);
+}
+
+TEST(Continuation, FutureFromContinuationIsUnwrapped_Promise) {
+  Promise< int > p;
+  auto f = p.getFuture();
+
+  auto r = f.then([](int j) { return makeReadyFuture<int>(j * j); });
+
+  ASSERT_FALSE(r.isReady());
+  ASSERT_FALSE(r.isException());
+
+  p.setValue(42);
+
+  ASSERT_TRUE(r.isReady());
+  ASSERT_FALSE(r.isException());
+  auto val = getValueFromFuture(r);
+  ASSERT_EQ(42*42, val);
+}
+
+TEST(Continuation, FutureFromContinuationIsUnwrapped_Exception_Future) {
+  auto r = makeReadyFuture(42).then([](int j) { throw std::exception{}; });
+
+  ASSERT_TRUE(r.isReady());
+  ASSERT_TRUE(r.isException());
+}
+
+TEST(Continuation, FutureFromContinuationIsUnwrapped_Exception_Promise) {
+  Promise< int > p;
+  auto f = p.getFuture();
+
+  auto r = f.then([](int j) { throw std::exception{}; });
+
+  ASSERT_FALSE(r.isReady());
+  ASSERT_FALSE(r.isException());
+
+  p.setValue(42);
+
+  ASSERT_TRUE(r.isReady());
+  ASSERT_TRUE(r.isException());
+}
+
 TEST_F(ExecutableTest, AsyncContinuationLaunchesAsynchronously_ReadyFuture) {
   int i = 0;
   auto r = makeReadyFuture(42).then(kAsync, [&i](int j) { i = j * j; });
@@ -345,7 +401,7 @@ TEST_F(ExecutableTest, AsyncPromiseSetValue_PropagatesValue) {
   int i = 0;
   Promise< int > p;
   auto r = p.getFuture().then(kAsync, [&i](int j) { i = j * j; });
-  async2::schedule([p=move(p)]() mutable{ p.setValue(42); });
+  schedule([p=move(p)]() mutable{ p.setValue(42); });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
@@ -363,7 +419,7 @@ TEST_F(ExecutableTest, AsyncPromiseSetValue_PropagatesException) {
   int i = 0;
   Promise< int > p;
   auto r = p.getFuture().then(kAsync, [&i](int j) { throw std::exception(); });
-  async2::schedule([p=move(p)]() mutable{ p.setValue(42); });
+  schedule([p=move(p)]() mutable{ p.setValue(42); });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());

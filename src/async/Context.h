@@ -1,9 +1,7 @@
 #pragma once
 
-#include "async/TaskQueue.h"
-
 namespace xi {
-namespace async2 {
+namespace async {
   template < class T >
   struct LocalStorage {
     static T &get() {

@@ -2,7 +2,7 @@
 
 #include "ext/Configure.h"
 #include "ext/OverloadRank.h"
-#include "async/Engine.h"
+#include "async/Async.h"
 #include "util/SpinLock.h"
 
 namespace xi {
@@ -62,6 +62,15 @@ namespace async {
       static void applyValue(Func&& f, tuple< Args... >&& value, Promise<>& promise);
     };
 
+    template < class... Ts >
+    struct CallableApplier< Future< Ts... > > {
+      template < class Func, class... Args >
+      static void apply(Func&&, State< Args... >&, Promise< Ts... >&);
+
+      template < class Func, class... Args >
+      static void applyValue(Func&& f, tuple< Args... >&& value, Promise< Ts... >& promise);
+    };
+
     template < class Func, class... Ts >
     using FutureFromCallableResult = typename FutureFromCallable< result_of_t< Func(Ts&&...) > >::Result;
 
@@ -69,16 +78,10 @@ namespace async {
     using FutureFromCallablePromise = typename FutureFromCallableResult< Func, Ts... >::PromiseType;
 
     template < class Func, class... Args >
-    decltype(auto) makeFutureFromCallable(Func&& f, Args&&... args) {
-      return detail::FutureFromCallable< result_of_t< Func(Args && ...) > >::apply(forward< Func >(f),
-                                                                                   make_tuple(args...));
-    }
+    decltype(auto) makeFutureFromCallable(Func&&, Args&&...);
 
     template < class Func, class... Args >
-    decltype(auto) makeFutureFromCallable(Func&& f, tuple< Args... >&& args) {
-      return detail::FutureFromCallable< result_of_t< Func(Args && ...) > >::apply(forward< Func >(f),
-                                                                                   forward< tuple< Args... > >(args));
-    }
+    decltype(auto) makeFutureFromCallable(Func&&, tuple< Args... >&&);
 
     template < class... Ts >
     class State {
@@ -137,7 +140,7 @@ namespace async {
           if (kInline == Policy) {
             _run(state);
           } else {
-            async2::schedule([ state = share(state), this /*held by state*/ ]() mutable { _run(addressOf(state)); });
+            schedule([ state = share(state), this /*held by state*/ ]() mutable { _run(addressOf(state)); });
           }
         }
 
@@ -157,7 +160,7 @@ namespace async {
           if (kInline == Policy) {
             _run(state);
           } else {
-            async2::schedule([ state = share(state), this /*held by state*/ ]() mutable { _run(addressOf(state)); });
+            schedule([ state = share(state), this /*held by state*/ ]() mutable { _run(addressOf(state)); });
           }
         }
 
@@ -177,6 +180,8 @@ namespace async {
 
     public:
       using State< Ts... >::State;
+      SharedState(State< Ts... >&& other) : State< Ts... >(move(other)) {}
+      SharedState& operator=(State< Ts... >&& other) { State< Ts... >::operator=(move(other)); return * this; }
 
       template < class... Args >
       void set(tuple< Args... >&& value) {
@@ -211,7 +216,7 @@ namespace async {
           } else {
             detail::FutureFromCallablePromise< Func, Ts... > promise;
             auto future = promise.getFuture();
-            async2::schedule([ value = this->get(), promise = move(promise), f = forward< Func >(f) ]() mutable {
+            schedule([ value = this->get(), promise = move(promise), f = forward< Func >(f) ]() mutable {
               CallableApplier< ResultType >::applyValue(move(f), move(value), promise);
             });
             return future;
@@ -275,7 +280,7 @@ namespace async {
         } else {
           detail::FutureFromCallablePromise< Func, Ts... > promise;
           auto future = promise.getFuture();
-          async2::schedule([ value = state()->get(), promise = move(promise), f = forward< Func >(f) ]() mutable {
+          schedule([ value = state()->get(), promise = move(promise), f = forward< Func >(f) ]() mutable {
             detail::CallableApplier< ResultType >::applyValue(forward< Func >(f), move(value), promise);
           });
           return future;
@@ -340,6 +345,12 @@ namespace async {
     using Future<>::Future;
   };
 
+  template < class... Ts >
+  struct Future< Future< Ts... > > : public Future< Ts... > {
+    using Future< Ts... >::PromiseType;
+    using Future< Ts... >::Future;
+  };
+
   template < class... Args >
   Future< Args... > makeReadyFuture(Args&&... args) {
     return Future< Args... >(detail::ReadyMade, forward< Args >(args)...);
@@ -377,6 +388,8 @@ namespace async {
     void setValue(Args&&... args) {
       _state->set(forward< Args >(args)...);
     }
+
+    void setValue(Future< Ts... >&& future) { *(_state) = move(*future.state()); }
 
     void setException(exception_ptr ex) { _state->set(move(ex)); }
 
@@ -431,6 +444,31 @@ namespace async {
       }
     }
 
+    template < class... Ts >
+    template < class Func, class... Args >
+    void CallableApplier< Future< Ts... > >::apply(Func&& f, State< Args... >& state, Promise< Ts... >& promise) {
+      static_assert(is_same< result_of_t< Func(Args && ...) >, Future< Ts... > >::value,
+                    "Return type of Func must be Future<Ts...>.");
+      assert(state.isReady());
+      if (state.isException()) {
+        promise.setException(state.getException());
+      } else {
+        applyValue(forward< Func >(f), state.get(), promise);
+      }
+    }
+
+    template < class... Ts >
+    template < class Func, class... Args >
+    void CallableApplier< Future< Ts... > >::applyValue(Func&& f, tuple< Args... >&& value, Promise< Ts... >& promise) {
+      static_assert(is_same< result_of_t< Func(Args && ...) >, Future< Ts... > >::value,
+                    "Return type of Func must be Future<Ts...>.");
+      try {
+        promise.setValue(Unpack::apply(forward< Func >(f), move(value)));
+      } catch (...) {
+        promise.setException(current_exception());
+      }
+    }
+
     template <>
     struct FutureFromCallable< void > {
       using Result = Future<>;
@@ -460,6 +498,23 @@ namespace async {
         }
       }
     };
+
+    template < class Func, class... Args >
+    decltype(auto) makeFutureFromCallable(Func&& f, Args&&... args) {
+      return detail::FutureFromCallable< result_of_t< Func(Args && ...) > >::apply(forward< Func >(f),
+                                                                                   make_tuple(args...));
+    }
+
+    template < class Func, class... Args >
+    decltype(auto) makeFutureFromCallable(Func&& f, tuple< Args... >&& args) {
+      return detail::FutureFromCallable< result_of_t< Func(Args && ...) > >::apply(forward< Func >(f),
+                                                                                   forward< tuple< Args... > >(args));
+    }
+
+    static_assert(is_same< typename FutureFromCallable< Future< int > >::Result, Future< int > >::value, "");
+
+    auto staticTestMakeFuture() { return makeReadyFuture< int >(1); }
+    static_assert(is_same< decltype(makeFutureFromCallable(staticTestMakeFuture)), Future< int > >::value, "");
   }
 }
 }

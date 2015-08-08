@@ -44,8 +44,8 @@ inline namespace util {
     }
 
     void *nextReadableBlock() {
-      auto readerIdx = _readIdx.load(std::memory_order_relaxed); // only modified by reader thread
-      auto writerIdx = _writeIdx.load(std::memory_order_acquire);
+      auto readerIdx = _readIdx.load(memory_order_relaxed); // only modified by reader thread
+      auto writerIdx = _writeIdx.load(memory_order_acquire);
       do {
         if (readerIdx == writerIdx) {
           return nullptr;
@@ -54,7 +54,7 @@ inline namespace util {
         if (0xDEADBEEFFACEC0DE == size || _SIZE - readerIdx <= sizeof(size_t)) {
           // wrap around
           readerIdx = 0;
-          _readIdx.store(readerIdx, std::memory_order_release);
+          _readIdx.store(readerIdx, memory_order_release);
           continue;
         }
       } while (false);
@@ -77,8 +77,8 @@ inline namespace util {
       };
 
       auto size = adjustForAlignment(sizeof(Pod));
-      size_t currentWriterIdx = _writeIdx.load(std::memory_order_relaxed);
-      size_t readerIdx = _readIdx.load(std::memory_order_acquire);
+      size_t currentWriterIdx = _writeIdx.load(memory_order_relaxed);
+      size_t readerIdx = _readIdx.load(memory_order_acquire);
       size_t adjustedWriteIdx = currentWriterIdx;
       auto available = writeAvailable(currentWriterIdx, readerIdx, _SIZE);
       if (available < size) {
@@ -107,7 +107,7 @@ inline namespace util {
       // this may throw, but we're okay with it.
       // by this time nothing has been changed irreversibly yet
       new (nextBlock) Pod{size, UType{forward< U >(obj)}};
-      _writeIdx.store(adjustedWriteIdx + size, std::memory_order_release);
+      _writeIdx.store(adjustedWriteIdx + size, memory_order_release);
       return true;
     }
 
@@ -124,8 +124,8 @@ inline namespace util {
     }
 
     void pop() {
-      auto readerIdx = _readIdx.load(std::memory_order_relaxed); // only modified by reader thread
-      auto writerIdx = _writeIdx.load(std::memory_order_acquire);
+      auto readerIdx = _readIdx.load(memory_order_relaxed); // only modified by reader thread
+      auto writerIdx = _writeIdx.load(memory_order_acquire);
       do {
         if (readerIdx == writerIdx) {
           return;
@@ -133,11 +133,11 @@ inline namespace util {
         auto size = *reinterpret_cast< size_t * >(&_data[readerIdx]);
         if (0xDEADBEEFFACEC0DE == size) {
           readerIdx = 0;
-          _readIdx.store(readerIdx, std::memory_order_release);
+          _readIdx.store(readerIdx, memory_order_release);
           continue;
         } else {
           reinterpret_cast< T * >(&_data[readerIdx + sizeof(size_t)])->~T();
-          _readIdx.store(readerIdx + *reinterpret_cast< size_t * >(&_data[readerIdx]), std::memory_order_release);
+          _readIdx.store(readerIdx + *reinterpret_cast< size_t * >(&_data[readerIdx]), memory_order_release);
         }
       } while (false);
     }

@@ -1,2 +1,1 @@
-register_test(ChunkTest)
 register_test(PolymorphicSpScRingBufferTest)

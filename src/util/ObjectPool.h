@@ -64,23 +64,21 @@ inline namespace util {
       aligned_storage_t< sizeof(uint8_t[N]), alignof(uint8_t[N]) > data[DefaultChunkSize];
       char tail[0];
 
-      Chunk() { firstUnallocated.store(data, ::std::memory_order_relaxed); }
+      Chunk() { firstUnallocated.store(data, memory_order_relaxed); }
       void *allocate() {
-        auto *free = firstFree.load(::std::memory_order_relaxed);
+        auto *free = firstFree.load(memory_order_relaxed);
         auto *nextFree = kEof;
         do {
           if (kEof == free) {
             break;
           }
           nextFree = *(uint8_t **)free;
-        } while (
-            !firstFree.compare_exchange_weak(free, nextFree, ::std::memory_order_release, ::std::memory_order_relaxed));
-        free = firstUnallocated.load(::std::memory_order_relaxed);
+        } while (!firstFree.compare_exchange_weak(free, nextFree, memory_order_release, memory_order_relaxed));
+        free = firstUnallocated.load(memory_order_relaxed);
         if (free == tail) {
           return next->allocate();
         }
-        while (!firstUnallocated.compare_exchange_weak(free, free + N, ::std::memory_order_release,
-                                                       ::std::memory_order_relaxed))
+        while (!firstUnallocated.compare_exchange_weak(free, free + N, memory_order_release, memory_order_relaxed))
           ;
         return free;
       }
