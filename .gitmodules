@@ -34,3 +34,6 @@
 [submodule "third-party/boost/move"]
 	path = third-party/boost/move
 	url = https://github.com/boostorg/move.git
+[submodule "third-party/boost/config"]
+	path = third-party/boost/config
+	url = https://github.com/boostorg/config.git
