@@ -15,20 +15,7 @@ set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
 # boost
-# find_package( Boost 1.55 REQUIRED thread )
-FILE(GLOB children third-party/boost/*)
-FOREACH(child ${children})
-  IF(IS_DIRECTORY ${curdir}/${child})
-    INCLUDE_DIRECTORIES( ${child}/include )
-    INCLUDE_DIRECTORIES( ${child} )
-    MESSAGE("Including Boost headers from " ${child})
-  ENDIF()
-ENDFOREACH()
-
-get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-foreach(dir ${dirs})
-  message(STATUS "dir='${dir}'")
-endforeach()
+find_package( Boost 1.55 REQUIRED thread system )
 
 # libevent
 # find_package( Event )
