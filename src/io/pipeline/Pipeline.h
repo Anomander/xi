@@ -20,7 +20,7 @@ namespace io {
       template < class Event >
       void fire(Event&& e) {
         // std::cout << __PRETTY_FUNCTION__ << std::endl;
-        _fire(edit(e), forward< Event >(e));
+        _fire(val(e), forward< Event >(e));
       }
 
       void pushBack(own< PipelineHandler >);
@@ -37,11 +37,11 @@ namespace io {
 
     private:
       template < class Event >
-      void _fire(mut< UpstreamEvent >, Event&& e) {
+      void _fire(ref< UpstreamEvent >, Event&& e) {
         _head.fire(forward< Event >(e));
       }
       template < class Event >
-      void _fire(mut< DownstreamEvent >, Event&& e) {
+      void _fire(ref< DownstreamEvent >, Event&& e) {
         _tail.fire(forward< Event >(e));
       }
 

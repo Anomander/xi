@@ -21,7 +21,7 @@ namespace io {
 
       template < class Event >
       void forward(Event e) {
-        _forward(edit(e), move(e));
+        _forward(val(e), move(e));
       }
 
       void addBefore(mut< HandlerContext > ctx) {
@@ -56,13 +56,13 @@ namespace io {
 
     private:
       template < class Event >
-      void _forward(mut< UpstreamEvent >, Event e) {
+      void _forward(ref< UpstreamEvent >, Event e) {
         if (_nextRead) {
           _nextRead->fire(move(e));
         }
       }
       template < class Event >
-      void _forward(mut< DownstreamEvent >, Event e) {
+      void _forward(ref< DownstreamEvent >, Event e) {
         if (_nextWrite) {
           _nextWrite->fire(move(e));
         }

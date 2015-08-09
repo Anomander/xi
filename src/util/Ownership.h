@@ -3,6 +3,7 @@
 #include "ext/Common.h"
 #include "ext/Meta.h"
 #include "ext/Pointer.h"
+#include "ext/Test.h"
 #include "ext/TypeTraits.h"
 
 namespace xi {
@@ -118,6 +119,11 @@ inline namespace util {
   }
 
   template < class T >
+  shared_ptr< T > share(shared_ptr< T > const& t) {
+    return t;
+  }
+
+  template < class T >
   using own = typename detail::own< T, meta::enabled >::type;
   template < class T >
   using ref = typename detail::ref< T, meta::enabled >::type;
@@ -130,28 +136,8 @@ inline namespace util {
   }
 
   template < class T >
-  inline own< T > copy(T&& t) {
-    return forward< T >(t);
-  }
-  template < class T >
-  inline ref< T > cref(T&& t) {
-    return ref< T >(t);
-  }
-  template < class T >
-  inline ref< T > cref(shared_ptr< T > t) {
-    return ref< T >(*t);
-  }
-  template < class T >
-  inline ref< T > cref(unique_ptr< T >& t) {
-    return ref< T >(*t);
-  }
-  template < class T >
-  inline ref< T > cref(unique_ptr< T > const& t) {
-    return ref< T >(*t);
-  }
-  template < class T >
-  inline mut< T > edit(T&& t) {
-    return mut< T >(addressOf(t));
+  inline mut< T > edit(T& t) {
+    return &(t);
   }
   template < class T >
   inline mut< T > edit(shared_ptr< T > t) {
@@ -174,12 +160,8 @@ inline namespace util {
   }
 
   template < class T >
-  inline decltype(auto) val(T&& t) {
+  inline decltype(auto) val(T const& t) {
     return t;
-  }
-  template < class T >
-  inline decltype(auto) val(T* t) {
-    return *t;
   }
   template < class T >
   inline decltype(auto) val(shared_ptr< T > const& t) {
@@ -192,6 +174,32 @@ inline namespace util {
   template < class T >
   inline decltype(auto) val(unique_ptr< T >& t) {
     return *t;
+  }
+
+  namespace _static_test {
+
+    class StdShared : public virtual ownership::StdShared {};
+    class Unique : public virtual ownership::Unique {};
+
+    STATIC_ASSERT_TEST(is_same< own< StdShared >, shared_ptr< StdShared > >);
+    STATIC_ASSERT_TEST(is_same< own< Unique >, unique_ptr< Unique > >);
+    STATIC_ASSERT_TEST(is_same< mut< StdShared >, StdShared* >);
+    STATIC_ASSERT_TEST(is_same< mut< Unique >, Unique* >);
+    STATIC_ASSERT_TEST(is_same< ref< StdShared >, StdShared const& >);
+    STATIC_ASSERT_TEST(is_same< ref< Unique >, Unique const& >);
+
+    STATIC_ASSERT_TEST(is_same< decltype(make< StdShared >()), shared_ptr< StdShared > >);
+    STATIC_ASSERT_TEST(is_same< decltype(make< Unique >()), unique_ptr< Unique > >);
+
+    template < class >
+    class P;
+    STATIC_ASSERT_TEST(is_same< decltype(val(make< StdShared >())), StdShared& >);
+    STATIC_ASSERT_TEST(is_same< decltype(val(make< Unique >())), Unique& >);
+
+    STATIC_ASSERT_TEST(is_same< decltype(edit(make< StdShared >())), StdShared* >);
+    STATIC_ASSERT_TEST(is_same< decltype(edit(declval< unique_ptr< Unique >& >())), Unique* >);
+
+    STATIC_ASSERT_TEST(is_same< decltype(share(make< StdShared >())), shared_ptr< StdShared > >);
   }
 
 } // inline namespace util

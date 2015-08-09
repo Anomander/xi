@@ -12,6 +12,7 @@
 
 namespace xi {
 inline namespace ext {
+  using ::std::declval;
 
   using ::std::min;
   using ::std::max;
@@ -28,6 +29,8 @@ inline namespace ext {
   using ::std::unordered_map;
 
   using ::std::thread;
+
+  using ::std::reference_wrapper;
 
   template < class T >
   decltype(auto) reference(T& t) {
