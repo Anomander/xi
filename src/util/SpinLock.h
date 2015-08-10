@@ -14,11 +14,10 @@ public:
 
   void lock() {
     for (size_t attempt = 0; _state.exchange(Locked, memory_order_acquire) == Locked; ++attempt) {
-      if (attempt < 4) { /* do nothing */
-      } else if (attempt < 16) {
+      if (attempt >= 32) {
+        /// Memory barrier. There's no sense in yielding as
+        /// threads don't compete for CPU.
         __asm__ __volatile__("rep; nop" : : : "memory");
-      } else {
-        ::sched_yield();
       }
     }
     assert(_state.load(memory_order_relaxed) == Locked);

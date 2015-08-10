@@ -17,6 +17,9 @@ namespace async {
 
             XI_SCOPE(exit) { this->cleanup(); };
             f();
+          } catch (exception & e) {
+            std::cout << "Exception in executor " << id() << " : " << e.what() << std::endl;
+            // satisfy noexcept
           } catch (...) {
             std::cout << "Exception in executor " << id() << std::endl;
             // satisfy noexcept

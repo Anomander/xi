@@ -4,10 +4,7 @@ namespace xi {
 namespace async {
   template < class T >
   struct LocalStorage {
-    static T &get() {
-      assert(nullptr != ptr());
-      return *ptr();
-    }
+    static T *get() { return ptr(); }
     static void set(T &t) {
       assert(ptr() == nullptr);
       ptr() = &t;
@@ -25,8 +22,14 @@ namespace async {
   };
 
   template < class T >
-  static T &local() {
+  static T *tryLocal() {
     return LocalStorage< T >::get();
+  }
+  template < class T >
+  static T &local() {
+    auto *ptr = tryLocal< T >();
+    assert(nullptr != ptr);
+    return *ptr;
   }
   template < class T >
   static void setLocal(T &t) {

@@ -31,6 +31,16 @@ namespace io {
     size_t size;
   };
 
+  template<class T>
+  auto byteRangeForObject(T & t) noexcept {
+    return ByteRange { reinterpret_cast<uint8_t*>(& t), sizeof(t) };
+  }
+
+  template<class T, size_t S>
+  auto byteRangeForObject(array<T,S> & arr) noexcept {
+    return ByteRange { reinterpret_cast<uint8_t*>(arr.data()), sizeof(T) * arr.size() };
+  }
+
   struct ProtocolMessage {
     // It is important that binary structure of this
     // class remains the same.
@@ -46,6 +56,8 @@ namespace io {
     ByteRange readableRange() noexcept { return {_data, readableSize()}; }
     size_t readableSize() const noexcept { return _header.size; }
   };
+
+  struct DataAvailable : FastCastGroupMember< DataAvailable, Message > {};
 
   struct DataMessage : FastCastGroupMember< DataMessage, Message > {
   public:

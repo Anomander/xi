@@ -46,6 +46,14 @@ namespace io {
       }
     }
 
+    Expected<int> read(ByteRange range) override {
+      return detail::socket::read(descriptor(), range.data, range.size);
+    }
+
+    Expected<int> read(initializer_list<ByteRange> range) override {
+      return detail::socket::readv(descriptor(), range);
+    }
+
   protected:
     int descriptor() const noexcept { return _descriptor; }
 
@@ -104,6 +112,9 @@ namespace io {
       static const error_code EWouldBlock = make_error_code(SystemError::operation_would_block);
 
       auto destructionGuard = share(this);
+      this->pipeline()->channelRead(make< DataAvailable >());
+      return;
+
       while (this->isActive()) {
         if (_currentMessage) {
           auto read = detail::socket::read(this->descriptor(), _messageCursor, _remainingSize);

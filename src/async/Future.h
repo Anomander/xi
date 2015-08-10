@@ -22,6 +22,10 @@ namespace async {
     BrokenPromiseException() : std::logic_error("This promise has been broken") {}
   };
 
+  struct InvalidPromiseException : public std::logic_error {
+    InvalidPromiseException() : std::logic_error("This promise is invalid") {}
+  };
+
   enum LaunchPolicy { kAsync, kInline };
 
   namespace detail {
@@ -173,15 +177,21 @@ namespace async {
       };
 
       void maybeCallback() {
+        std::cout << __PRETTY_FUNCTION__ << " @ " << this << std::endl;
         if (_callback) {
           _callback(this);
+        } else {
+          std::cout << "No callback"<< std::endl;
         }
       }
 
     public:
       using State< Ts... >::State;
       SharedState(State< Ts... >&& other) : State< Ts... >(move(other)) {}
-      SharedState& operator=(State< Ts... >&& other) { State< Ts... >::operator=(move(other)); return * this; }
+      SharedState& operator=(State< Ts... >&& other) {
+        State< Ts... >::operator=(move(other));
+        return *this;
+      }
 
       template < class... Args >
       void set(tuple< Args... >&& value) {
@@ -203,6 +213,7 @@ namespace async {
 
       template < LaunchPolicy Policy, class Func >
       detail::FutureFromCallableResult< Func, Ts... > setContinuation(Func&& f) {
+        std::cout << __PRETTY_FUNCTION__ << " @ " << this << std::endl;
         auto lock = makeLock(_spinLock);
         using ResultType = result_of_t< Func(Ts && ...) >;
 
@@ -268,6 +279,7 @@ namespace async {
 
     template < class Func >
     detail::FutureFromCallableResult< Func, Ts... > then(LaunchPolicy policy, Func&& f) {
+      std::cout << __PRETTY_FUNCTION__ << " @ " << this << std::endl;
       using ResultType = result_of_t< Func(Ts && ...) >;
 
       if (isLocal()) {
@@ -382,16 +394,35 @@ namespace async {
       }
     }
 
-    FutureType getFuture() { return FutureType(_state); }
+    FutureType getFuture() {
+      if (isShared(_state)) {
+        throw InvalidPromiseException();
+      }
+      return FutureType(share(_state));
+    }
 
     template < class... Args >
     void setValue(Args&&... args) {
+      checkState();
       _state->set(forward< Args >(args)...);
     }
 
-    void setValue(Future< Ts... >&& future) { *(_state) = move(*future.state()); }
+    void setValue(Future< Ts... >&& future) {
+      checkState();
+      *(_state) = move(*future.state());
+    }
 
-    void setException(exception_ptr ex) { _state->set(move(ex)); }
+    void setException(exception_ptr ex) {
+      checkState();
+      _state->set(move(ex));
+    }
+
+  private:
+    void checkState() {
+      if (_state->isReady()) {
+        throw InvalidPromiseException();
+      }
+    }
 
   private:
     own< StateType > _state = make< StateType >();

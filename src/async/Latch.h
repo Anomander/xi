@@ -17,16 +17,21 @@ namespace async {
     }
 
     void countDown(size_t amount = 1UL) {
-      auto count = _count.load(memory_order_acquire);
-      if (0UL == count ) {
-        return;
-      }
-      auto newValue = amount >= count ? 0UL : count - amount;
-      if (_count.compare_exchange_strong(count, newValue, memory_order_release, memory_order_acquire) &&
-          0 == newValue) {
+      size_t oldCount, newCount;
+      oldCount = _count.load();
+      do {
+        if (0 == oldCount) {
+          return;
+        }
+        newCount = oldCount > amount ? oldCount - amount : 0UL;
+      } while (!_count.compare_exchange_weak(oldCount, newCount));
+      if (newCount == 0) {
+        std::cout<<"Unlocking latch"<<std::endl;
         _promise.setValue();
       }
     }
+
+    size_t count() const { return _count; }
 
     Future<> await() { return _promise.getFuture(); }
   };

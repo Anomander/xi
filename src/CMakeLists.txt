@@ -5,4 +5,4 @@ add_subdirectory (util)
 
 # Play test
 add_subdirectory (play)
-# add_subdirectory (tester)
+add_subdirectory (tester)

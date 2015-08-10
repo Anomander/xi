@@ -111,6 +111,10 @@ inline namespace util {
     auto share(T* obj) {
       return std::shared_ptr< T >(obj->shared_from_this(), reinterpret_cast< T* >(obj));
     }
+    template < class T, XI_REQUIRE_DECL(is_base_of< ownership::Shared< ownership::SharedPolicy::kStd >, T >)>
+    auto isShared(T* obj) {
+      return obj->shared_from_this().use_count() > 2;
+    }
   } // namespace detail
 
   template < class T >
@@ -121,6 +125,21 @@ inline namespace util {
   template < class T >
   shared_ptr< T > share(shared_ptr< T > const& t) {
     return t;
+  }
+
+  template < class T >
+  bool isShared(T* t) {
+    return detail::isShared(t);
+  }
+
+  template < class T >
+  bool isShared(shared_ptr< T > const& t) {
+    return t.use_count() > 1;
+  }
+
+  template < class T, class Deleter >
+  bool isShared(unique_ptr< T, Deleter > const& t) {
+    return false;
   }
 
   template < class T >

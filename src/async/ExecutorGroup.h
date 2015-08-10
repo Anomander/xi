@@ -39,6 +39,9 @@ namespace async {
       for (auto &e : _executors) {
         e.run(f);
       }
+    }
+
+    void join() {
       for (auto &e : _executors) {
         e.join();
       }

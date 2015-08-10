@@ -27,6 +27,7 @@ inline namespace ext {
   using ::std::deque;
   using ::std::vector;
   using ::std::unordered_map;
+  using ::std::initializer_list;
 
   using ::std::thread;
 

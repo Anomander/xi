@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ext/Configure.h"
-#include "io/Message.h"
+#include "io/DataMessage.h"
 
 namespace xi {
 namespace io {
@@ -13,6 +13,8 @@ namespace io {
   public:
     virtual void close() = 0;
     virtual void write(own< Message >) = 0;
+    virtual Expected<int> read(ByteRange range) = 0;
+    virtual Expected<int> read(initializer_list<ByteRange> range) = 0;
   };
 }
 }

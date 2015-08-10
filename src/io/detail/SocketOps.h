@@ -94,19 +94,19 @@ namespace io {
         return retval;
       }
 
-      template < size_t N >
-      inline Expected< int > readv(int descriptor, array< ByteRange, N > ranges,
+      inline Expected< int > readv(int descriptor, initializer_list< ByteRange > ranges,
                                    opt< mut< Endpoint< kInet > > > remote = none) {
         socklen_t socklen = sizeof(sockaddr_in);
         struct sockaddr_in addr;
-        iovec iov[N];
-        for (int i = 0; i < N; ++i) {
-          iov[i].iov_base = ranges[i].data;
-          iov[i].iov_len = ranges[i].size;
+        iovec iov[ranges.size()];
+        int i = 0;
+        for (auto & range : ranges) {
+          iov[i].iov_base = range.data;
+          iov[i].iov_len = range.size;
         }
         msghdr msg;
         msg.msg_iov = iov;
-        msg.msg_iovlen = N;
+        msg.msg_iovlen = ranges.size();
         msg.msg_name = &addr;
         msg.msg_namelen = socklen;
         int retval = recvmsg(descriptor, &msg, MSG_DONTWAIT);

@@ -11,28 +11,27 @@ namespace async {
   template < class E, class R >
   class Engine {
   public:
-    auto setup() {
+    auto start() {
       auto coreCount = 8UL;                 // get from config
       auto perCoreQueueSize = 100 * 1024UL; // get from config
       _executors = make< ExecutorGroup< E > >(coreCount, perCoreQueueSize);
-      return makeReadyFuture();
-    }
+      auto latch = make_shared<Latch>(coreCount);
 
-    auto run() {
-      auto coreCount = 8UL; // get from config
-      Latch latch {coreCount};
-      auto future = latch.await();
-      _executors->run([&]() mutable {
+      auto future = latch->await();
+      _executors->run([=]() mutable {
         auto &exec = local< Executor >();
+        auto reactor = make< R >();
+        setLocal< R >(val(reactor));
 
         std::cout << "Executor " << exec.id() << std::endl;
         _executors->executeOn((exec.id() + 1) % coreCount,
                               [&] { std::cout << "Hello from exec " << exec.id() << std::endl; });
+        latch->countDown();
+        std::cout << "Latch " << latch->count() << std::endl;
         for (;;) {
-          // reactor.poll();
+          reactor->poll();
           exec.processQueues();
         }
-        latch.countDown();
       });
       return future;
     }
@@ -47,6 +46,12 @@ namespace async {
       _executors->executeOnNext(forward< Func >(f));
     }
 
+    void join() {
+      if (_executors) {
+        _executors->join();
+      }
+    }
+
   private:
     Engine() = default;
     template < class >
@@ -59,9 +64,9 @@ namespace async {
   /// Override to always return the same Engine object.
   template < class E, class R >
   struct LocalStorage< Engine< E, R > > {
-    static Engine< E, R > &get() {
+    static Engine< E, R > *get() {
       static Engine< E, R > OBJ;
-      return OBJ;
+      return & OBJ;
     }
   };
 }

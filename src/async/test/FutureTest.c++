@@ -118,6 +118,24 @@ TEST(Simple, BrokenPromise) {
   ASSERT_TRUE(f.isException());
 }
 
+TEST(Simple, PromiseSetValueTwice) {
+  auto p = Promise< int > {};
+  auto f = p.getFuture();
+  ASSERT_NO_THROW(p.setValue(1));
+  ASSERT_THROW(p.setValue(1), InvalidPromiseException);
+  ASSERT_TRUE(f.isReady());
+  ASSERT_FALSE(f.isException());
+}
+
+TEST(Simple, PromiseGetFutureTwice) {
+  auto p = Promise< int > {};
+  auto f1 = p.getFuture();
+  ASSERT_THROW(auto f2 = p.getFuture(), InvalidPromiseException);
+  ASSERT_NO_THROW(p.setValue(1));
+  ASSERT_TRUE(f1.isReady());
+  ASSERT_FALSE(f1.isException());
+}
+
 TEST(Continuation, MultipleParameters) {
   auto f = makeReadyFuture(1, 3.1415926);
   int i = 0;

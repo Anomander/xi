@@ -7,8 +7,9 @@ namespace io {
 
   class ClientChannelConnected;
   class DataMessage;
+  class DataAvailable;
 
-  struct Message : FastCastableGroup< ClientChannelConnected, DataMessage >, public ownership::Unique {
+  struct Message : FastCastableGroup< ClientChannelConnected, DataMessage, DataAvailable >, public ownership::Unique {
     Message() = default;
     virtual ~Message() noexcept = default;
   };
