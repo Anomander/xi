@@ -11,6 +11,7 @@
 #include "ext/FastCast.h"
 #include "ext/Hash.h"
 #include "ext/Lock.h"
+#include "ext/Likely.h"
 #include "ext/Meta.h"
 #include "ext/Optional.h"
 #include "ext/Pointer.h"

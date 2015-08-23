@@ -16,7 +16,11 @@ namespace io {
 
       template < class Event >
       void fire(Event e) {
-        _handler->onEvent< Event >(this, move(e));
+        try {
+          _handler->onEvent< Event >(this, move(e));
+        } catch (...) {
+          forward(ChannelException{current_exception()});
+        }
       }
 
       template < class Event >

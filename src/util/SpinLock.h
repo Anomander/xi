@@ -11,6 +11,9 @@ class SpinLock {
 
 public:
   SpinLock() : _state(Unlocked) {}
+  SpinLock(SpinLock && other) : _state(other._state.load(memory_order_acquire)) {
+    other._state.store(Unlocked, memory_order_release);
+  }
 
   void lock() {
     for (size_t attempt = 0; _state.exchange(Locked, memory_order_acquire) == Locked; ++attempt) {

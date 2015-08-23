@@ -8,7 +8,7 @@
 namespace xi {
 namespace async {
 
-  class TaskQueue {
+  class TaskQueue : public virtual ownership::Unique {
     PolymorphicSpScRingBuffer< Task > _ringBuffer;
 
   public:

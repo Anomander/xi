@@ -37,12 +37,12 @@ INCLUDE_DIRECTORIES( ${gtest_SOURCE_DIR}/include )
 # creates a named C++ test that depends on common
 # libraries with the default compiler flags.
 function(register_test name)
-  cxx_executable_with_flags(${name} "${cxx_default}" gtest_main "test/${name}.c++")
-  set(libraries ${Boost_LIBRARIES})
+  cxx_executable_with_flags(${name} "${cxx_default}" "" "test/${name}.c++")
+  # set(libraries ${Boost_LIBRARIES})
   foreach(arg ${ARGN})
     set(libraries ${libraries} ${arg})
   endforeach()
-  target_link_libraries(${name} ${libraries})
+  target_link_libraries(${name} ${libraries} ${Boost_LIBRARIES} gtest_main)
   add_test("${name}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name}")
 endfunction()
 

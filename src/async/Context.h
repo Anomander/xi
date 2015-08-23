@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ext/Configure.h"
+
 namespace xi {
 namespace async {
   template < class T >

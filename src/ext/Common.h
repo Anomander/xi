@@ -4,6 +4,7 @@
 #include <array>
 #include <deque>
 #include <tuple>
+#include <queue>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -25,9 +26,15 @@ inline namespace ext {
   using ::std::map;
   using ::std::array;
   using ::std::deque;
+  using ::std::queue;
   using ::std::vector;
   using ::std::unordered_map;
   using ::std::initializer_list;
+
+  using ::std::distance;
+
+  using ::std::begin;
+  using ::std::end;
 
   using ::std::thread;
 

@@ -5,7 +5,7 @@
 #include "io/DataMessage.h"
 #include "io/pipeline/PipelineHandler.h"
 #include "io/pipeline/HandlerContext.h"
-#include "io/pipeline/PipelineHandler.inc"
+#include "io/pipeline/PipelineHandler.hpp"
 
 namespace xi {
 namespace io {

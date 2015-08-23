@@ -12,8 +12,6 @@ struct UnitTestExecutor : public Executor {
   void run(function< void() > f) override { setup(); }
 };
 
-ExecutorGroup< UnitTestExecutor > group(1, 1000);
-
 class ExecutableTest : public ::testing::Test {
   using UnitTestExecutorGroup = ExecutorGroup< UnitTestExecutor >;
 

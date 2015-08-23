@@ -4,6 +4,7 @@
 #include "async/Async.h"
 #include "async/ExecutorGroup.h"
 #include "async/Latch.h"
+#include "async/TaskQueue.h"
 
 namespace xi {
 namespace async {
@@ -15,7 +16,7 @@ namespace async {
       auto coreCount = 8UL;                 // get from config
       auto perCoreQueueSize = 100 * 1024UL; // get from config
       _executors = make< ExecutorGroup< E > >(coreCount, perCoreQueueSize);
-      auto latch = make_shared<Latch>(coreCount);
+      auto latch = make_shared< Latch >(coreCount);
 
       auto future = latch->await();
       _executors->run([=]() mutable {
@@ -66,7 +67,7 @@ namespace async {
   struct LocalStorage< Engine< E, R > > {
     static Engine< E, R > *get() {
       static Engine< E, R > OBJ;
-      return & OBJ;
+      return &OBJ;
     }
   };
 }

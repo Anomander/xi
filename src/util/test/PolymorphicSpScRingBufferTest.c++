@@ -4,7 +4,8 @@
 
 using namespace xi;
 
-template < class T > using RingBuffer = xi::PolymorphicSpScRingBuffer< T >;
+template < class T >
+using RingBuffer = xi::PolymorphicSpScRingBuffer< T >;
 
 TEST(Simple, PushPop) {
   RingBuffer< int > rb(1000);
@@ -119,6 +120,20 @@ TEST(Simple, WrappingAroundMultipleTimes) {
   }
 }
 
+TEST(Reserve, NonForcePushRespectsReserve) {
+  RingBuffer< int > rb(60, 60);
+  ASSERT_FALSE(rb.push(1));
+  ASSERT_EQ(nullptr, rb.next());
+}
+
+TEST(Reserve, ForcePushIgnoresReserve) {
+  RingBuffer< int > rb(60, 60);
+  ASSERT_TRUE(rb.pushForced(1));
+  ASSERT_NE(nullptr, rb.next());
+  ASSERT_EQ(1, *rb.next());
+  rb.pop();
+}
+
 struct Base {
   virtual ~Base() = default;
   virtual int run() = 0;
@@ -230,7 +245,7 @@ struct DestrutorNotifier : public Base {
   ~DestrutorNotifier() { DESTROYED++; }
   int run() override { return 0; }
 };
-int DestrutorNotifier::DESTROYED = 0; 
+int DestrutorNotifier::DESTROYED = 0;
 
 TEST(Polymorphic, CallsDestructorOnPop) {
   RingBuffer< Base > rb(1000);

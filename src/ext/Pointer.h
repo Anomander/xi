@@ -30,5 +30,10 @@ inline namespace ext {
     return make_shared< typename ::std::decay< T >::type >(forward< T >(t));
   }
 
+  template < class T >
+  auto makeUniqueCopy(T t) {
+    return make_unique< typename ::std::decay< T >::type >(move(t));
+  }
+
 } // inline namespace ext
 } // namespace xi

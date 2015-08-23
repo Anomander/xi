@@ -22,7 +22,6 @@ namespace async {
   }
 
   void schedule(own< FreeStoreTask > task) {
-std::cout << "FreeStoreTask schedule" << std::endl;
     schedule([task = move(task)] { task->run(); });
   }
 }
