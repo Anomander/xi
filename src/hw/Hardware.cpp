@@ -1,5 +1,3 @@
-#pragma once
-
 #include "ext/Configure.h"
 #include "hw/Hardware.h"
 
