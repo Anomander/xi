@@ -4,10 +4,12 @@
 #include "ext/Lockfree.h"
 #include "util/PolymorphicSpScRingBuffer.h"
 #include "util/SpinLock.h"
-#include "core/Task.h"
+#include "async/Task.h"
 
 namespace xi {
 namespace core {
+  using async::Task;
+  using async::makeTask;
 
   class TaskQueue : public virtual ownership::Unique {
     enum { kStaticOverflowQueueCapacity = 256, kRingBufferReserveSize = 32 };

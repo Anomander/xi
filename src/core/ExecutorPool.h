@@ -10,25 +10,36 @@ namespace core {
 
   class ExecutorPool : public virtual ownership::StdShared {
     vector< Executor > _executors;
+    mut< Kernel > _kernel;
     unsigned _nextCore = 0;
 
   public:
-    ExecutorPool(mut< Kernel > kernel, vector< unsigned > ids) {
+    ExecutorPool(mut< Kernel > kernel, vector< unsigned > ids) : _kernel(kernel) {
       for (auto id : ids) {
         _executors.emplace_back(kernel, id);
       }
     }
 
-    ExecutorPool(mut< Kernel > kernel, size_t count) {
+    ExecutorPool(mut< Kernel > kernel, size_t count) : _kernel(kernel) {
       for (size_t id = 0; id < count; ++id) {
         _executors.emplace_back(kernel, static_cast< unsigned >(id));
       }
     }
 
+    size_t size() const { return _executors.size(); }
+
+    size_t registerPoller(own<Poller> poller) {
+      return _kernel->registerPoller(_kernel->localCoreId(), move(poller));
+    }
+
+    void deregisterPoller(size_t pollerId) {
+      _kernel->deregisterPoller(_kernel->localCoreId(), pollerId);
+    }
+
     template < class Func >
-    void postOnAll(Func && f) {
+    void postOnAll(Func &&f) {
       for (auto &e : _executors) {
-        e.post(forward<Func>(f));
+        e.post(forward< Func >(f));
       }
     }
 

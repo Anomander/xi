@@ -29,6 +29,14 @@ namespace io {
   struct ByteRange {
     uint8_t* data;
     size_t size;
+    void consume(size_t sz) {
+      auto actual = min(size, sz);
+      data += actual;
+      size -= actual;
+    }
+    bool empty() const {
+      return size == 0;
+    }
   };
 
   template<class T>

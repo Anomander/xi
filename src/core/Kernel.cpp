@@ -21,6 +21,7 @@ namespace core {
       throw std::invalid_argument("Not enough cores available.");
     }
     _queues.resize(count);
+    _pollers.resize(count);
     _inboundTaskQueues.resize(count);
 
     for (unsigned dst = 0; dst < count; ++dst) {
@@ -47,6 +48,27 @@ namespace core {
 
   unsigned Kernel::coreCount() { return _queues.size(); }
 
+  size_t Kernel::registerPoller(unsigned core, own< Poller > poller) {
+    if (core > _pollers.size()) {
+      throw std::invalid_argument("Target core not registered");
+    }
+    auto ret = reinterpret_cast< size_t >(addressOf(poller));
+    dispatch(core, [ poller = move(poller), this, core ] () mutable { _pollers[core].emplace_back(move(poller)); });
+    return ret;
+  }
+
+  void Kernel::deregisterPoller(unsigned core, size_t pollerId) {
+    if (core > _pollers.size()) {
+      throw std::invalid_argument("Target core not registered");
+    }
+    dispatch(core, [pollerId, this, core] {
+      auto &pollers = _pollers[core];
+      pollers.erase(remove_if(begin(pollers), end(pollers),
+                              [&](auto const & poller) { return reinterpret_cast< size_t >(addressOf(poller)) == pollerId; }),
+                    end(pollers));
+    });
+  }
+
   unsigned Kernel::localCoreId() {
     auto *desc = async::tryLocal< CoreDescriptor >();
     if (desc) {
@@ -56,16 +78,24 @@ namespace core {
   }
 
   void Kernel::runOnCore(unsigned id) {
+    std::cout << "starting thread: " << pthread_self() << std::endl;
     startup(id);
     XI_SCOPE(exit) { cleanup(); };
     ShutdownSignal shutdown;
     async::setLocal< ShutdownSignal >(shutdown);
-    while (! shutdown.received) {
+    while (!shutdown.received) {
       pollCore(id);
     }
   }
 
   void Kernel::pollCore(unsigned id) {
+    for (auto &&p : _pollers[id]) {
+      p->poll();
+    }
+    for (auto &&q : _queues[id]) {
+      q->processTasks();
+    }
+
     if (!_inboundTaskQueues[id].tasks.empty()) {
       auto lock = makeLock(_inboundTaskQueues[id].lock);
       auto &tasks = _inboundTaskQueues[id].tasks;
@@ -73,15 +103,12 @@ namespace core {
         auto &nextTask = tasks.back();
         XI_SCOPE(exit) { tasks.pop(); }; // pop no matter what, we don't want to retry throwing tasks
         try {
-          std::cout << "Running from inbound queue."<< std::endl;
+          std::cout << "Running from inbound queue: " << addressOf(nextTask) << std::endl;
           nextTask->run();
         } catch (...) {
           // ignore task exception
         }
       }
-    }
-    for (auto &&q : _queues[id]) {
-      q->processTasks();
     }
   }
 }

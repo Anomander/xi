@@ -8,6 +8,13 @@
 namespace xi {
 namespace core {
 
+  using async::makeTask;
+
+  struct Poller : public virtual ownership::Unique {
+    virtual ~Poller() = default;
+    virtual unsigned poll() noexcept = 0;
+  };
+
   class Kernel : public virtual ownership::Unique {
     hw::Machine _machine;
     struct CoreDescriptor {
@@ -19,6 +26,7 @@ namespace core {
       SpinLock lock;
     };
     vector< vector< own< TaskQueue > > > _queues;
+    vector< vector< own< Poller > > > _pollers;
     vector< InboundTasks > _inboundTaskQueues;
 
   public:
@@ -30,6 +38,9 @@ namespace core {
     virtual void start(unsigned count, unsigned perCoreQueueSize);
     virtual void initiateShutdown();
     virtual void awaitShutdown() {}
+
+    size_t registerPoller(unsigned core, own< Poller > poller);
+    void deregisterPoller(unsigned core, size_t pollerId);
 
     template < class Func >
     void dispatch(unsigned core, Func &&f) {

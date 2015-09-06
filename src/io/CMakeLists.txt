@@ -7,3 +7,4 @@ target_link_libraries(xi-io xi-async)
 
 # Temporarily ignoring
 # register_test(TcpClientSocketIntegrationTest xi-async xi-io)
+register_test(StreamBufferTest)

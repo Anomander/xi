@@ -12,6 +12,7 @@
 #include "io/Error.h"
 #include "io/IpAddress.h"
 #include "io/DataMessage.h"
+#include "io/StreamBuffer.h"
 
 #include "ext/Expected.h"
 
@@ -83,6 +84,27 @@ namespace io {
         return retval;
       }
 
+      inline Expected< int > write(int descriptor, ByteRange range) {
+        return write(descriptor, range.data, range.size);
+      }
+
+      inline Expected< int > write(int descriptor, ref<StreamBuffer> range) {
+        ByteRange ranges[256];
+        auto rangeCount = range.fillVec(ranges, 256);
+        iovec iov[rangeCount];
+        int i = 0;
+        for (auto & range : ranges) {
+          iov[i].iov_base = range.data;
+          iov[i++].iov_len = range.size;
+        }
+        msghdr msg;
+        msg.msg_iov = iov;
+        msg.msg_iovlen = rangeCount;
+        msg.msg_name = nullptr;
+        msg.msg_namelen = 0;
+        return sendmsg(descriptor, &msg, MSG_DONTWAIT);
+      }
+
       inline Expected< int > read(int descriptor, void *bytes, size_t sz) {
         int retval = recv(descriptor, bytes, sz, MSG_DONTWAIT);
         if (-1 == retval) {
@@ -102,7 +124,7 @@ namespace io {
         int i = 0;
         for (auto & range : ranges) {
           iov[i].iov_base = range.data;
-          iov[i].iov_len = range.size;
+          iov[i++].iov_len = range.size;
         }
         msghdr msg;
         msg.msg_iov = iov;

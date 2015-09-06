@@ -12,9 +12,8 @@ namespace io {
       void handleEvent(mut< HandlerContext > cx, MessageWrite ev) override {
         auto msg = fast_cast< DataMessage >(ev.message());
         if (msg) {
-          // TODO: temporary fix until a proper consuming cast is implemented
-          ev.extractMessage().release();
-          static_cast< Channel* >(cx->channel())->doWrite(own< DataMessage >(msg));
+          auto data = msg->data();
+          static_cast< Channel* >(cx->channel())->doWrite(ByteRange {(uint8_t*)data, data->header().size + sizeof(ProtocolMessage)});
         } else {
           throw std::logic_error("Attempt to write non-packet data");
         }

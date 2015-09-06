@@ -17,13 +17,16 @@ namespace async {
   }
 
   void EventHandler::cancel() noexcept {
-    _event->cancel();
+    if (_reactor) {
+      _event->cancel();
+    }
     _active = false;
   }
 
   void EventHandler::remove() noexcept {
     if (_reactor) {
       _reactor.get()->detachHandler(this);
+      _reactor = none;
     }
     release(move(_event));
     _active = false;

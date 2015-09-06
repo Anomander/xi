@@ -17,12 +17,10 @@ namespace async {
 
     void detachHandler(mut< EventHandler > handler) {
       std::cout << __PRETTY_FUNCTION__ << std::endl;
-      handler->detachReactor();
       auto it = _handlers.find(handler);
       if (end(_handlers) != it) {
-        auto handler = move(it->second);
+        handler->detachReactor();
         _handlers.erase(it);
-        std::cout << handler.use_count() << std::endl;
       }
     }
 

@@ -23,7 +23,7 @@ namespace io {
       friend class HeadPipelineHandler;
       friend class TailPipelineHandler;
 
-      virtual void doWrite(own< DataMessage >) = 0;
+      virtual void doWrite(ByteRange) = 0;
       virtual void doClose() = 0;
 
     private:
