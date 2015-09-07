@@ -12,9 +12,9 @@ using namespace xi::async;
 using namespace xi::async::libevent;
 using namespace xi::io;
 
-class DataHandler : public pipeline::SimpleInboundPipelineHandler< DataAvailable > {
+class DataHandler : public pipeline::PipelineHandler {
 public:
-  void messageReceived(mut< pipeline::HandlerContext > cx, own< DataAvailable > msg) override {
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::DataAvailable msg) override {
     // std::cout << "Message received." << std::endl;
     Expected< int > read = 0;
     while (true) {
@@ -144,8 +144,6 @@ struct ForkBloat {
 
 using ReactiveService = async::Service< async::ReactorService< libevent::Reactor > >;
 
-decltype(auto) localReactor() { return local< libevent::Reactor >(); }
-
 int main(int argc, char* argv[]) {
   auto k = make< core::LaunchableKernel< core::ThreadLauncher > >();
   k->start(4, 1 << 20);
@@ -160,25 +158,23 @@ int main(int argc, char* argv[]) {
   // });
 
   auto reactiveService = make< ReactiveService >(share(pool));
-  reactiveService->start().then([&pool] {
+  reactiveService->start().then([&pool, &reactiveService] {
     auto ch = make< ServerChannel< kInet, kTCP > >();
 
     ch->bind(19999);
     ch->pipeline()->pushBack(pipeline::makeInboundHandler< ClientChannelConnected >([&](auto cx, auto msg) {
-      pool->post([ch = msg->extractChannel()] {
-        auto& reactor = localReactor();
+          pool->post([ch = msg->extractChannel(), &reactiveService] {
+        auto reactor = reactiveService->local()->reactor();
         ch->pipeline()->pushBack(make< DataHandler >());
         ch->pipeline()->pushBack(make< MessageHandler >());
-        std::cout << ch.use_count() << std::endl;
-        reactor.attachHandler(move(ch));
+        reactor->attachHandler(move(ch));
         std::cout << "Local reactor @ " << addressOf(reactor) << std::endl;
       });
     }));
 
     pool->post([&, ch = move(ch) ] {
-      std::cout << "reading reactor in: " << pthread_self() << std::endl;
-      auto& reactor = localReactor();
-      reactor.attachHandler(move(ch));
+      auto reactor = reactiveService->local()->reactor();
+      reactor->attachHandler(move(ch));
       std::cout << "Acceptor attached." << std::endl;
     });
   });

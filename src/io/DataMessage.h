@@ -65,8 +65,6 @@ namespace io {
     size_t readableSize() const noexcept { return _header.size; }
   };
 
-  struct DataAvailable : FastCastGroupMember< DataAvailable, Message > {};
-
   struct DataMessage : FastCastGroupMember< DataMessage, Message > {
   public:
     DataMessage(ProtocolMessage* msg) : _message(move(msg)) {}

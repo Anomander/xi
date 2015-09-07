@@ -29,11 +29,19 @@ namespace core {
     size_t size() const { return _executors.size(); }
 
     size_t registerPoller(own<Poller> poller) {
-      return _kernel->registerPoller(_kernel->localCoreId(), move(poller));
+      auto maybeLocalCore = _kernel->localCoreId();
+      if (! maybeLocalCore) {
+        throw ::std::runtime_error("Unable to register poller from an unmanaged thread.");
+      }
+      return _kernel->registerPoller(maybeLocalCore.get(), move(poller));
     }
 
     void deregisterPoller(size_t pollerId) {
-      _kernel->deregisterPoller(_kernel->localCoreId(), pollerId);
+      auto maybeLocalCore = _kernel->localCoreId();
+      if (! maybeLocalCore) {
+        throw ::std::runtime_error("Unable to deregister poller from an unmanaged thread.");
+      }
+      _kernel->deregisterPoller(maybeLocalCore.get(), pollerId);
     }
 
     template < class Func >
@@ -49,14 +57,6 @@ namespace core {
         throw std::invalid_argument("Core not registered");
       }
       _executors[core].post(forward< Func >(f));
-    }
-
-    template < class Func >
-    void dispatchOn(size_t core, Func &&f) {
-      if (core > _executors.size()) {
-        throw std::invalid_argument("Core not registered");
-      }
-      _executors[core].dispatch(forward< Func >(f));
     }
 
     template < class Func >

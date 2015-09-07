@@ -12,6 +12,7 @@ namespace async {
   }
 
   void EventHandler::detachReactor() {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
     cancel();
     _active = false;
   }
@@ -19,6 +20,7 @@ namespace async {
   void EventHandler::cancel() noexcept {
     if (_reactor) {
       _event->cancel();
+      release(move(_event));
     }
     _active = false;
   }
@@ -28,7 +30,6 @@ namespace async {
       _reactor.get()->detachHandler(this);
       _reactor = none;
     }
-    release(move(_event));
     _active = false;
   }
 

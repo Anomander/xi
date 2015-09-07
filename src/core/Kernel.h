@@ -44,7 +44,8 @@ namespace core {
 
     template < class Func >
     void dispatch(unsigned core, Func &&f) {
-      if (core == localCoreId()) {
+      auto maybeLocalCore = localCoreId();
+      if (maybeLocalCore && core == maybeLocalCore.get()) {
         f();
       } else {
         post(core, forward< Func >(f));
@@ -79,7 +80,7 @@ namespace core {
       }
     }
 
-    static unsigned localCoreId();
+    static opt<unsigned> localCoreId();
     unsigned coreCount();
 
   protected:

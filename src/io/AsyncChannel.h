@@ -33,8 +33,9 @@ namespace io {
     }
 
     void detachReactor() override {
-      IoHandler::detachReactor();
+      std::cout << __PRETTY_FUNCTION__ << std::endl;
       pipeline()->channelDeregistered();
+      IoHandler::detachReactor();
     }
 
     void doClose() override { IoHandler::remove(); }
@@ -59,12 +60,6 @@ namespace io {
   public:
     ChannelBase() : AsyncChannel(detail::socket::create(af, sock, proto)) {}
     ChannelBase(int descriptor) : AsyncChannel(descriptor) {}
-
-  public:
-    virtual void open() {
-      std::cout << "ChannelBase::open" << std::endl;
-      this->pipeline()->channelOpened();
-    }
   };
 
   template < AddressFamily af, Protocol proto = kNone >
@@ -84,11 +79,10 @@ namespace io {
     size_t read(initializer_list< ByteRange > range) override {
       auto read = detail::socket::readv(this->descriptor(), range);
       if (XI_UNLIKELY(read.hasError())) {
-        if (isRetriableError(read.error())) {
-          return 0;
-        } else {
+        if (! isRetriableError(read.error())) {
           processError(read.error());
         }
+        return 0;
       }
       return read;
     }
@@ -114,7 +108,7 @@ namespace io {
       }
     }
 
-    void handleRead() override { this->pipeline()->channelRead(make< DataAvailable >()); }
+    void handleRead() override { this->pipeline()->fire(pipeline::DataAvailable{}); }
 
     void handleWrite() override {
       if (!this->isActive())
@@ -196,7 +190,6 @@ namespace io {
       // int T = 1;
       // setsockopt(i, IPPROTO_TCP, TCP_NODELAY, &T, sizeof(T));
       auto child = make< ClientChannel_t >(i, move(remote));
-      child->open();
       this->pipeline()->channelRead(make< ClientChannelConnected >(move(child)));
     }
   };

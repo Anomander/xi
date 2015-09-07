@@ -69,12 +69,12 @@ namespace core {
     });
   }
 
-  unsigned Kernel::localCoreId() {
+  opt<unsigned> Kernel::localCoreId() {
     auto *desc = async::tryLocal< CoreDescriptor >();
     if (desc) {
       return desc->id;
     }
-    return -1;
+    return none;
   }
 
   void Kernel::runOnCore(unsigned id) {

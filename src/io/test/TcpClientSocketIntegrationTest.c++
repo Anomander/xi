@@ -2,207 +2,154 @@
 #include "io/DataMessage.h"
 #include "async/libevent/Reactor.h"
 #include "io/test/TcpSocketMock.h"
+#include "io/pipeline/PipelineHandler.h"
 #include "io/pipeline/Util.h"
 
 #include <gtest/gtest.h>
 
 using namespace xi;
 using namespace xi::io;
+using namespace xi::io::pipeline;
 using namespace xi::async::libevent;
 
-class MessageHandler
-  : public pipeline::SimpleInboundPipelineHandler <DataMessage>
-{
+namespace xi {
+namespace io {
+  namespace pipeline {
+    bool operator==(Event const& lhs, Event const& rhs) { return typeid(lhs) == typeid(rhs); }
+    bool operator==(ChannelError const& lhs, ChannelError const& rhs) { return lhs.error() == rhs.error(); }
+    std::ostream& operator<<(std::ostream& os, ChannelError const& rhs) { return os << typeid(rhs).name(); }
+    std::ostream& operator<<(std::ostream& os, ChannelException const& rhs) { return os << typeid(rhs).name(); }
+    std::ostream& operator<<(std::ostream& os, ChannelRegistered const& rhs) { return os << typeid(rhs).name(); }
+    std::ostream& operator<<(std::ostream& os, ChannelDeregistered const& rhs) { return os << typeid(rhs).name(); }
+    std::ostream& operator<<(std::ostream& os, ChannelClosed const& rhs) { return os << typeid(rhs).name(); }
+    std::ostream& operator<<(std::ostream& os, DataAvailable const& rhs) { return os << typeid(rhs).name(); }
+    std::ostream& operator<<(std::ostream& os, Event const& rhs) { return os << typeid(rhs).name(); }
+  }
+}
+}
+
+using AnyEvent =
+    variant< ChannelClosed, ChannelRegistered, ChannelDeregistered, DataAvailable, ChannelError, ChannelException >;
+
+class MessageHandler : public pipeline::PipelineHandler {
 public:
-  // void channelOpened (mut<pipeline::HandlerContext> cx) override {
-  //   opened = true;
-  // }
-  // void channelClosed (mut<pipeline::HandlerContext> cx) override {
-  //   opened = false;
-  // }
-  void handleEvent (mut<pipeline::HandlerContext> cx, pipeline::ChannelRegistered) override {
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::ChannelClosed e) override {
+    events.emplace_back(e);
     std::cout << __PRETTY_FUNCTION__ << std::endl;
-    registered = true;
+    cx->forward(e);
   }
-  void handleEvent (mut<pipeline::HandlerContext> cx, pipeline::ChannelDeregistered) override {
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::ChannelRegistered e) override {
+    events.emplace_back(e);
     std::cout << __PRETTY_FUNCTION__ << std::endl;
-    registered = false;
+    cx->forward(e);
   }
-  void messageReceived(mut<pipeline::HandlerContext> cx, own <DataMessage> msg) override {
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::ChannelDeregistered e) override {
+    events.emplace_back(e);
     std::cout << __PRETTY_FUNCTION__ << std::endl;
-    ++messagesReceived;
-    lastMessage = move(msg);
+    cx->forward(e);
   }
-  void handleEvent (mut<pipeline::HandlerContext> cx, pipeline::ChannelError error) override {
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::DataAvailable e) override {
+    events.emplace_back(e);
     std::cout << __PRETTY_FUNCTION__ << std::endl;
-    lastError = error.error();
+    sizeRead = cx->channel()->read(ByteRange{data, sizeof(data)});
+    cx->forward(e);
+  }
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::ChannelError e) override {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    events.emplace_back(e);
+    cx->forward(e);
+  }
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::ChannelException e) override {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+    events.emplace_back(e);
+    cx->forward(e);
   }
 
 public:
-  size_t messagesReceived = 0UL;
-  bool registered = false;
-  bool opened = false;
-  error_code lastError;
-  own<DataMessage> lastMessage;
+  vector< AnyEvent > events;
+  uint8_t data[1024];
+  size_t sizeRead = 0;
 };
 
-uint8_t PAYLOAD [10] = {0,1,2,3,4,5,6,7,8,9};
+uint8_t PAYLOAD[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
 class TestFixture : public ::testing::Test {
 protected:
   void SetUp() override {
-    reactor = make <Reactor>();
-    handler = make <MessageHandler>();
-    mock = make <test::TcpSocketMock> ();
-    auto ch = make <ServerChannel<kInet, kTCP>>();
-    ch->setOption (ReuseAddress::yes);
+    reactor = make< Reactor >();
+    handler = make< MessageHandler >();
+    mock = make< test::TcpSocketMock >();
+    auto ch = make< ServerChannel< kInet, kTCP > >();
+    ch->setOption(ReuseAddress::yes);
     ch->bind(12345);
-    ch->pipeline()->pushBack(
-      pipeline::makeInboundHandler <ClientChannelConnected> (
-        [&] (auto cx, auto msg) {
-          msg->channel()->pipeline()->pushBack(handler);
-          reactor->attachHandler(msg->extractChannel());
-        }
-      )
-    );
-    reactor->attachHandler (move(ch));
+    ch->pipeline()->pushBack(pipeline::makeInboundHandler< ClientChannelConnected >([&](auto cx, auto msg) {
+      msg->channel()->pipeline()->pushBack(handler);
+      clientChannel = msg->channel();
+      reactor->attachHandler(msg->extractChannel());
+    }));
+    reactor->attachHandler(move(ch));
 
-    mock.connect (12345);
+    mock.connect(12345);
     reactor->poll();
   }
 
+  void verifyEventSequence(initializer_list< AnyEvent > events) {
+    ASSERT_EQ(events.size(), handler->events.size());
+    size_t i = 0;
+    for (auto&& e : events) {
+      ASSERT_EQ(e, handler->events[i++]);
+    }
+  }
+
+  void verifyDataRead(uint8_t* data, size_t size) {
+    ASSERT_EQ(size, handler->sizeRead);
+    for (size_t i = 0; i < size; ++i) {
+      ASSERT_EQ(data[i], handler->data[i]);
+    }
+  }
+
 protected:
-  own<Reactor> reactor;
-  own<MessageHandler> handler;
-  own<test::TcpSocketMock> mock;
+  own< Reactor > reactor;
+  own< MessageHandler > handler;
+  own< test::TcpSocketMock > mock;
+  mut< AsyncChannel > clientChannel;
 };
 
-TEST_F (TestFixture, RegisterOnConnect) {
+TEST_F(TestFixture, ClientInitiatedConnectSequence) {
   reactor->poll();
 
-  ASSERT_EQ(true, handler->registered);
+  verifyEventSequence({ChannelRegistered{}});
 }
 
-TEST_F (TestFixture, Read) {
-  mock.sendMessage (PAYLOAD, sizeof(PAYLOAD));
-
+TEST_F(TestFixture, ClientInitiatedCloseSequence) {
   reactor->poll();
 
-  ASSERT_EQ (1UL, handler->messagesReceived);
-  ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);
-  ASSERT_EQ (0, memcmp(PAYLOAD, handler->lastMessage->data()->readableRange().data, sizeof(PAYLOAD)));
-}
-
-TEST_F (TestFixture, ReadNoPayload) {
-  mock.sendMessage (nullptr, 0);
-
-  reactor->poll();
-
-  ASSERT_EQ (1UL, handler->messagesReceived);
-  ASSERT_EQ (0UL, handler->lastMessage->data()->header().size);
-}
-
-TEST_F (TestFixture, RemoteCloseAfterHeader) {
-  ProtocolHeader hdr;
-  hdr.size = 100;
-  mock.send(&hdr, sizeof(hdr));
-
-  reactor->poll();
-
-  ASSERT_EQ (0UL, handler->messagesReceived);
+  verifyEventSequence({ChannelRegistered{}});
 
   mock.close();
 
   reactor->poll();
 
-  ASSERT_EQ (0UL, handler->messagesReceived);
-  ASSERT_EQ (handler->registered, false);
+  verifyEventSequence({ChannelRegistered{}, DataAvailable{}, ChannelClosed{}, ChannelDeregistered{}});
 }
 
-// Since header is not actually read before full
-// size of it is available, the connection will
-// not read EOF.
-// These connections will be left for the reaper
-// to close.
-TEST_F (TestFixture, RemoteCloseMidHeader) {
-  ProtocolHeader hdr;
-  mock.send(&hdr, sizeof(hdr)/ 2);
-
+TEST_F(TestFixture, ServerInitiatedCloseSequence) {
   reactor->poll();
 
-  ASSERT_EQ (0UL, handler->messagesReceived);
+  verifyEventSequence({ChannelRegistered{}});
 
-  mock.close();
+  clientChannel->close();
 
-  reactor->poll();
-
-  ASSERT_EQ (0UL, handler->messagesReceived);
-  ASSERT_EQ (handler->registered, true);
+  verifyEventSequence({ChannelRegistered{}, ChannelClosed{}, ChannelDeregistered{}});
 }
 
-TEST_F (TestFixture, RemoteCloseAfterPayloadSameEvent) {
-  mock.sendMessage (PAYLOAD, sizeof(PAYLOAD));
-  mock.close();
-
-  reactor->poll();
-
-  ASSERT_EQ (1UL, handler->messagesReceived);
-  ASSERT_EQ (handler->registered, false);
-  ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);
-  ASSERT_EQ (0, memcmp(PAYLOAD, handler->lastMessage->data()->readableRange().data, sizeof(PAYLOAD)));
-}
-
-TEST_F (TestFixture, RemoteCloseAfterPayload) {
-  mock.sendMessage (PAYLOAD, sizeof(PAYLOAD));
-
-  reactor->poll();
-
-  ASSERT_EQ (1UL, handler->messagesReceived);
-
-  mock.close();
-
-  reactor->poll();
-
-  ASSERT_EQ (1UL, handler->messagesReceived);
-  ASSERT_EQ (handler->registered, false);
-  ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);
-  ASSERT_EQ (0, memcmp(PAYLOAD, handler->lastMessage->data()->readableRange().data, sizeof(PAYLOAD)));
-}
-
-TEST_F (TestFixture, RemoteCloseMidPayload) {
-  ProtocolHeader hdr;
-  hdr.size = sizeof(PAYLOAD) * 2;
-  mock.send(&hdr, sizeof(hdr));
+TEST_F(TestFixture, ReadSequence) {
   mock.send(PAYLOAD, sizeof(PAYLOAD));
 
   reactor->poll();
 
-  ASSERT_EQ (0UL, handler->messagesReceived);
-
-  mock.close();
-
-  reactor->poll();
-
-  ASSERT_EQ (0UL, handler->messagesReceived);
-  ASSERT_EQ (handler->registered, false);
+  verifyEventSequence({ChannelRegistered{}, DataAvailable{}});
+  verifyDataRead(PAYLOAD, sizeof(PAYLOAD));
 }
 
-TEST_F (TestFixture, ReadPayloadSeveralEvents) {
-  ProtocolHeader hdr;
-  hdr.size = sizeof(PAYLOAD);
-  mock.send(&hdr, sizeof(hdr));
-  /// size better be even
-  mock.send(PAYLOAD, sizeof(PAYLOAD) / 2);
-
-  reactor->poll();
-
-  ASSERT_EQ (0UL, handler->messagesReceived);
-
-  mock.send(PAYLOAD + sizeof(PAYLOAD)/2, sizeof(PAYLOAD) / 2);
-
-  reactor->poll();
-
-  ASSERT_EQ (1UL, handler->messagesReceived);
-  ASSERT_EQ (sizeof(PAYLOAD), handler->lastMessage->data()->header().size);
-  ASSERT_EQ (0, memcmp(PAYLOAD, handler->lastMessage->data()->readableRange().data, sizeof(PAYLOAD)));
-}
+// TODO: Test reading into invalid ByteRange

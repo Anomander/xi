@@ -45,6 +45,14 @@ namespace async {
         latch->countDown();
       });
     }
+
+    mut< I > local() {
+      auto* impl = tryLocal< I >();
+      if (!impl) {
+        throw ::std::runtime_error("Local thread is not managing requested service.");
+      }
+      return impl;
+    }
   };
 
   template < class R >
@@ -70,11 +78,11 @@ namespace async {
 
   public:
     void start(mut< core::ExecutorPool > pool) {
-      setLocal< R >(val(_reactor));
       _pool = pool;
       _pollerId = pool->registerPoller(make< ReactorPoller< R > >(edit(_reactor)));
     }
     void stop() { _pool->deregisterPoller(_pollerId); }
+    mut< R > reactor() { return edit(_reactor); }
   };
 }
 }
