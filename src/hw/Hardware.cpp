@@ -1,8 +1,10 @@
-#include "ext/Configure.h"
-#include "hw/Hardware.h"
+#include "xi/ext/Configure.h"
+#include "xi/hw/Hardware.h"
 
 namespace xi {
 namespace hw {
+
+#ifdef XI_HAS_HWLOC
 
   Cpu::Cpu(hwloc_obj_t cpu) : _id{hwloc_bitmap_first(cpu->cpuset), hwloc_bitmap_first(cpu->nodeset)} {}
 
@@ -26,5 +28,21 @@ namespace hw {
 
     return Machine{topology};
   }
+
+#else//XI_HAS_HWLOC
+
+  Cpu::Cpu(unsigned core) : _id{core, core} {}
+
+  Machine::Machine() {
+    for (unsigned core = 0; core < std::thread::hardware_concurrency(); ++core) {
+      _cpus.emplace_back(core);
+    }
+  }
+
+  Machine enumerate() {
+    return Machine{};
+  }
+
+#endif//XI_HAS_HWLOC
 }
 }

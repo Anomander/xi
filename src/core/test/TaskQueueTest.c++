@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "core/TaskQueue.h"
+#include "xi/core/TaskQueue.h"
+#include "Util.h"
 
 using namespace xi;
 using xi::core::TaskQueue;
@@ -22,17 +23,11 @@ TEST(Simple, AddTaskAndProcessFIFO) {
   ASSERT_EQ(21, i);
 }
 
-struct DestructorTrackerTask : public xi::core::Task {
-  static size_t CREATED;
-  static size_t DESTROYED;
+struct DestructorTrackerTask : public test::ObjectTracker, public xi::core::Task {
   static size_t RUN;
-  DestructorTrackerTask() { CREATED++; }
-  ~DestructorTrackerTask() { DESTROYED++; }
   void run() override { RUN++; }
 };
 
-size_t DestructorTrackerTask::CREATED = 0;
-size_t DestructorTrackerTask::DESTROYED = 0;
 size_t DestructorTrackerTask::RUN = 0;
 
 TEST(Simple, TasksDestroyedAfterRun) {

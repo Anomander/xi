@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "async/Latch.h"
+#include "xi/async/Latch.h"
 
 using namespace xi::async;
 

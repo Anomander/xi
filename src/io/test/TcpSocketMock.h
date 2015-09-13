@@ -3,8 +3,8 @@
 #include <netinet/tcp.h>
 #include <strings.h>
 
-#include "ext/Configure.h"
-#include "io/DataMessage.h"
+#include "xi/ext/Configure.h"
+#include "xi/io/DataMessage.h"
 
 namespace xi {
 namespace io {

@@ -1,11 +1,11 @@
-#include "io/AsyncChannel.h"
-#include "io/pipeline/Util.h"
-#include "async/libevent/Reactor.h"
-#include "hw/Hardware.h"
-#include "core/LaunchableKernel.h"
-#include "core/ThreadLauncher.h"
-#include "core/KernelUtils.h"
-#include "async/ReactorService.h"
+#include "xi/io/AsyncChannel.h"
+#include "xi/io/pipeline/Util.h"
+#include "xi/async/libevent/Reactor.h"
+#include "xi/hw/Hardware.h"
+#include "xi/core/LaunchableKernel.h"
+#include "xi/core/ThreadLauncher.h"
+#include "xi/core/KernelUtils.h"
+#include "xi/async/ReactorService.h"
 
 using namespace xi;
 using namespace xi::async;
@@ -162,14 +162,13 @@ int main(int argc, char* argv[]) {
     auto ch = make< ServerChannel< kInet, kTCP > >();
 
     ch->bind(19999);
-    ch->pipeline()->pushBack(pipeline::makeInboundHandler< ClientChannelConnected >([&](auto cx, auto msg) {
-          pool->post([ch = msg->extractChannel(), &reactiveService] {
-        auto reactor = reactiveService->local()->reactor();
-        ch->pipeline()->pushBack(make< DataHandler >());
-        ch->pipeline()->pushBack(make< MessageHandler >());
-        reactor->attachHandler(move(ch));
-        std::cout << "Local reactor @ " << addressOf(reactor) << std::endl;
-      });
+    // ch->pipeline()->pushBack(pipeline::makeInboundHandler< ClientChannelConnected >([&](auto cx, auto msg) {
+    ch->childHandler(pool->wrap([&reactiveService](auto ch) {
+      auto reactor = reactiveService->local()->reactor();
+      ch->pipeline()->pushBack(make< DataHandler >());
+      ch->pipeline()->pushBack(make< MessageHandler >());
+      reactor->attachHandler(move(ch));
+      std::cout << "Local reactor @ " << addressOf(reactor) << std::endl;
     }));
 
     pool->post([&, ch = move(ch) ] {

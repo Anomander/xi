@@ -1,5 +1,5 @@
-#include "io/pipeline/Pipeline.h"
-#include "io/pipeline/Util.h"
+#include "xi/io/pipeline/Pipeline.h"
+#include "xi/io/pipeline/Util.h"
 
 using namespace xi;
 using namespace xi::io::pipeline;

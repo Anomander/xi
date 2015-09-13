@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "async/Future.h"
-#include "async/Engine.h"
-#include "async/Context.h"
+#include "xi/async/Future.h"
+#include "xi/async/Engine.h"
+#include "xi/async/Context.h"
 
 using namespace xi;
 using namespace xi::async;

@@ -1,9 +1,10 @@
-#include "io/AsyncChannel.h"
-#include "io/DataMessage.h"
-#include "async/libevent/Reactor.h"
-#include "io/test/TcpSocketMock.h"
-#include "io/pipeline/PipelineHandler.h"
-#include "io/pipeline/Util.h"
+#include "xi/io/AsyncChannel.h"
+#include "xi/io/DataMessage.h"
+#include "xi/async/libevent/Reactor.h"
+#include "xi/io/pipeline/PipelineHandler.h"
+#include "xi/io/pipeline/Util.h"
+
+#include "TcpSocketMock.h"
 
 #include <gtest/gtest.h>
 
@@ -82,11 +83,11 @@ protected:
     auto ch = make< ServerChannel< kInet, kTCP > >();
     ch->setOption(ReuseAddress::yes);
     ch->bind(12345);
-    ch->pipeline()->pushBack(pipeline::makeInboundHandler< ClientChannelConnected >([&](auto cx, auto msg) {
-      msg->channel()->pipeline()->pushBack(handler);
-      clientChannel = msg->channel();
-      reactor->attachHandler(msg->extractChannel());
-    }));
+    ch->childHandler([&](auto channel) {
+      channel->pipeline()->pushBack(handler);
+      clientChannel = edit(channel);
+      reactor->attachHandler(move(channel));
+    });
     reactor->attachHandler(move(ch));
 
     mock.connect(12345);

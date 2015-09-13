@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "io/AsyncChannel.h"
+#include "xi/io/AsyncChannel.h"
 
 using namespace xi::io;
 

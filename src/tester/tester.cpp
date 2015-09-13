@@ -8,7 +8,7 @@
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
 
-#include "tester/server.h"
+#include "server.h"
 
 using namespace boost::asio;
 using namespace std::chrono;

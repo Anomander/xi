@@ -1,8 +1,7 @@
-#include "io/pipeline/Pipeline.h"
-#include "io/pipeline/Channel.h"
-#include "io/DataMessage.h"
-
-#include "ext/FastCast.h"
+#include "xi/io/pipeline/Pipeline.h"
+#include "xi/io/pipeline/Channel.h"
+#include "xi/io/DataMessage.h"
+#include "xi/ext/FastCast.h"
 
 namespace xi {
 namespace io {
