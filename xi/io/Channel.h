@@ -14,7 +14,8 @@ namespace io {
     virtual void close() = 0;
     virtual void write(own< Message >) = 0;
     virtual size_t read(ByteRange range) = 0;
-    virtual size_t read(initializer_list<ByteRange> range) = 0;
+    virtual size_t read(initializer_list< ByteRange > range) = 0;
+    virtual bool isClosed() = 0;
   };
 }
 }

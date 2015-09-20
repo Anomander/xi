@@ -13,19 +13,17 @@ namespace io {
       data += actual;
       size -= actual;
     }
-    bool empty() const {
-      return size == 0;
-    }
+    bool empty() const { return size == 0; }
   };
 
-  template<class T>
-  auto byteRangeForObject(T & t) noexcept {
-    return ByteRange { reinterpret_cast<uint8_t*>(& t), sizeof(t) };
+  template < class T >
+  auto byteRangeForObject(T& t) noexcept {
+    return ByteRange{reinterpret_cast< uint8_t* >(&t), sizeof(t)};
   }
 
-  template<class T, size_t S>
-  auto byteRangeForObject(array<T,S> & arr) noexcept {
-    return ByteRange { reinterpret_cast<uint8_t*>(arr.data()), sizeof(T) * arr.size() };
+  template < class T, size_t S >
+  auto byteRangeForObject(array< T, S >& arr) noexcept {
+    return ByteRange{reinterpret_cast< uint8_t* >(arr.data()), sizeof(T) * arr.size()};
   }
 }
 }

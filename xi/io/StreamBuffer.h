@@ -14,8 +14,8 @@ namespace io {
       uint8_t* rCursor = data;
 
       ~Chunk() { delete[] data; }
-      uint8_t * begin() const noexcept { return data; }
-      uint8_t * end() const noexcept { return data + kChunkSize; }
+      uint8_t* begin() const noexcept { return data; }
+      uint8_t* end() const noexcept { return data + kChunkSize; }
       size_t size() const { return wCursor - rCursor; }
       size_t capacity() const { return end() - wCursor; }
 
@@ -23,7 +23,7 @@ namespace io {
         auto actual = min(size(), sz);
         rCursor += actual;
       }
-      void push(mut<ByteRange> range) {
+      void push(mut< ByteRange > range) {
         auto actual = min(capacity(), range->size);
         ::memcpy(wCursor, range->data, actual);
         wCursor += actual;
@@ -90,10 +90,10 @@ namespace io {
 
     void copyNoAllocate(ByteRange range) {
       _freeCapacity -= range.size;
-      do{
+      do {
         _totalSize += range.size;
         _writeCursor->push(edit(range));
-      } while (! range.empty() && ++_writeCursor != end(_chunks));
+      } while (!range.empty() && ++_writeCursor != end(_chunks));
     }
   };
 }

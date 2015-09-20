@@ -51,7 +51,6 @@ namespace io {
     private:
       deque< own< HandlerContext > > _handlerContexts{};
     };
-
   }
 }
 } // namespace pipeline // namespace io // namespace xi

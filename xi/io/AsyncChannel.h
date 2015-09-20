@@ -36,7 +36,11 @@ namespace io {
       IoHandler::detachReactor();
     }
 
-    void doClose() override { IoHandler::remove(); }
+    void doClose() override { IoHandler::cancel(); }
+
+    bool isClosed() override {
+      return !isActive();
+    }
 
     template < class Option >
     void setOption(Option option) {
@@ -87,7 +91,6 @@ namespace io {
 
     void doWrite(ByteRange range) override {
       if (_streamBuffer.empty()) {
-        auto guard = share(this);
         auto written = detail::socket::write(this->descriptor(), range);
         if (XI_UNLIKELY(written.hasError())) {
           if (isRetriableError(written.error())) {
@@ -107,10 +110,7 @@ namespace io {
       }
     }
 
-    void handleRead() override {
-      auto guard = share(this);
-      this->pipeline()->fire(pipeline::DataAvailable{});
-    }
+    void handleRead() override { this->pipeline()->fire(pipeline::DataAvailable{}); }
 
     void handleWrite() override {
       if (!this->isActive())

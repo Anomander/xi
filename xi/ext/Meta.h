@@ -79,9 +79,11 @@ inline namespace ext {
     };
 
     namespace _static_test {
-      template<class...>class Foo;
-      STATIC_ASSERT_TEST(is_same< typename VariadicTemplateFromVector <Foo, vector<int>>::type, Foo<int>>);
-      STATIC_ASSERT_TEST(is_same< typename VariadicTemplateFromVector <Foo, vector<int, double>>::type, Foo<int, double>>);
+      template < class... >
+      class Foo;
+      STATIC_ASSERT_TEST(is_same< typename VariadicTemplateFromVector< Foo, vector< int > >::type, Foo< int > >);
+      STATIC_ASSERT_TEST(
+          is_same< typename VariadicTemplateFromVector< Foo, vector< int, double > >::type, Foo< int, double > >);
     }
   } // namespace meta
 } // inline namespace ext

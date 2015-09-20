@@ -1,19 +1,18 @@
 #pragma once
 
-#include "xi/async/Event.h"
 #include "xi/ext/Configure.h"
+#include "xi/async/Event.h"
+#include "xi/async/Async.h"
 
 namespace xi {
 namespace async {
   class Reactor;
 
-  class EventHandler : virtual public ownership::StdShared {
-  public:
+  class EventHandler : public Async< EventHandler >, virtual public ownership::StdShared {
   public:
     virtual ~EventHandler() noexcept = default;
-    virtual void cancel() noexcept;
-    virtual void remove() noexcept;
-    virtual void attachReactor(mut< Reactor > loop);
+    virtual void cancel();
+    virtual void attachReactor(mut< Reactor >);
     virtual void detachReactor();
     virtual bool isActive() const noexcept;
 
@@ -25,15 +24,14 @@ namespace async {
   protected:
     own< Event > _event;
     opt< mut< Reactor > > _reactor;
-    bool _active = false;
   };
 
   class IoHandler : public EventHandler {
   public:
     IoHandler(int descriptor) : _descriptor(descriptor) {}
 
-    void expectRead(bool) noexcept;
-    void expectWrite(bool) noexcept;
+    void expectRead(bool);
+    void expectWrite(bool);
 
   protected:
     virtual void handleRead() = 0;

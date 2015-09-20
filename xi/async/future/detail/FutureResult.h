@@ -44,6 +44,5 @@ namespace async {
   STATIC_ASSERT_TEST(is_same< FutureResult< meta::Null (*)(void), void >, meta::Null >);
   STATIC_ASSERT_TEST(is_same< FutureResult< int (*)(void), void >, int >);
   STATIC_ASSERT_TEST(is_same< FutureResult< int (*)(int), int >, int >);
-
 }
 }

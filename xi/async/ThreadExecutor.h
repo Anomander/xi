@@ -17,7 +17,7 @@ namespace async {
 
             XI_SCOPE(exit) { this->cleanup(); };
             f();
-          } catch (exception & e) {
+          } catch (exception& e) {
             std::cout << "Exception in executor " << id() << " : " << e.what() << std::endl;
             // satisfy noexcept
           } catch (...) {
@@ -35,6 +35,5 @@ namespace async {
   public:
     thread _thread;
   };
-
 }
 }

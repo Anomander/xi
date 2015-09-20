@@ -7,7 +7,7 @@
 namespace xi {
 namespace core {
 
-  class Executor : public ExecutorCommon<Executor> {
+  class Executor : public ExecutorCommon< Executor > {
     mut< Kernel > _kernel;
     unsigned _id;
 
@@ -23,6 +23,8 @@ namespace core {
     void dispatch(Func &&f) {
       _kernel->dispatch(_id, forward< Func >(f));
     }
+
+    unsigned id() const { return _id; }
   };
 }
 }

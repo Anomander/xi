@@ -10,6 +10,7 @@
 #include <vector>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace xi {
 inline namespace ext {
@@ -29,6 +30,7 @@ inline namespace ext {
   using ::std::queue;
   using ::std::vector;
   using ::std::unordered_map;
+  using ::std::unordered_set;
   using ::std::initializer_list;
 
   using ::std::distance;

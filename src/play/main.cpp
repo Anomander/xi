@@ -26,6 +26,9 @@ public:
         read = cx->channel()->read({headerByteRange()});
       }
 
+      if (cx->channel()->isClosed()) {
+        break;
+      }
       auto bytesRead = static_cast< size_t >(read);
       // std::cout << "I just read " << bytesRead << " bytes." << std::endl;
       if (_messageCursor) {

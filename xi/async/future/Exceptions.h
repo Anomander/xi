@@ -12,6 +12,5 @@ namespace async {
   struct InvalidPromiseException : public std::logic_error {
     InvalidPromiseException() : std::logic_error("This promise is invalid") {}
   };
-
 }
 }

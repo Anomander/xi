@@ -99,6 +99,5 @@ namespace async {
   Future< U > makeReadyFuture(Future< U >&& value) {
     return move(value);
   }
-
 }
 }

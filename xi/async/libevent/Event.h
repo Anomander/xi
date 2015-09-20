@@ -12,12 +12,13 @@ namespace async {
 
     class Event : public async::Event {
     public:
-      Event(mut< EventLoop > loop, EventState state, mut< async::EventHandler >);
+      Event(mut< EventLoop >, EventState, mut< async::EventHandler >);
       void cancel() override;
       void arm() override;
       void changeState(EventState) override;
       void addState(EventState) override;
       void removeState(EventState) override;
+      bool isActive() override;
 
     private:
       mut< EventLoop > _loop;

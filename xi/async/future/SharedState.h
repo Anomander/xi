@@ -103,7 +103,7 @@ namespace async {
 
   template < class T >
   template < class Func >
-  struct SharedState<T>::OwningCallback {
+  struct SharedState< T >::OwningCallback {
     OwningCallback(Func&& f) : _f(make_unique< Func >(move(f))){};
 
     void operator()(mut< SharedState > state) { _run(state); }
@@ -118,7 +118,7 @@ namespace async {
 
   template < class T >
   template < class Func >
-  struct SharedState<T>::RefCallback {
+  struct SharedState< T >::RefCallback {
     RefCallback(Func&& f) : _f(move(f)){};
 
     void operator()(mut< SharedState > state) { _run(state); }

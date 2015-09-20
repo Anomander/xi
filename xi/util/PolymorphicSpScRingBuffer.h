@@ -88,7 +88,7 @@ inline namespace util {
           return false;
         }
       }
-      if (XI_UNLIKELY(!force && available - size < _RESERVED_SIZE)){
+      if (XI_UNLIKELY(!force && available - size < _RESERVED_SIZE)) {
         return false;
       }
       if (adjustedWriteIdx < currentWriterIdx) {
@@ -108,10 +108,14 @@ inline namespace util {
 
   public:
     template < class U >
-    bool push(U && obj) { return doPush(forward<U>(obj), false);}
+    bool push(U &&obj) {
+      return doPush(forward< U >(obj), false);
+    }
 
     template < class U >
-    bool pushForced(U && obj) { return doPush(forward<U>(obj), true);}
+    bool pushForced(U &&obj) {
+      return doPush(forward< U >(obj), true);
+    }
 
     T *next() {
       struct Pod {

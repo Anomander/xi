@@ -27,41 +27,41 @@ namespace hw {
     Machine(hwloc_topology_t topology);
 
     decltype(auto) cpus() const { return _cpus; }
-    Cpu const & cpu(unsigned core) const { return _cpus.at(core); }
+    Cpu const& cpu(unsigned core) const { return _cpus.at(core); }
   };
 
   extern Machine enumerate();
 }
 }
 
-#else//XI_HAS_HWLOC
+#else // XI_HAS_HWLOC
 
 namespace xi {
-  namespace hw {
+namespace hw {
 
-    class Cpu {
-      struct {
-        unsigned os;
-        unsigned numa;
-      } _id;
+  class Cpu {
+    struct {
+      unsigned os;
+      unsigned numa;
+    } _id;
 
-    public:
-      Cpu(unsigned cpu);
+  public:
+    Cpu(unsigned cpu);
 
-      auto id() const noexcept { return _id; }
-    };
+    auto id() const noexcept { return _id; }
+  };
 
-    class Machine {
-      vector< Cpu > _cpus;
+  class Machine {
+    vector< Cpu > _cpus;
 
-    public:
-      Machine();
+  public:
+    Machine();
 
-      decltype(auto) cpus() const { return _cpus; }
-      Cpu const & cpu(unsigned core) const { return _cpus.at(core); }
-    };
+    decltype(auto) cpus() const { return _cpus; }
+    Cpu const& cpu(unsigned core) const { return _cpus.at(core); }
+  };
 
-    extern Machine enumerate();
-  }
+  extern Machine enumerate();
 }
-#endif//XI_HAS_HWLOC
+}
+#endif // XI_HAS_HWLOC

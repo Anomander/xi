@@ -12,7 +12,8 @@ namespace io {
         auto msg = fast_cast< DataMessage >(ev.message());
         if (msg) {
           auto data = msg->data();
-          static_cast< Channel* >(cx->channel())->doWrite(ByteRange {(uint8_t*)data, data->header().size + sizeof(ProtocolMessage)});
+          static_cast< Channel* >(cx->channel())
+              ->doWrite(ByteRange{(uint8_t*)data, data->header().size + sizeof(ProtocolMessage)});
         } else {
           throw std::logic_error("Attempt to write non-packet data");
         }

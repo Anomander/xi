@@ -37,8 +37,8 @@ namespace async {
     void set(exception_ptr ex);
   };
 
-  template<class T>
-  Future< T > Promise<T>::getFuture() {
+  template < class T >
+  Future< T > Promise< T >::getFuture() {
     if (testFlag(kFutureMade)) {
       throw InvalidPromiseException();
     }
@@ -46,8 +46,8 @@ namespace async {
     return Future< T >(share(_state));
   }
 
-  template<class T>
-  void Promise<T>::set(T value) {
+  template < class T >
+  void Promise< T >::set(T value) {
     if (testFlag(kValueSet)) {
       throw InvalidPromiseException();
     }
@@ -55,8 +55,8 @@ namespace async {
     _state->set(move(value));
   }
 
-  template<class T>
-  void Promise<T>::set(Future< T >&& value) {
+  template < class T >
+  void Promise< T >::set(Future< T >&& value) {
     if (testFlag(kValueSet)) {
       throw InvalidPromiseException();
     }
@@ -64,14 +64,14 @@ namespace async {
     _state = move(value).extractIntoSharedState(move(_state));
   }
 
-  template<class T>
-  void Promise<T>::set() {
+  template < class T >
+  void Promise< T >::set() {
     static_assert(is_same< meta::Null, T >::value, "set() can only be used on Promise<>");
     set(meta::Null{});
   }
 
-  template<class T>
-  void Promise<T>::set(exception_ptr ex) {
+  template < class T >
+  void Promise< T >::set(exception_ptr ex) {
     if (testFlag(kValueSet)) {
       throw InvalidPromiseException();
     }

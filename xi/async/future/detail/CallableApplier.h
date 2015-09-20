@@ -44,6 +44,5 @@ namespace async {
       return {};
     }
   };
-
 }
 }

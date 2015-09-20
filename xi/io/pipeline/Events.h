@@ -7,7 +7,7 @@ namespace xi {
 namespace io {
   namespace pipeline {
 
-    struct Event{};
+    struct Event {};
     struct DownstreamEvent : Event {};
     struct UpstreamEvent : Event {};
 

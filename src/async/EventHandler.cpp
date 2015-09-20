@@ -8,32 +8,23 @@ namespace async {
     _reactor = reactor;
     _event = reactor->createEvent(this);
     _event->arm();
-    _active = true;
   }
 
-  void EventHandler::detachReactor() {
-    std::cout << __PRETTY_FUNCTION__ << std::endl;
-    cancel();
-    _active = false;
-  }
+  void EventHandler::detachReactor() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
 
-  void EventHandler::cancel() noexcept {
-    if (_reactor) {
+  void EventHandler::cancel() {
+    if (isActive()) {
       _event->cancel();
-      release(move(_event));
+      defer([this]() mutable {
+        release(move(_event));
+        if (_reactor) {
+          _reactor.get()->detachHandler(this);
+        }
+      });
     }
-    _active = false;
   }
 
-  void EventHandler::remove() noexcept {
-    if (_reactor) {
-      _reactor.get()->detachHandler(this);
-      _reactor = none;
-    }
-    _active = false;
-  }
-
-  bool EventHandler::isActive() const noexcept { return _active; }
+  bool EventHandler::isActive() const noexcept { return _event && _event->isActive(); }
 
   void IoHandler::handle(EventState state) {
     if (state & kWrite) {
@@ -48,7 +39,7 @@ namespace async {
     }
   }
 
-  void IoHandler::expectRead(bool flag) noexcept {
+  void IoHandler::expectRead(bool flag) {
     if (flag) {
       _event->addState(kRead);
     } else {
@@ -56,7 +47,7 @@ namespace async {
     }
   }
 
-  void IoHandler::expectWrite(bool flag) noexcept {
+  void IoHandler::expectWrite(bool flag) {
     if (flag) {
       _event->addState(kWrite);
     } else {

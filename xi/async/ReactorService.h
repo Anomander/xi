@@ -78,10 +78,18 @@ namespace async {
 
   public:
     void start(mut< core::ExecutorPool > pool) {
+      auto maybeLocalExecutor = pool->shareLocalExecutor();
+      if (!maybeLocalExecutor) {
+        throw std::logic_error("No local executor available.");
+      }
+      _reactor->attachExecutor(move(maybeLocalExecutor.get()));
       _pool = pool;
       _pollerId = pool->registerPoller(make< ReactorPoller< R > >(edit(_reactor)));
     }
-    void stop() { _pool->deregisterPoller(_pollerId); }
+    void stop() {
+      _reactor->detachExecutor();
+      _pool->deregisterPoller(_pollerId);
+    }
     mut< R > reactor() { return edit(_reactor); }
   };
 }

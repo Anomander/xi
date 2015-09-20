@@ -21,6 +21,5 @@ namespace async {
   template < class U >
   Future< U > makeReadyFuture(exception_ptr ex);
   Future<> makeReadyFuture(exception_ptr ex);
-
 }
 }

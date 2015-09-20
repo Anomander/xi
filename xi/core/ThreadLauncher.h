@@ -27,6 +27,5 @@ namespace core {
 
     void join() { _thread.join(); }
   };
-
 }
 }

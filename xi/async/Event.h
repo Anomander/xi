@@ -21,6 +21,7 @@ namespace async {
     virtual void changeState(EventState) = 0;
     virtual void addState(EventState) = 0;
     virtual void removeState(EventState) = 0;
+    virtual bool isActive() = 0;
   };
 }
 }

@@ -26,7 +26,7 @@ namespace async {
         newCount = oldCount > amount ? oldCount - amount : 0UL;
       } while (!_count.compare_exchange_weak(oldCount, newCount));
       if (newCount == 0) {
-        std::cout<<"Unlocking latch"<<std::endl;
+        std::cout << "Unlocking latch" << std::endl;
         _promise.set();
       }
     }

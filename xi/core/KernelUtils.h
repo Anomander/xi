@@ -6,7 +6,7 @@
 namespace xi {
 namespace core {
 
-  own< ExecutorPool > makeExecutorPool(mut< Kernel > kernel,  vector< unsigned >  cores = {}) {
+  own< ExecutorPool > makeExecutorPool(mut< Kernel > kernel, vector< unsigned > cores = {}) {
     if (cores.empty()) {
       return make< ExecutorPool >(kernel, kernel->coreCount());
     }

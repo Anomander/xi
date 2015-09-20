@@ -3,6 +3,8 @@
 #include "xi/async/libevent/Reactor.h"
 #include "xi/io/pipeline/PipelineHandler.h"
 #include "xi/io/pipeline/Util.h"
+#include "src/test/TestKernel.h"
+#include "xi/core/KernelUtils.h"
 
 #include "TcpSocketMock.h"
 
@@ -12,6 +14,10 @@ using namespace xi;
 using namespace xi::io;
 using namespace xi::io::pipeline;
 using namespace xi::async::libevent;
+
+using xi::test::TestKernel;
+using xi::test::kCurrentThread;
+using xi::io::test::TcpSocketMock;
 
 namespace xi {
 namespace io {
@@ -77,9 +83,12 @@ uint8_t PAYLOAD[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 class TestFixture : public ::testing::Test {
 protected:
   void SetUp() override {
+    kernel = make< TestKernel >();
+    pool = makeExecutorPool(edit(kernel));
     reactor = make< Reactor >();
+    reactor->attachExecutor(pool->shareExecutor(kCurrentThread));
     handler = make< MessageHandler >();
-    mock = make< test::TcpSocketMock >();
+    mock = make< TcpSocketMock >();
     auto ch = make< ServerChannel< kInet, kTCP > >();
     ch->setOption(ReuseAddress::yes);
     ch->bind(12345);
@@ -92,6 +101,14 @@ protected:
 
     mock.connect(12345);
     reactor->poll();
+  }
+
+  void TearDown() {
+    kernel->runCore(kCurrentThread);
+    release(move(kernel));
+    release(move(pool));
+    release(move(reactor));
+    release(move(handler));
   }
 
   void verifyEventSequence(initializer_list< AnyEvent > events) {
@@ -110,9 +127,11 @@ protected:
   }
 
 protected:
+  own< TestKernel > kernel;
+  own< core::ExecutorPool > pool;
   own< Reactor > reactor;
   own< MessageHandler > handler;
-  own< test::TcpSocketMock > mock;
+  own< TcpSocketMock > mock;
   mut< AsyncChannel > clientChannel;
 };
 
@@ -131,6 +150,10 @@ TEST_F(TestFixture, ClientInitiatedCloseSequence) {
 
   reactor->poll();
 
+  verifyEventSequence({ChannelRegistered{}, DataAvailable{}, ChannelClosed{}});
+
+  kernel->runCore(kCurrentThread);
+
   verifyEventSequence({ChannelRegistered{}, DataAvailable{}, ChannelClosed{}, ChannelDeregistered{}});
 }
 
@@ -140,6 +163,10 @@ TEST_F(TestFixture, ServerInitiatedCloseSequence) {
   verifyEventSequence({ChannelRegistered{}});
 
   clientChannel->close();
+
+  verifyEventSequence({ChannelRegistered{}, ChannelClosed{}});
+
+  kernel->runCore(kCurrentThread);
 
   verifyEventSequence({ChannelRegistered{}, ChannelClosed{}, ChannelDeregistered{}});
 }

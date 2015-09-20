@@ -17,7 +17,12 @@ namespace async {
       }
     }
 
-    void Event::cancel() { event_del(_event); }
+    void Event::cancel() {
+      event_del(_event);
+      _event = nullptr;
+    }
+
+    bool Event::isActive() { return (nullptr != _event); }
 
     void Event::arm() {
       std::cout << "Event::arm" << std::endl;

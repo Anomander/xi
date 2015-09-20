@@ -16,7 +16,7 @@ namespace core {
       void run() override { _delegate(); }
 
     private:
-      decay_t<Func> _delegate;
+      decay_t< Func > _delegate;
     };
 
     return DelegateTask{forward< Func >(f)};

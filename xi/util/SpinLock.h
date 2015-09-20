@@ -11,16 +11,14 @@ class SpinLock {
 
 public:
   SpinLock() : _state(Unlocked) {}
-  SpinLock(SpinLock && other) : _state(other._state.load(memory_order_acquire)) {
-    other.unlock();
-  }
+  SpinLock(SpinLock&& other) : _state(other._state.load(memory_order_acquire)) { other.unlock(); }
 
   void lock() {
     for (size_t attempt = 0; _state.exchange(Locked, memory_order_acquire) == Locked; ++attempt) {
       if (attempt >= 8) {
         /// Memory barrier. There's no sense in yielding as
         /// threads don't compete, but hint the PU about busy-wait.
-        __asm__ volatile("pause" ::: "memory");
+        __asm__ volatile("pause" :: : "memory");
       }
     }
     assert(_state.load(memory_order_relaxed) == Locked);

@@ -29,7 +29,7 @@ namespace hw {
     return Machine{topology};
   }
 
-#else//XI_HAS_HWLOC
+#else // XI_HAS_HWLOC
 
   Cpu::Cpu(unsigned core) : _id{core, core} {}
 
@@ -39,10 +39,8 @@ namespace hw {
     }
   }
 
-  Machine enumerate() {
-    return Machine{};
-  }
+  Machine enumerate() { return Machine{}; }
 
-#endif//XI_HAS_HWLOC
+#endif // XI_HAS_HWLOC
 }
 }
