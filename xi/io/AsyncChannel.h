@@ -150,17 +150,6 @@ namespace io {
     size_t _remainingSize = 0UL;
   };
 
-  class ClientChannelConnected : public FastCastGroupMember< ClientChannelConnected, Message > {
-  public:
-    ClientChannelConnected(own< AsyncChannel > ch) : _channel(move(ch)) {}
-
-    mut< AsyncChannel > channel() { return edit(_channel); }
-    own< AsyncChannel > extractChannel() { return move(_channel); }
-
-  private:
-    own< AsyncChannel > _channel;
-  };
-
   template < AddressFamily af, Protocol proto = kNone >
   class ServerChannel : public ChannelBase< af, kStream, proto > {
   public:

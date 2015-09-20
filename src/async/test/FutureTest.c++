@@ -1,38 +1,16 @@
 #include <gtest/gtest.h>
 
 #include "xi/async/Future.h"
-#include "xi/async/Engine.h"
-#include "xi/async/Context.h"
+#include "src/test/TestKernel.h"
+#include "xi/core/KernelUtils.h"
 
 using namespace xi;
 using namespace xi::async;
 
-struct UnitTestExecutor : public Executor {
-  using Executor::Executor;
-  void run(function< void() > f) override { setup(); }
-};
-
-class ExecutableTest : public ::testing::Test {
-  using UnitTestExecutorGroup = ExecutorGroup< UnitTestExecutor >;
-
-public:
-  void SetUp() override {
-    _executors = make< UnitTestExecutorGroup >(1, 1000);
-    _executors->run([] {}); // initialize executor
-  }
-
-  mut< UnitTestExecutorGroup > executors() { return edit(_executors); }
-
-  void pollEvents() { local< Executor >().processQueues(); }
-
-private:
-  own< UnitTestExecutorGroup > _executors;
-};
-
 template<class T>
 T getValueFromFuture(Future<T> & f){
   T val;
-  f.then(kInline, [&val](T v){ val = v; });
+  f.then([&val](T v){ val = v; });
   return val;
 }
 
@@ -44,8 +22,6 @@ TEST(Simple, FutureIsMoveConstructible) {
   Future< int > fut2{move(fut1)};
   ASSERT_TRUE(fut2.isReady());
   ASSERT_FALSE(fut2.isException());
-  ASSERT_FALSE(fut1.isReady());
-  ASSERT_FALSE(fut1.isException());
 }
 
 TEST(Simple, FutureIsMoveAssignable) {
@@ -56,8 +32,6 @@ TEST(Simple, FutureIsMoveAssignable) {
   auto fut2 = move(fut1);
   ASSERT_TRUE(fut2.isReady());
   ASSERT_FALSE(fut2.isException());
-  ASSERT_FALSE(fut1.isReady());
-  ASSERT_FALSE(fut1.isException());
 }
 
 TEST(Simple, MakeReadyFutureIsReady) {
@@ -75,7 +49,7 @@ TEST(Simple, PromiseSetVoidValue) {
   auto fut = p.getFuture();
   ASSERT_FALSE(fut.isException());
   ASSERT_FALSE(fut.isReady());
-  p.setValue();
+  p.set();
   ASSERT_FALSE(fut.isException());
   ASSERT_TRUE(fut.isReady());
 }
@@ -85,7 +59,7 @@ TEST(Simple, PromiseSetValue) {
   auto fut = p.getFuture();
   ASSERT_FALSE(fut.isException());
   ASSERT_FALSE(fut.isReady());
-  p.setValue(1);
+  p.set(1);
   ASSERT_FALSE(fut.isException());
   ASSERT_TRUE(fut.isReady());
 }
@@ -95,7 +69,7 @@ TEST(Simple, PromiseSetExceptionAsValue) {
   auto fut = p.getFuture();
   ASSERT_FALSE(fut.isException());
   ASSERT_FALSE(fut.isReady());
-  p.setValue(make_exception_ptr(std::exception{}));
+  p.set(make_exception_ptr(std::exception{}));
   ASSERT_TRUE(fut.isException());
   ASSERT_TRUE(fut.isReady());
 }
@@ -105,7 +79,7 @@ TEST(Simple, PromiseSetException) {
   auto fut = p.getFuture();
   ASSERT_FALSE(fut.isException());
   ASSERT_FALSE(fut.isReady());
-  p.setException(make_exception_ptr(std::exception{}));
+  p.set(make_exception_ptr(std::exception{}));
   ASSERT_TRUE(fut.isException());
   ASSERT_TRUE(fut.isReady());
 }
@@ -119,8 +93,8 @@ TEST(Simple, BrokenPromise) {
 TEST(Simple, PromiseSetValueTwice) {
   auto p = Promise< int > {};
   auto f = p.getFuture();
-  ASSERT_NO_THROW(p.setValue(1));
-  ASSERT_THROW(p.setValue(1), InvalidPromiseException);
+  ASSERT_NO_THROW(p.set(1));
+  ASSERT_THROW(p.set(1), InvalidPromiseException);
   ASSERT_TRUE(f.isReady());
   ASSERT_FALSE(f.isException());
 }
@@ -129,54 +103,13 @@ TEST(Simple, PromiseGetFutureTwice) {
   auto p = Promise< int > {};
   auto f1 = p.getFuture();
   ASSERT_THROW(auto f2 = p.getFuture(), InvalidPromiseException);
-  ASSERT_NO_THROW(p.setValue(1));
+  ASSERT_NO_THROW(p.set(1));
   ASSERT_TRUE(f1.isReady());
   ASSERT_FALSE(f1.isException());
 }
 
-TEST(Continuation, MultipleParameters) {
-  auto f = makeReadyFuture(1, 3.1415926);
-  int i = 0;
-  double d = 0;
-  auto r = f.then([&i, &d](int j, double pi) {
-    i = j;
-    d = pi;
-  });
-  ASSERT_EQ(1, i);
-  ASSERT_EQ(3.1415926, d);
-  ASSERT_TRUE(r.isReady());
-  ASSERT_FALSE(r.isException());
-}
-
-TEST(Continuation, MultipleParametersViaPromise) {
-  Promise< int, double > p;
-  auto f = p.getFuture();
-  p.setValue(1, 3.1415926);
-  int i = 0;
-  double d = 0;
-  auto r = f.then([&i, &d](int j, double pi) {
-    i = j;
-    d = pi;
-  });
-  ASSERT_EQ(1, i);
-  ASSERT_EQ(3.1415926, d);
-  ASSERT_TRUE(r.isReady());
-  ASSERT_FALSE(r.isException());
-}
-
 TEST(Continuation, IfReadyExecutesImmediately) {
   auto f = makeReadyFuture(1);
-  int i = 0;
-  auto r = f.then([&i](int j) { i = j; });
-  ASSERT_EQ(1, i);
-  ASSERT_TRUE(r.isReady());
-  ASSERT_FALSE(r.isException());
-}
-
-TEST(Continuation, IfReadyViaPromiseExecutesImmediately) {
-  Promise< int > p;
-  auto f = p.getFuture();
-  p.setValue(1);
   int i = 0;
   auto r = f.then([&i](int j) { i = j; });
   ASSERT_EQ(1, i);
@@ -202,13 +135,24 @@ TEST(Continuation, IfReadyWithExceptionCallsCorrectly) {
   ASSERT_TRUE(r.isException());
 }
 
+TEST(Continuation, IfReadyViaPromiseExecutesImmediately) {
+  Promise< int > p;
+  auto f = p.getFuture();
+  p.set(1);
+  int i = 0;
+  auto r = f.then([&i](int j) { i = j; });
+  ASSERT_EQ(1, i);
+  ASSERT_TRUE(r.isReady());
+  ASSERT_FALSE(r.isException());
+}
+
 TEST(Continuation, SetExceptionViaFutureTriggersContinuation) {
   Promise< int > p;
   auto f = p.getFuture();
   int i = 0;
   auto r = f.then([&i](int j) {i = j * j; });
 
-  ASSERT_NO_THROW(p.setException(make_exception_ptr(std::exception{})));
+  ASSERT_NO_THROW(p.set(make_exception_ptr(std::exception{})));
 
   ASSERT_EQ(0, i);
   ASSERT_TRUE(r.isReady());
@@ -221,7 +165,7 @@ TEST(Continuation, SetValueViaFutureTriggersContinuation) {
   int i = 0;
   auto r = f.then([&i](int j) {i = j * j; });
 
-  p.setValue(42);
+  p.set(42);
 
   ASSERT_EQ(42 * 42, i);
   ASSERT_TRUE(r.isReady());
@@ -238,7 +182,7 @@ TEST(Continuation, SetExceptionViaFutureTriggersLargeContinuation) {
 
   auto r = f.then(continuation);
 
-  ASSERT_NO_THROW(p.setException(make_exception_ptr(std::exception{})));
+  ASSERT_NO_THROW(p.set(make_exception_ptr(std::exception{})));
 
   ASSERT_EQ(0, i);
   ASSERT_TRUE(r.isReady());
@@ -255,7 +199,7 @@ TEST(Continuation, SetValueViaFutureTriggersLargeContinuation) {
 
   auto r = f.then(continuation);
 
-  p.setValue(42);
+  p.set(42);
 
   ASSERT_EQ(42 * 42, i);
   ASSERT_TRUE(r.isReady());
@@ -268,7 +212,7 @@ TEST(Continuation, ExceptionFromContinuationPropagates_Promise) {
 
   auto r = f.then([](int j) { throw std::exception(); });
 
-  p.setValue(42);
+  p.set(42);
 
   ASSERT_TRUE(r.isReady());
   ASSERT_TRUE(r.isException());
@@ -300,7 +244,7 @@ TEST(Continuation, FutureFromContinuationIsUnwrapped_Promise) {
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  p.setValue(42);
+  p.set(42);
 
   ASSERT_TRUE(r.isReady());
   ASSERT_FALSE(r.isException());
@@ -324,7 +268,7 @@ TEST(Continuation, FutureFromContinuationIsUnwrapped_Void_Promise) {
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  p.setValue(42);
+  p.set(42);
 
   ASSERT_TRUE(r.isReady());
   ASSERT_FALSE(r.isException());
@@ -346,124 +290,150 @@ TEST(Continuation, FutureFromContinuationIsUnwrapped_Exception_Promise) {
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  p.setValue(42);
+  p.set(42);
 
   ASSERT_TRUE(r.isReady());
   ASSERT_TRUE(r.isException());
 }
 
-TEST_F(ExecutableTest, AsyncContinuationLaunchesAsynchronously_ReadyFuture) {
+TEST(ExecutableTest, AsyncContinuationLaunchesAsynchronously_ReadyFuture) {
+  auto k = make <test::TestKernel>();
+  auto pool = makeExecutorPool(edit(k));
+
   int i = 0;
-  auto r = makeReadyFuture(42).then(kAsync, [&i](int j) { i = j * j; });
+  auto r = makeReadyFuture(42).then(pool->executor(test::kCurrentThread), [&i](int j) { i = j * j; });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  pollEvents();
+  k->runCore(test::kOtherThread);
+
+  ASSERT_EQ(0, i);
+  ASSERT_FALSE(r.isReady());
+  ASSERT_FALSE(r.isException());
+
+  k->runCore(test::kCurrentThread);
 
   ASSERT_EQ(42 * 42, i);
   ASSERT_TRUE(r.isReady());
   ASSERT_FALSE(r.isException());
 }
 
-TEST_F(ExecutableTest, AsyncContinuationLaunchesAsynchronously_ReadyPromise) {
+TEST(ExecutableTest, AsyncContinuationLaunchesAsynchronously_ReadyPromise) {
+  auto k = make <test::TestKernel>();
+  auto pool = makeExecutorPool(edit(k));
+
   int i = 0;
   Promise< int > p;
   auto f = p.getFuture();
-  p.setValue(42);
+  p.set(42);
 
-  auto r = f.then(kAsync, [&i](int j) { i = j * j; });
+  auto r = f.then(pool->executor(test::kCurrentThread), [&i](int j) { i = j * j; });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  pollEvents();
+  k->runCore(test::kCurrentThread);
 
   ASSERT_EQ(42 * 42, i);
   ASSERT_TRUE(r.isReady());
   ASSERT_FALSE(r.isException());
 }
 
-TEST_F(ExecutableTest, AsyncContinuationLaunchesAsynchronously_PromiseSetValue) {
+TEST(ExecutableTest, AsyncContinuationLaunchesAsynchronously_PromiseSetValue) {
+  auto k = make <test::TestKernel>();
+  auto pool = makeExecutorPool(edit(k));
+
   int i = 0;
   Promise< int > p;
-  auto r = p.getFuture().then(kAsync, [&i](int j) { i = j * j; });
-  p.setValue(42);
+  auto r = p.getFuture().then(pool->executor(test::kCurrentThread), [&i](int j) { i = j * j; });
+  p.set(42);
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  pollEvents();
+  k->runCore(test::kCurrentThread);
 
   ASSERT_EQ(42 * 42, i);
   ASSERT_TRUE(r.isReady());
   ASSERT_FALSE(r.isException());
 }
 
-TEST_F(ExecutableTest, AsyncContinuationPropagatesExceptions_ReadyPromise) {
+TEST(ExecutableTest, AsyncContinuationPropagatesExceptions_ReadyPromise) {
+  auto k = make <test::TestKernel>();
+  auto pool = makeExecutorPool(edit(k));
+
   int i = 0;
-  auto r = makeReadyFuture(42).then(kAsync, [&i](int j) { throw std::exception(); });
+  auto r = makeReadyFuture(42).then(pool->executor(test::kCurrentThread), [&i](int j) { throw std::exception(); });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  pollEvents();
+  k->runCore(test::kCurrentThread);
 
   ASSERT_EQ(0, i);
   ASSERT_TRUE(r.isReady());
   ASSERT_TRUE(r.isException());
 }
 
-TEST_F(ExecutableTest, AsyncContinuationPropagatesExceptions_PromiseSetValue) {
+TEST(ExecutableTest, AsyncContinuationPropagatesExceptions_PromiseSetValue) {
+  auto k = make <test::TestKernel>();
+  auto pool = makeExecutorPool(edit(k));
+
   int i = 0;
   Promise< int > p;
-  auto r = p.getFuture().then(kAsync, [&i](int j) { throw std::exception(); });
-  p.setValue(42);
+  auto r = p.getFuture().then(pool->executor(test::kCurrentThread), [&i](int j) { throw std::exception(); });
+  p.set(42);
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  pollEvents();
+  k->runCore(test::kCurrentThread);
 
   ASSERT_EQ(0, i);
   ASSERT_TRUE(r.isReady());
   ASSERT_TRUE(r.isException());
 }
 
-TEST_F(ExecutableTest, AsyncPromiseSetValue_PropagatesValue) {
+TEST(ExecutableTest, AsyncPromiseSetValue_PropagatesValue) {
+  auto k = make <test::TestKernel>();
+  auto pool = makeExecutorPool(edit(k));
+
   int i = 0;
   Promise< int > p;
-  auto r = p.getFuture().then(kAsync, [&i](int j) { i = j * j; });
-  schedule([p=move(p)]() mutable{ p.setValue(42); });
+  auto r = p.getFuture().then(pool->executor(test::kCurrentThread), [&i](int j) { i = j * j; });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  pollEvents();
-  pollEvents();
+  p.set(42);
+  k->runCore(test::kCurrentThread);
 
   ASSERT_EQ(42 * 42, i);
   ASSERT_TRUE(r.isReady());
   ASSERT_FALSE(r.isException());
 }
 
-TEST_F(ExecutableTest, AsyncPromiseSetValue_PropagatesException) {
+TEST(ExecutableTest, AsyncPromiseSetValue_PropagatesException) {
+  auto k = make <test::TestKernel>();
+  auto pool = makeExecutorPool(edit(k));
+
   int i = 0;
   Promise< int > p;
-  auto r = p.getFuture().then(kAsync, [&i](int j) { throw std::exception(); });
-  schedule([p=move(p)]() mutable{ p.setValue(42); });
+  auto r = p.getFuture().then(pool->executor(test::kCurrentThread), [&i](int j) { throw std::exception(); });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.isReady());
   ASSERT_FALSE(r.isException());
 
-  pollEvents();
+  p.set(make_exception_ptr(std::exception{}));
+  k->runCore(test::kCurrentThread);
 
   ASSERT_EQ(0, i);
   ASSERT_TRUE(r.isReady());

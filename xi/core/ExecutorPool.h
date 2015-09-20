@@ -8,7 +8,7 @@ namespace core {
 
   class Kernel;
 
-  class ExecutorPool : public virtual ownership::StdShared {
+  class ExecutorPool : public ExecutorCommon< ExecutorPool > {
     vector< Executor > _executors;
     mut< Kernel > _kernel;
     unsigned _nextCore = 0;
@@ -28,9 +28,9 @@ namespace core {
 
     size_t size() const { return _executors.size(); }
 
-    size_t registerPoller(own<Poller> poller) {
+    size_t registerPoller(own< Poller > poller) {
       auto maybeLocalCore = _kernel->localCoreId();
-      if (! maybeLocalCore) {
+      if (!maybeLocalCore) {
         throw ::std::runtime_error("Unable to register poller from an unmanaged thread.");
       }
       return _kernel->registerPoller(maybeLocalCore.get(), move(poller));
@@ -38,7 +38,7 @@ namespace core {
 
     void deregisterPoller(size_t pollerId) {
       auto maybeLocalCore = _kernel->localCoreId();
-      if (! maybeLocalCore) {
+      if (!maybeLocalCore) {
         throw ::std::runtime_error("Unable to deregister poller from an unmanaged thread.");
       }
       _kernel->deregisterPoller(maybeLocalCore.get(), pollerId);
@@ -53,10 +53,7 @@ namespace core {
 
     template < class Func >
     void postOn(size_t core, Func &&f) {
-      if (core > _executors.size()) {
-        throw std::invalid_argument("Core not registered");
-      }
-      _executors[core].post(forward< Func >(f));
+      executor(core)->post(forward< Func >(f));
     }
 
     template < class Func >
@@ -69,13 +66,11 @@ namespace core {
       nextExecutor()->dispatch(forward< Func >(f));
     }
 
-    // Returns a function which when called will post the
-    // wrapped function into the executor pool.
-    // Use this when something wants a runnable argument,
-    // but you want to run the execution asynchronously.
-    template<class Func>
-    auto wrap(Func && f){
-      return [f=forward<Func>(f), this] (auto ... args) { this->post(::std::bind(f, forward<decltype(args)...>(args)...)); };
+    mut< Executor > executor(unsigned id) {
+      if (id > _executors.size()) {
+        throw std::invalid_argument("Executor with id " +to_string(id) + " is not registered");
+      }
+      return edit(_executors[id]);
     }
 
   protected:

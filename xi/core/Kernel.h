@@ -8,8 +8,6 @@
 namespace xi {
 namespace core {
 
-  using async::makeTask;
-
   struct alignas(64) Poller : public virtual ownership::Unique {
     virtual ~Poller() = default;
     virtual unsigned poll() noexcept = 0;

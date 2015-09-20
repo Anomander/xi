@@ -12,7 +12,7 @@ namespace async {
   public:
     Latch(size_t c) : _count(c) {
       if (0UL == c) {
-        _promise.setValue();
+        _promise.set();
       }
     }
 
@@ -27,7 +27,7 @@ namespace async {
       } while (!_count.compare_exchange_weak(oldCount, newCount));
       if (newCount == 0) {
         std::cout<<"Unlocking latch"<<std::endl;
-        _promise.setValue();
+        _promise.set();
       }
     }
 

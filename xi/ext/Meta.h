@@ -3,6 +3,7 @@
 #include "xi/ext/Test.h"
 #include "xi/ext/TypeTraits.h"
 
+#include <boost/mpl/if.hpp>
 #include <boost/mpl/or.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/mpl/vector.hpp>
@@ -18,6 +19,7 @@ namespace xi {
 inline namespace ext {
   namespace meta {
 
+    using ::boost::mpl::if_;
     using ::boost::mpl::or_;
     using ::boost::mpl::vector;
     using ::boost::mpl::contains;
@@ -53,6 +55,9 @@ inline namespace ext {
                                                             public MultiInheritTemplate< Base, Events... > {
       virtual ~MultiInheritTemplate() noexcept = default;
     };
+
+    // A simple class to describe a non-value
+    struct Null {};
 
     template < template < class > class Base >
     struct MultiInheritTemplate< Base > {};

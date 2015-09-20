@@ -2,11 +2,12 @@
 
 #include "xi/ext/Configure.h"
 #include "xi/core/Kernel.h"
+#include "xi/core/ExecutorCommon.h"
 
 namespace xi {
 namespace core {
 
-  class Executor {
+  class Executor : public ExecutorCommon<Executor> {
     mut< Kernel > _kernel;
     unsigned _id;
 

@@ -162,7 +162,6 @@ int main(int argc, char* argv[]) {
     auto ch = make< ServerChannel< kInet, kTCP > >();
 
     ch->bind(19999);
-    // ch->pipeline()->pushBack(pipeline::makeInboundHandler< ClientChannelConnected >([&](auto cx, auto msg) {
     ch->childHandler(pool->wrap([&reactiveService](auto ch) {
       auto reactor = reactiveService->local()->reactor();
       ch->pipeline()->pushBack(make< DataHandler >());
