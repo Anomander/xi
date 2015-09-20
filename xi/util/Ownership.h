@@ -5,6 +5,7 @@
 #include "xi/ext/Pointer.h"
 #include "xi/ext/Test.h"
 #include "xi/ext/TypeTraits.h"
+#include "xi/ext/Require.h"
 
 namespace xi {
 inline namespace util {
@@ -66,15 +67,17 @@ inline namespace util {
       using type = add_pointer_t< ensureNotConst_t< T > >;
     };
 
-    template < class T >
-    struct ref< unique_ptr< T > > : ref< T > {};
-    template < class T >
-    struct ref< shared_ptr< T > > : ref< T > {};
+    template < class T, class... Args >
+    struct ref< unique_ptr< T >, Args... > : ref< T, Args... > {};
+    template < class T, class... Args >
+    struct ref< shared_ptr< T >, Args... > : ref< T, Args... > {};
+    template < class T, class... Args >
+    struct ref< T*, Args... > : ref< T, Args... > {};
 
-    template < class T >
-    struct mut< unique_ptr< T > > : mut< T > {};
-    template < class T >
-    struct mut< shared_ptr< T > > : mut< T > {};
+    template < class T, class... Args >
+    struct mut< unique_ptr< T >, Args... > : mut< T, Args... > {};
+    template < class T, class... Args >
+    struct mut< shared_ptr< T >, Args... > : mut< T, Args... > {};
 
     template < class T >
     struct own< T, EnableIfShared< T, ownership::SharedPolicy::kStd > > {
@@ -203,15 +206,23 @@ inline namespace util {
     STATIC_ASSERT_TEST(is_same< own< StdShared >, shared_ptr< StdShared > >);
     STATIC_ASSERT_TEST(is_same< own< Unique >, unique_ptr< Unique > >);
     STATIC_ASSERT_TEST(is_same< mut< StdShared >, StdShared* >);
+    STATIC_ASSERT_TEST(is_same< mut< own< StdShared > >, StdShared* >);
+    STATIC_ASSERT_TEST(is_same< mut< mut< StdShared > >, StdShared* >);
     STATIC_ASSERT_TEST(is_same< mut< Unique >, Unique* >);
+    STATIC_ASSERT_TEST(is_same< mut< own< Unique > >, Unique* >);
+    STATIC_ASSERT_TEST(is_same< mut< mut< Unique > >, Unique* >);
     STATIC_ASSERT_TEST(is_same< ref< StdShared >, StdShared const& >);
+    STATIC_ASSERT_TEST(is_same< ref< own< StdShared > >, StdShared const& >);
+    STATIC_ASSERT_TEST(is_same< ref< ref< StdShared > >, StdShared const& >);
+    STATIC_ASSERT_TEST(is_same< ref< mut< StdShared > >, StdShared const& >);
     STATIC_ASSERT_TEST(is_same< ref< Unique >, Unique const& >);
+    STATIC_ASSERT_TEST(is_same< ref< own< Unique > >, Unique const& >);
+    STATIC_ASSERT_TEST(is_same< ref< ref< Unique > >, Unique const& >);
+    STATIC_ASSERT_TEST(is_same< ref< mut< Unique > >, Unique const& >);
 
     STATIC_ASSERT_TEST(is_same< decltype(make< StdShared >()), shared_ptr< StdShared > >);
     STATIC_ASSERT_TEST(is_same< decltype(make< Unique >()), unique_ptr< Unique > >);
 
-    template < class >
-    class P;
     STATIC_ASSERT_TEST(is_same< decltype(val(make< StdShared >())), StdShared& >);
     STATIC_ASSERT_TEST(is_same< decltype(val(make< Unique >())), Unique& >);
 

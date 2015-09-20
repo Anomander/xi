@@ -1,4 +1,4 @@
-#include "xi/util/PolymorphicSpScRingBuffer.h"
+#include "xi/ext/TypeTraits.h"
 
 #include <gtest/gtest.h>
 

@@ -1,1 +1,2 @@
 register_test(TypeTraitsTest)
+register_test(OptionTest)
