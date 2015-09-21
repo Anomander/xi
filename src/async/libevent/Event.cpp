@@ -39,7 +39,7 @@ namespace async {
     void Event::changeState(EventState state) {
       cancel();
       _state = state;
-      _loop->prepareEvent(_event, _state, _handler);
+      _event=_loop->prepareEvent(_event, _state, _handler);
       arm();
     }
 

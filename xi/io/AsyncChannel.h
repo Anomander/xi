@@ -27,12 +27,12 @@ namespace io {
 
     void attachReactor(mut< async::Reactor > loop) override {
       IoHandler::attachReactor(loop);
-      pipeline()->channelRegistered();
+      pipeline()->fire(pipeline::ChannelRegistered());
     }
 
     void detachReactor() override {
       std::cout << __PRETTY_FUNCTION__ << std::endl;
-      pipeline()->channelDeregistered();
+      pipeline()->fire(pipeline::ChannelDeregistered());
       IoHandler::detachReactor();
     }
 
@@ -140,7 +140,7 @@ namespace io {
         this->close();
         return;
       }
-      this->pipeline()->channelError(error);
+      this->pipeline()->fire(pipeline::ChannelError(error));
     }
 
   private:

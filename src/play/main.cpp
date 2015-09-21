@@ -1,3 +1,7 @@
+#define XI_USER_UPSTREAM_MESSAGE_ROOT boost::intrusive_ptr<ProtocolMessage>
+
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+
 #include "xi/io/AsyncChannel.h"
 #include "xi/io/pipeline/Util.h"
 #include "xi/async/libevent/Reactor.h"
@@ -7,6 +11,7 @@
 #include "xi/core/KernelUtils.h"
 #include "xi/async/ReactorService.h"
 
+using ::boost::intrusive_ptr;
 using namespace xi;
 using namespace xi::async;
 using namespace xi::async::libevent;
@@ -34,10 +39,12 @@ public:
       if (_messageCursor) {
         if (bytesRead >= _remainingSize) {
           // std::cout << "Complete message" << std::endl;
-          auto* message = _currentMessage;
-          _messageCursor = _currentMessage = nullptr;
-          auto protocolMessage = new (message - sizeof(ProtocolHeader)) ProtocolMessage;
-          cx->forward(pipeline::MessageRead{make< DataMessage >(protocolMessage)});
+          auto* protocolMessage = _currentMessage;
+          _messageCursor = nullptr;
+          _currentMessage = nullptr;
+          // auto protocolMessage = new (message - sizeof(ProtocolHeader)) ProtocolMessage;
+          // cx->forward(pipeline::MessageRead{make< DataMessage >(protocolMessage)});
+          cx->forward(pipeline::UserUpstreamEvent{intrusive_ptr<ProtocolMessage>(protocolMessage)});
           bytesRead -= _remainingSize;
           _remainingSize = 0;
           _headerCursor = _headerBytes;
@@ -66,9 +73,10 @@ public:
           // std::cout << "type: " << hdr->type << std::endl;
 
           _remainingSize = hdr->size;
-          auto space = (uint8_t*)::malloc(_remainingSize + sizeof(ProtocolHeader));
-          ::memcpy(space, hdr, sizeof(ProtocolHeader));
-          _messageCursor = _currentMessage = space + sizeof(ProtocolHeader);
+          auto message = (ProtocolMessage*)::malloc(_remainingSize + sizeof(ProtocolMessage));
+          ::memcpy(&(message->_header), hdr, sizeof(ProtocolHeader));
+          _currentMessage = message;
+          _messageCursor = message->_data;
           _headerCursor = begin(_headerBytes);
         }
       }
@@ -82,10 +90,39 @@ private:
 
 private:
   uint8_t _headerBytes[sizeof(ProtocolHeader)];
-  uint8_t* _currentMessage = nullptr;
+  ProtocolMessage* _currentMessage = nullptr;
   uint8_t* _messageCursor = nullptr;
   uint8_t* _headerCursor = _headerBytes;
   size_t _remainingSize = 0UL;
+};
+
+class UserMessageHandler : public pipeline::PipelineHandler {
+protected:
+#ifdef XI_USER_UPSTREAM_MESSAGE_ROOT
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::UserUpstreamEvent event) final override {
+    upstreamMessage(cx, event.root);
+  }
+#endif // XI_USER_UPSTREAM_MESSAGE_ROOT
+#ifdef XI_USER_DOWNSTREAM_MESSAGE_ROOT
+  void handleEvent(mut< pipeline::HandlerContext > cx, pipeline::UserDownstreamEvent event) final override {
+    downstreamMessage(cx, event.root);
+  }
+#endif // XI_USER_DOWNSTREAM_MESSAGE_ROOT
+public:
+#ifdef XI_USER_UPSTREAM_MESSAGE_ROOT
+  virtual void upstreamMessage(mut< pipeline::HandlerContext > cx, XI_USER_UPSTREAM_MESSAGE_ROOT msg) = 0;
+#endif // XI_USER_UPSTREAM_MESSAGE_ROOT
+#ifdef XI_USER_DOWNSTREAM_MESSAGE_ROOT
+  virtual void downstreamMessage(mut< pipeline::HandlerContext > cx, XI_USER_DOWNSTREAM_MESSAGE_ROOT msg) = 0;
+#endif // XI_USER_DOWNSTREAM_MESSAGE_ROOT
+};
+
+class MyHandler : public UserMessageHandler {
+public:
+  void upstreamMessage(mut< pipeline::HandlerContext > cx, intrusive_ptr<ProtocolMessage> msg) override {
+    // std::cout << "User event!" << std::endl;
+    cx->channel()->write(ByteRange{(uint8_t*)& msg->_header, msg->header().size + sizeof(ProtocolHeader)});
+  }
 };
 
 class MessageHandler : public pipeline::SimpleInboundPipelineHandler< DataMessage > {
@@ -168,7 +205,7 @@ int main(int argc, char* argv[]) {
     ch->childHandler(pool->wrap([&reactiveService](auto ch) {
       auto reactor = reactiveService->local()->reactor();
       ch->pipeline()->pushBack(make< DataHandler >());
-      ch->pipeline()->pushBack(make< MessageHandler >());
+      ch->pipeline()->pushBack(make< MyHandler >());
       reactor->attachHandler(move(ch));
       std::cout << "Local reactor @ " << addressOf(reactor) << std::endl;
     }));

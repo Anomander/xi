@@ -19,9 +19,9 @@ namespace io {
 
     class PipelineHandler
         : virtual public ownership::StdShared,
-          protected meta::MultiInheritTemplate< EventHandlerBase, MessageRead, MessageWrite, ChannelRegistered,
-                                                ChannelDeregistered, ChannelOpened, ChannelClosed, ChannelError,
-                                                ChannelException, DataAvailable > {
+          protected meta::MultiInheritTemplate<
+              EventHandlerBase, MessageRead, MessageWrite, ChannelRegistered, ChannelDeregistered, ChannelOpened,
+              ChannelClosed, ChannelError, ChannelException, DataAvailable, UserUpstreamEvent, UserDownstreamEvent > {
     public:
       template < class Event >
       void onEvent(mut< HandlerContext > cx, own< Event > e) {

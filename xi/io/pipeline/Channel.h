@@ -16,8 +16,9 @@ namespace io {
       mut< Pipeline > pipeline() noexcept { return edit(_pipeline); }
 
     public:
-      void close() final override { pipeline()->channelClosed(); }
+      void close() final override { pipeline()->fire(ChannelClosed()); }
       void write(own< Message > msg) final override { pipeline()->fire(MessageWrite(move(msg))); }
+      void write(ByteRange range) { doWrite(range); }
 
     protected:
       friend class HeadPipelineHandler;

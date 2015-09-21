@@ -29,6 +29,22 @@ namespace io {
       error_code _error;
     };
 
+    struct UserUpstreamEvent : public UpstreamEvent {
+#ifdef XI_USER_UPSTREAM_MESSAGE_ROOT
+      using RootType = XI_USER_UPSTREAM_MESSAGE_ROOT;
+      RootType root;
+      UserUpstreamEvent(RootType r) : root(move(r)) {}
+#endif // XI_USER_UPSTREAM_MESSAGE_ROOT
+    };
+
+    struct UserDownstreamEvent : public DownstreamEvent {
+#ifdef XI_USER_DOWNSTREAM_MESSAGE_ROOT
+      using RootType = XI_USER_DOWNSTREAM_MESSAGE_ROOT;
+      RootType root;
+      UserDownstreamEvent(RootType r) : root(move(r)) {}
+#endif // XI_USER_DOWNSTREAM_MESSAGE_ROOT
+    };
+
     class MessageRead : public UpstreamEvent {
     public:
       MessageRead(own< Message > msg) : _message(move(msg)) {}

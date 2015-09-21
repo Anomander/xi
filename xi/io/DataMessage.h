@@ -4,6 +4,10 @@
 #include "xi/io/Message.h"
 #include "xi/io/ByteRange.h"
 
+#include <boost/intrusive_ptr.hpp>
+#include <boost/smart_ptr/intrusive_ref_counter.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+
 namespace xi {
 namespace io {
 
@@ -27,7 +31,7 @@ namespace io {
   };
   static_assert(sizeof(ProtocolHeader) == 8, "Invalid size");
 
-  struct ProtocolMessage {
+  struct ProtocolMessage : public boost::intrusive_ref_counter<ProtocolMessage, boost::thread_unsafe_counter>{
     // It is important that binary structure of this
     // class remains the same.
     // Things that read data off of socket assume the
