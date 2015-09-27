@@ -1,2 +1,2 @@
-register_test(TypeTraitsTest)
-register_test(OptionTest)
+register_test(type_traits_test)
+register_test(option_test)

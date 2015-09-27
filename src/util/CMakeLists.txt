@@ -1,1 +1,1 @@
-register_test(PolymorphicSpScRingBufferTest)
+register_test(polymorphic_sp_sc_ring_buffer_test)

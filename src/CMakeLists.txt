@@ -7,6 +7,6 @@ add_subdirectory (io)
 add_subdirectory (hw)
 add_subdirectory (util)
 
-# Play test
+# play test
 add_subdirectory (play)
 add_subdirectory (tester)
