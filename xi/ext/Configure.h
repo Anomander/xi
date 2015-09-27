@@ -15,6 +15,7 @@
 #include "xi/ext/Meta.h"
 #include "xi/ext/Optional.h"
 #include "xi/ext/Pointer.h"
+#include "xi/ext/Range.h"
 #include "xi/ext/Require.h"
 #include "xi/ext/Scope.h"
 #include "xi/ext/String.h"

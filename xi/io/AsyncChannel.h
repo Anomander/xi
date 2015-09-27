@@ -12,6 +12,7 @@
 #include "xi/io/ChannelOptions.h"
 #include "xi/io/pipeline/Pipeline.h"
 #include "xi/io/pipeline/Channel.h"
+#include "xi/io/pipeline2/Pipeline.h"
 
 namespace xi {
 namespace io {
@@ -38,9 +39,7 @@ namespace io {
 
     void doClose() override { IoHandler::cancel(); }
 
-    bool isClosed() override {
-      return !isActive();
-    }
+    bool isClosed() override { return !isActive(); }
 
     template < class Option >
     void setOption(Option option) {
@@ -55,6 +54,22 @@ namespace io {
 
   private:
     int _descriptor = -1;
+  };
+
+  template < AddressFamily af, SocketType sock, Protocol proto = kNone >
+  class SocketBase : public async::IoHandler {
+    int _descriptor = -1;
+
+  protected:
+    int descriptor() const noexcept { return _descriptor; }
+
+  public:
+    SocketBase() : SocketBase(detail::socket::create(af, sock, proto).value()) /* will throw on failure */ {}
+    SocketBase(int descriptor) : IoHandler(descriptor), _descriptor(descriptor) {}
+    virtual ~SocketBase() noexcept {
+      std::cout << __PRETTY_FUNCTION__ << std::endl;
+      detail::socket::close(descriptor());
+    }
   };
 
   template < AddressFamily af, SocketType sock, Protocol proto = kNone >
@@ -150,6 +165,73 @@ namespace io {
     size_t _remainingSize = 0UL;
   };
 
+  struct SocketReadable {};
+  struct SocketWritable {};
+
+  template < AddressFamily af, Protocol proto = kNone >
+  class ClientChannel2 : public SocketBase< af, kStream, proto > {
+    using Endpoint_t = Endpoint< af >;
+
+    pipe2::Pipe< pipe2::ReadOnly< SocketReadable >, pipe2::ReadOnly< SocketWritable >, pipe2::ReadOnly< error_code > >
+        _pipe;
+    Endpoint_t _remote;
+
+  public:
+    ClientChannel2(int descriptor, Endpoint_t remote)
+        : SocketBase< af, kStream, proto >(descriptor), _remote(move(remote)) {}
+
+    auto pipe() { return edit(_pipe); }
+
+  public:
+    Expected< int > read(ByteRange range) { return read({range}); }
+    Expected< int > read(initializer_list< ByteRange > range) {
+      return detail::socket::readv(this->descriptor(), range);
+    }
+    Expected< int > write(ByteRange range) { return detail::socket::write(this->descriptor(), range); }
+
+    void close() { this->cancel(); }
+
+  protected:
+    void handleRead() override { _pipe.read(SocketReadable{}); }
+    void handleWrite() override { _pipe.read(SocketWritable{}); }
+  };
+
+  template < AddressFamily af, Protocol proto = kNone >
+  class Acceptor final : public SocketBase< af, kStream, proto > {
+    using Endpoint_t = Endpoint< af >;
+    using ClientChannel_t = ClientChannel2< af, proto >;
+
+    pipe2::Pipe< pipe2::ReadOnly< own< ClientChannel_t > >, pipe2::ReadOnly< error_code >,
+                 pipe2::ReadOnly< exception_ptr > > _pipe;
+
+  public:
+    void bind(Endpoint_t ep) {
+      auto ret = detail::socket::bind(this->descriptor(), ep);
+
+      if (ret.hasError()) {
+        throw system_error(ret.error());
+      }
+    }
+
+    auto pipe() { return edit(_pipe); }
+
+  private:
+    void handleWrite() final override {}
+    void handleRead() final override {
+      Endpoint_t remote;
+      auto i = detail::socket::accept(this->descriptor(), edit(remote));
+      if (i.hasError()) {
+        _pipe.read(i.error());
+      } else {
+        try {
+          _pipe.read(make< ClientChannel_t >(i, move(remote)));
+        } catch (...) {
+          _pipe.read(current_exception());
+        }
+      }
+    }
+  };
+
   template < AddressFamily af, Protocol proto = kNone >
   class ServerChannel : public ChannelBase< af, kStream, proto > {
   public:
@@ -182,6 +264,7 @@ namespace io {
       auto i = detail::socket::accept(this->descriptor(), edit(remote));
       if (i.hasError()) {
         std::cout << i.error().message() << std::endl;
+        return;
       }
       // int T = 1;
       // setsockopt(i, IPPROTO_TCP, TCP_NODELAY, &T, sizeof(T));

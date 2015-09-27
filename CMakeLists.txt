@@ -59,6 +59,6 @@ link_directories(${Boost_LIBRARY_DIR})
 
 if (DEFINED XI_CMAKE_HAS_HWLOC)
   add_definitions(-DXI_HAS_HWLOC)
-endif (defined XI_CMAKE_HAS_HWLOC)
+endif (DEFINED XI_CMAKE_HAS_HWLOC)
 
 add_subdirectory(src)
