@@ -7,7 +7,7 @@ namespace xi {
 namespace async {
 
   template < class T > class async {
-    opt< own< core::executor > > _executor;
+    own< core::executor > _executor;
 
   protected:
     virtual ~async() = default;
@@ -17,24 +17,24 @@ namespace async {
       _executor = move(e);
     }
     virtual void detach_executor() {
-      if (_executor) { release(move(_executor.get())); }
+      release(_executor);
     }
 
     template < class func > void defer(func &&f) {
-      if (!_executor) { throw std::logic_error("Invalid async object state."); }
-      _executor.get()->post(forward< func >(f));
+      if (! is_valid(_executor)) { throw std::logic_error("Invalid async object state."); }
+      _executor->post(forward< func >(f));
     }
 
     template < class func > decltype(auto) make_deferred(func &&f) {
-      if (!_executor) { throw std::logic_error("Invalid async object state."); }
-      return _executor.get()->wrap(forward< func >(f));
+      if (! is_valid(_executor)) { throw std::logic_error("Invalid async object state."); }
+      return _executor->wrap(forward< func >(f));
     }
 
   private:
     friend T;
     mut< core::executor > executor() {
-      assert(_executor);
-      return edit(_executor.get());
+      assert(is_valid(_executor));
+      return edit(_executor);
     }
     own< core::executor > share_executor() { return share(executor()); }
   };

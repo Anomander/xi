@@ -1,7 +1,6 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/message.h"
 #include "xi/io/byte_range.h"
 
 #include <boost/intrusive_ptr.hpp>
@@ -49,15 +48,5 @@ namespace io {
     size_t readable_size() const noexcept { return _header.size; }
   };
 
-  struct data_message : fast_cast_group_member< data_message, message > {
-  public:
-    data_message(protocol_message *msg) : _message(move(msg)) {}
-    ~data_message() noexcept { ::free(_message); }
-
-    protocol_message *data() const noexcept { return _message; }
-
-  private:
-    protocol_message *_message;
-  };
 }
 }

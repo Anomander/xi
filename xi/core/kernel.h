@@ -72,7 +72,7 @@ namespace core {
 
   template < class func > void kernel::dispatch(unsigned core, func &&f) {
     auto maybe_local_core = local_core_id();
-    if (maybe_local_core && core == maybe_local_core.get()) {
+    if (maybe_local_core == some(core)) {
       try {
         f();
       } catch (...) { handle_exception(current_exception()); }
@@ -85,11 +85,11 @@ namespace core {
     }
     try {
       auto maybe_id = local_core_id();
-      if (!maybe_id) {
+      if (maybe_id.is_none()) {
         // local thread is not managed by the kernel, so
         // we must use a common input queue
         _push_task_to_inbound_queue(core, forward< func >(f));
-      } else { _queues[core][maybe_id.get()]->submit(forward< func >(f)); }
+      } else { _queues[core][maybe_id.unwrap()]->submit(forward< func >(f)); }
     } catch (...) { handle_exception(current_exception()); }
   }
 

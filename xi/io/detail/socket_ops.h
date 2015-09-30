@@ -124,9 +124,9 @@ namespace io {
         int retval = recvmsg(descriptor, &msg, MSG_DONTWAIT);
         if (-1 == retval) { return error_from_errno(); }
         if (0 == retval) { return error_code{io::error::kEOF}; }
-        if (remote) {
-          remote.get()->address = addr.sin_addr.s_addr;
-          remote.get()->port = ntohs(addr.sin_port);
+        if (remote.is_some()) {
+          remote.unwrap()->address = addr.sin_addr.s_addr;
+          remote.unwrap()->port = ntohs(addr.sin_port);
         }
         return retval;
       }

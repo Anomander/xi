@@ -29,7 +29,7 @@ namespace async {
       std::cout << "Event::arm" << std::endl;
       auto timeout = _handler->expected_timeout();
       if (timeout == none) { event_add((::event *)_event, NULL); } else {
-        auto &&ms = timeout.get();
+        auto &&ms = timeout.unwrap();
         struct timeval tv = {ms.count() / 1000, ms.count() % 1000};
         event_add((::event *)_event, &tv);
       }

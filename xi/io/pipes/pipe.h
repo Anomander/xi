@@ -1,14 +1,14 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipeline2/filter.h"
-#include "xi/io/pipeline2/detail/pipe_base.h"
-#include "xi/io/pipeline2/detail/pipe_message_impl.h"
-#include "xi/io/pipeline2/detail/filter_context_filter_adapter.h"
+#include "xi/io/pipes/filter.h"
+#include "xi/io/pipes/detail/pipe_base.h"
+#include "xi/io/pipes/detail/pipe_message_impl.h"
+#include "xi/io/pipes/detail/filter_context_filter_adapter.h"
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
 
     template < class... messages >
     class pipe : public virtual detail::pipe_base,

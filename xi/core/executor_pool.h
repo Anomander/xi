@@ -32,20 +32,20 @@ namespace core {
 
     size_t register_poller(own< poller > poller) {
       auto maybe_local_core = _kernel->local_core_id();
-      if (!maybe_local_core) {
+      if (maybe_local_core.is_none()) {
         throw ::std::runtime_error(
             "Unable to register poller from an unmanaged thread.");
       }
-      return _kernel->register_poller(maybe_local_core.get(), move(poller));
+      return _kernel->register_poller(maybe_local_core.unwrap(), move(poller));
     }
 
     void deregister_poller(size_t poller_id) {
       auto maybe_local_core = _kernel->local_core_id();
-      if (!maybe_local_core) {
+      if (maybe_local_core.is_none()) {
         throw ::std::runtime_error(
             "Unable to deregister poller from an unmanaged thread.");
       }
-      _kernel->deregister_poller(maybe_local_core.get(), poller_id);
+      _kernel->deregister_poller(maybe_local_core.unwrap(), poller_id);
     }
 
     template < class func > void post_on_all(func &&f) {
@@ -81,21 +81,18 @@ namespace core {
     }
     own< executor > share_next_executor() { return share(next_executor()); }
     opt< mut< executor > > local_executor() {
-      auto maybe_local_core = _kernel->local_core_id();
-      if (!maybe_local_core) { return none; }
-
-      auto local_core_id = maybe_local_core.get();
-      auto it = find_if(begin(_executors), end(_executors),
-                        [local_core_id](own< executor > const &e) {
-        return e->id() == local_core_id;
+      return _kernel->local_core_id().map([this](auto id)
+                                              -> opt< mut< executor > > {
+        auto it =
+            find_if(begin(_executors), end(_executors),
+                    [id](own< executor > const &e) { return e->id() == id; });
+        if (it == end(_executors)) { return none; }
+        return some(edit(*it));
       });
-      if (it == end(_executors)) { return none; }
-      return edit(*it);
     }
     opt< own< executor > > share_local_executor() {
       auto maybe_local_executor = local_executor();
-      if (!maybe_local_executor) { return none; }
-      return share(maybe_local_executor.get());
+      return maybe_local_executor.map([](auto exec) { return share(exec); });
     }
   };
 }

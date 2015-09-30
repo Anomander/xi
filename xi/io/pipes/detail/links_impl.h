@@ -1,11 +1,11 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipeline2/detail/links.h"
+#include "xi/io/pipes/detail/links.h"
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
     namespace detail {
 
       template < class M > struct read_link_impl : virtual read_link< M > {

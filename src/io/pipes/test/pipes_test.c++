@@ -1,10 +1,10 @@
-#include "xi/io/pipeline2/pipeline.h"
+#include "xi/io/pipes/all.h"
 
 #include <gtest/gtest.h>
 
 using namespace xi;
 using namespace xi::io;
-using namespace xi::io::pipe2;
+using namespace xi::io::pipes;
 
 class read_only_int_filter : public filter< read_only< int > > {
   void read(mut< context > cx, int i) override { cx->forward_read(I += ++i); }
@@ -39,7 +39,7 @@ public:
 };
 
 TEST(simple, reads_arrive_in_correct_order) {
-  auto p = make< pipe2::pipe< int > >();
+  auto p = make< pipes::pipe< int > >();
   auto f1 = make< int_filter >();
   auto f2 = make< int_filter >();
   p->push_back(share(f1));
@@ -51,7 +51,7 @@ TEST(simple, reads_arrive_in_correct_order) {
 }
 
 TEST(simple, writes_arrive_in_correct_order) {
-  auto p = make< pipe2::pipe< int > >();
+  auto p = make< pipes::pipe< int > >();
   auto f1 = make< int_filter >();
   auto f2 = make< int_filter >();
   p->push_back(share(f1));
@@ -63,8 +63,8 @@ TEST(simple, writes_arrive_in_correct_order) {
 }
 
 TEST(simple, shared_filter) {
-  auto p1 = make< pipe2::pipe< int > >();
-  auto p2 = make< pipe2::pipe< int > >();
+  auto p1 = make< pipes::pipe< int > >();
+  auto p2 = make< pipes::pipe< int > >();
   auto f = make< int_filter >();
 
   p1->push_back(share(f));
@@ -76,7 +76,7 @@ TEST(simple, shared_filter) {
 }
 
 TEST(simple, write_only_handler_is_skipped_on_reads) {
-  auto p = make< pipe2::pipe< int > >();
+  auto p = make< pipes::pipe< int > >();
   auto f1 = make< write_only_int_filter >();
   auto f2 = make< int_filter >();
   p->push_back(share(f2));
@@ -92,7 +92,7 @@ TEST(simple, write_only_handler_is_skipped_on_reads) {
 }
 
 TEST(simple, read_only_handler_is_skipped_on_writes) {
-  auto p = make< pipe2::pipe< int > >();
+  auto p = make< pipes::pipe< int > >();
   auto f1 = make< read_only_int_filter >();
   auto f2 = make< int_filter >();
   p->push_back(share(f1));
@@ -123,7 +123,7 @@ TEST(simple, read_only_pipe_can_still_pass_writes_between_filters) {
   public:
     int I = 0;
   };
-  auto p = make< pipe2::pipe< read_only< int > > >();
+  auto p = make< pipes::pipe< read_only< int > > >();
   auto f1 = make< filter1 >();
   auto f2 = make< filter2 >();
   p->push_back(share(f1));
@@ -152,7 +152,7 @@ TEST(simple, write_only_pipe_can_still_pass_reads_between_filters) {
   public:
     int I = 0;
   };
-  auto p = make< pipe2::pipe< write_only< int > > >();
+  auto p = make< pipes::pipe< write_only< int > > >();
   auto f1 = make< filter1 >();
   auto f2 = make< filter2 >();
   p->push_back(share(f2));
@@ -164,7 +164,7 @@ TEST(simple, write_only_pipe_can_still_pass_reads_between_filters) {
 }
 
 TEST(simple, skip_level_message_passing) {
-  auto p = make< pipe2::pipe< int > >();
+  auto p = make< pipes::pipe< int > >();
   auto f1 = make< int_filter >();
   auto f2 = make< int_filter >();
   p->push_back(share(f1));

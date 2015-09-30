@@ -4,7 +4,7 @@
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
 
     template < class message > struct read_only {};
     template < class message > struct write_only {};

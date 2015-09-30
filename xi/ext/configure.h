@@ -13,7 +13,6 @@
 #include "xi/ext/lock.h"
 #include "xi/ext/likely.h"
 #include "xi/ext/meta.h"
-#include "xi/ext/optional.h"
 #include "xi/ext/pointer.h"
 #include "xi/ext/range.h"
 #include "xi/ext/require.h"
@@ -24,3 +23,4 @@
 
 /// include files that require the declarations above
 #include "xi/util/ownership.h"
+#include "xi/util/option.h"

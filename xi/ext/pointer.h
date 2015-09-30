@@ -3,6 +3,8 @@
 #include "xi/ext/common.h"
 
 #include <memory>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 namespace xi {
 inline namespace ext {
@@ -12,6 +14,14 @@ inline namespace ext {
   using ::std::make_shared;
   using ::std::make_unique;
   using ::std::enable_shared_from_this;
+
+  using ::boost::intrusive_ptr;
+  template < class T >
+  using rc_counter =
+      ::boost::intrusive_ref_counter< T, ::boost::thread_unsafe_counter >;
+  template < class T >
+  using arc_counter =
+      ::boost::intrusive_ref_counter< T, ::boost::thread_safe_counter >;
 
   using ::std::static_pointer_cast;
   using ::std::dynamic_pointer_cast;

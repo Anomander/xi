@@ -1,13 +1,13 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipeline2/modifiers.h"
-#include "xi/io/pipeline2/detail/filter_context_impl.h"
-#include "xi/io/pipeline2/detail/filter_impl.h"
+#include "xi/io/pipes/modifiers.h"
+#include "xi/io/pipes/detail/filter_context_impl.h"
+#include "xi/io/pipes/detail/filter_impl.h"
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
     namespace detail {
 
       template < class C, class H, class... messages >
@@ -29,11 +29,11 @@ namespace io {
 
         void read(M0 m) override {
           static_cast< mut< filter_impl< C, M0 > > >(this->handler())
-              ->read(this->context(), m);
+            ->read(this->context(), move(m));
         }
         void write(M0 m) override {
           static_cast< mut< filter_impl< C, M0 > > >(this->handler())
-              ->write(this->context(), m);
+            ->write(this->context(), move(m));
         }
 
         void add_read_if_null(mut< generic_filter_context > cx) override {

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipeline2/detail/filter_base.h"
+#include "xi/io/pipes/detail/filter_base.h"
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
 
     template < class... messages >
     struct filter : public detail::filter_base<

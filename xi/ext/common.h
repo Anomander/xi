@@ -9,6 +9,7 @@
 #include <thread>
 #include <vector>
 #include <functional>
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -41,6 +42,8 @@ inline namespace ext {
   using ::std::thread;
 
   using ::std::reference_wrapper;
+
+  using ::std::copy;
 
   template < class T > decltype(auto) reference(T &t) { return ::std::ref(t); }
 

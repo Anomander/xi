@@ -1,11 +1,11 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipeline2/modifiers.h"
+#include "xi/io/pipes/modifiers.h"
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
     namespace detail {
 
       template < class... messages > struct filter_context;

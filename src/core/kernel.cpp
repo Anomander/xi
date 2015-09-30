@@ -102,7 +102,7 @@ namespace core {
 
   opt< unsigned > kernel::local_core_id() {
     auto *desc = xi::async::try_local< core_descriptor >();
-    if (desc) { return desc->id; }
+    if (desc) { return some(desc->id); }
     return none;
   }
 

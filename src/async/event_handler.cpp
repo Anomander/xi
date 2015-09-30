@@ -5,7 +5,7 @@ namespace xi {
 namespace async {
 
   void event_handler::attach_reactor(mut< reactor > reactor) {
-    _reactor = reactor;
+    _reactor = some(reactor);
     _event = reactor->create_event(this);
     _event->arm();
   }
@@ -19,7 +19,7 @@ namespace async {
       _event->cancel();
       defer([this]() mutable {
         release(move(_event));
-        if (_reactor) { _reactor.get()->detach_handler(this); }
+        if (_reactor.is_some()) { _reactor.unwrap()->detach_handler(this); }
       });
     }
   }

@@ -11,10 +11,10 @@ using namespace xi::test;
 
 TEST(core_id, local_core_id) {
   auto k = make< test_kernel >();
-  ASSERT_EQ(kCurrentThread, k->local_core_id().get());
+  ASSERT_EQ(kCurrentThread, k->local_core_id().unwrap());
 
   unsigned id = 1 << 15;
-  k->post(kOtherThread, [&]() mutable { id = k->local_core_id().get(); });
+  k->post(kOtherThread, [&]() mutable { id = k->local_core_id().unwrap(); });
   k->run_core(kOtherThread);
   ASSERT_EQ(kOtherThread, id);
 }

@@ -1,12 +1,12 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipeline2/detail/pipe_link.h"
-#include "xi/io/pipeline2/detail/generic_filter_context.h"
+#include "xi/io/pipes/detail/pipe_link.h"
+#include "xi/io/pipes/detail/generic_filter_context.h"
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
     namespace detail {
 
       template < class... messages > struct pipe_message_impl;

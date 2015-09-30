@@ -4,7 +4,7 @@
 
 namespace xi {
 namespace io {
-  namespace pipe2 {
+  namespace pipes {
     namespace detail {
 
       struct generic_filter_context : public virtual ownership::std_shared {
