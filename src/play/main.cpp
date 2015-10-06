@@ -4,7 +4,11 @@
 #include "xi/core/launchable_kernel.h"
 #include "xi/core/thread_launcher.h"
 #include "xi/core/kernel_utils.h"
+#include "xi/async/sharded_service.h"
 #include "xi/async/reactor_service.h"
+#include "xi/io/buf/heap_buf.h"
+#include "xi/io/buf/arena_allocator.h"
+#include "xi/io/buf/buffer_queue.h"
 
 using ::boost::intrusive_ptr;
 using namespace xi;
@@ -12,364 +16,98 @@ using namespace xi::async;
 using namespace xi::async::libevent;
 using namespace xi::io;
 
-thread_local size_t count;
-
-struct fork_bomb_task : public xi::core::task {
-  fork_bomb_task(mut< xi::core::executor_pool > p) : _pool(p) {}
-  void run() override {
-    count++;
-    if (count % 10000000 == 0) {
-      std::cout << pthread_self() << " : " << count << std::endl;
-    }
-    _pool->post_on_all(fork_bomb_task(_pool));
-  };
-
-  mut< xi::core::executor_pool > _pool;
-};
-
-struct fork_bomb {
-  fork_bomb(mut< xi::core::executor_pool > p) : _pool(p) {}
-  void operator()() {
-    count++;
-    if (count % 10000000 == 0) {
-      std::cout << pthread_self() << " : " << count << std::endl;
-    }
-    _pool->post(fork_bomb(_pool));
-    // _pool->post_on_all(fork_bomb(_pool));
-  };
-
-  mut< xi::core::executor_pool > _pool;
-};
-
-template < size_t N > struct fork_bloat {
-  fork_bloat(mut< xi::core::executor_pool > p) : _pool(p) {}
-  void operator()() {
-    std::cout << "Fork_bloat running " << std::endl;
-    count++;
-    if (count % 10 == 0) {
-      std::cout << pthread_self() << " : " << count << std::endl;
-    }
-    _pool->post_on_all(fork_bloat< N >(_pool));
-  };
-
-  mut< xi::core::executor_pool > _pool;
-  char bloat[N];
-};
-
-struct buf_base : public ownership::rc_shared {
-  uint8_t *_data = nullptr;
-  size_t _size = 0;
-  size_t _consumed = 0;
-
-public:
-  buf_base(uint8_t *data, size_t sz) : _data(data), _size(sz) {}
-  uint8_t *data() { return _data; }
-  size_t consumed() const { return _consumed; }
-  size_t consume(size_t length) { return _consumed += length; }
-  size_t size() const { return _size; }
-  size_t remaining() const { return _size - _consumed; }
-};
-
-struct byte_range_base {
-  own< buf_base > _buf;
-  uint32_t _start_offset = 0;
-  uint32_t _length = 0;
-
-  byte_range_base() = default;
-  byte_range_base(own< buf_base > buf, size_t offset, size_t length)
-      : _buf(move(buf)), _start_offset(offset), _length(length) {
-    // std::cout << "Created range of " << _length << " bytes in ["
-    //           << (void *)(_buf->data() + _start_offset) << "-"
-    //           << (void *)(_buf->data() + _start_offset + _length) << "]"
-    //           << std::endl;
-  }
-};
-
-class const_byte_range : protected byte_range_base {
-public:
-  const_byte_range() = default;
-  const_byte_range(own< buf_base > buf, size_t offset, size_t length)
-      : byte_range_base(move(buf), offset, length) {}
-  const_byte_range(const_byte_range const &) = default;
-  const_byte_range &operator=(const_byte_range const &) = default;
-  const_byte_range(const_byte_range &&) = default;
-  const_byte_range &operator=(const_byte_range &&) = default;
-
-  const uint8_t *readable_bytes() const { return _buf->data() + _start_offset; }
-  const uint8_t *cbegin() const { return readable_bytes(); }
-  const uint8_t *cend() const { return cbegin() + _length; }
-  uint32_t length() const { return _length; }
-  bool is_empty() const { return 0 == _length; }
-};
-
-class mutable_byte_range : public const_byte_range {
-public:
-  mutable_byte_range() = default;
-  mutable_byte_range(own< buf_base > buf, size_t offset, size_t length)
-      : const_byte_range(move(buf), offset, length) {}
-
-  mutable_byte_range(mutable_byte_range const &) = delete;
-  mutable_byte_range &operator=(mutable_byte_range const &) = delete;
-  mutable_byte_range(mutable_byte_range &&) = default;
-  mutable_byte_range &operator=(mutable_byte_range &&) = default;
-
-  uint8_t *writable_bytes() { return _buf->data() + _start_offset; }
-  uint8_t *begin() { return writable_bytes(); }
-  uint8_t *end() { return begin() + _length; }
-  mutable_byte_range split(size_t split_point) {
-    if (split_point >= _length)
-      return {share(_buf), _start_offset + _length, 0};
-    XI_SCOPE(exit) { _length = split_point; };
-    return {share(_buf), _start_offset + split_point, _length - split_point};
-  }
-};
-
-class buf : public buf_base {
-public:
-  using buf_base::buf_base;
-  opt< mutable_byte_range > allocate_range(size_t length) {
-    if (remaining() < length) { return none; }
-    auto old_consumed = consumed();
-    consume(length);
-    return some(mutable_byte_range{share(this), old_consumed, length});
-  }
-};
-
-class heap_buf : public buf {
-public:
-  heap_buf(size_t sz) : buf(new uint8_t[sz], sz) {
-    std::cout << "Allocated " << sz << " bytes in [" << (void *)_data << "-"
-              << (void *)(_data + _size) << "]" << std::endl;
-  }
-  ~heap_buf() {
-    delete[] data();
-    std::cout << "Deleted " << size() << " bytes";
-  }
-};
-
-class range_buf : public buf {
-  mutable_byte_range _range;
-
-public:
-  range_buf(mutable_byte_range rg)
-      : buf(rg.writable_bytes(), rg.length()), _range(move(rg)) {}
-  ~range_buf() = default;
-};
-
-struct range_allocator : public virtual ownership::std_shared {
-  virtual ~range_allocator() = default;
-  virtual mutable_byte_range allocate(size_t size) = 0;
-  virtual mutable_byte_range reallocate(mutable_byte_range &&, size_t size) = 0;
-};
-
-class paged_allocator : public range_allocator {
-  own< heap_buf > _current_buffer;
-  size_t _page_size;
-
-public:
-  paged_allocator(size_t page_size) : _page_size(page_size) {}
-
-public:
-  mutable_byte_range allocate(size_t size) override {
-    validate(size);
-    return _current_buffer->allocate_range(size).unwrap_or([&, this]() mutable {
-      _current_buffer = make< heap_buf >(_page_size);
-      return _current_buffer->allocate_range(size).unwrap();
-    });
-  }
-  mutable_byte_range reallocate(mutable_byte_range &&rg, size_t size) override {
-    if (size <= rg.length()) return move(rg);
-    validate(size);
-    auto range = allocate(size);
-    copy(begin(rg), end(rg), begin(range));
-    return move(range);
-  }
-
-private:
-  void validate(size_t size) {
-    if (size > _page_size) { throw std::bad_alloc(); }
-    if (!is_valid(_current_buffer)) {
-      _current_buffer = make< heap_buf >(_page_size);
-    }
-  }
-};
-
-class rpc_stream_reader {
-  mut< client_channel2< kInet, kTCP > > _channel;
-  uint8_t _header_bytes[sizeof(protocol_header)];
-  protocol_message *_current_message = nullptr;
-  uint8_t *_message_cursor = nullptr;
-  uint8_t *_header_cursor = _header_bytes;
-  size_t _remaining_size = 0UL;
-
-private:
-  byte_range header_byte_range() const noexcept {
-    return byte_range{_header_cursor,
-                      sizeof(protocol_header) -
-                          (_header_cursor - begin(_header_bytes))};
-  }
-
-public:
-  rpc_stream_reader(mut< client_channel2< kInet, kTCP > > channel)
-      : _channel(channel) {}
-
-  template < class func_msg, class func_err >
-  void read(func_msg &&on_message_callback, func_err &&on_error_callback) {
-    expected< int > read = 0;
-    while (true) {
-      if (nullptr != _message_cursor) {
-        read = _channel->read(
-            {byte_range{_message_cursor, _remaining_size},
-             byte_range{_header_bytes, sizeof(protocol_header)}});
-      } else { read = _channel->read({header_byte_range()}); }
-
-      if (read.has_error()) {
-        static const error_code EAgain =
-            make_error_code(std::errc::resource_unavailable_try_again);
-        static const error_code EWould_block =
-            make_error_code(std::errc::operation_would_block);
-
-        auto error = read.error();
-        if (error != EAgain && error != EWould_block) {
-          on_error_callback(error);
-        }
-        return;
-      }
-      if (read == 0) { return; }
-      auto bytes_read = static_cast< size_t >(read);
-      intrusive_ptr< protocol_message > p_message = nullptr;
-      if (_message_cursor) {
-        if (bytes_read >= _remaining_size) {
-          p_message = _current_message;
-          _message_cursor = nullptr;
-          _current_message = nullptr;
-          bytes_read -= _remaining_size;
-          _remaining_size = 0;
-          _header_cursor = _header_bytes;
-        } else {
-          _message_cursor += bytes_read;
-          _remaining_size -= bytes_read;
-          bytes_read = 0;
-        }
-      }
-      if (bytes_read > 0) {
-        _header_cursor += bytes_read;
-        if (_header_cursor == end(_header_bytes)) {
-          auto *hdr = reinterpret_cast< protocol_header * >(_header_bytes);
-
-          _remaining_size = hdr->size;
-          auto message = (protocol_message *)::malloc(_remaining_size +
-                                                      sizeof(protocol_message));
-          ::memcpy(&(message->_header), hdr, sizeof(protocol_header));
-          _current_message = message;
-          _message_cursor = message->_data;
-          _header_cursor = begin(_header_bytes);
-        }
-      }
-      if (p_message) {
-        on_message_callback(p_message);
-        p_message = nullptr;
-      }
-    }
-  }
-};
-
 class fixed_stream_reader
     : public pipes::filter< io::socket_readable, error_code,
-                            const_byte_range > {
+                            mut< buffer_queue >,
+                            pipes::write_only< buffer::view > > {
   size_t _read_amount;
   mut< client_channel2< kInet, kTCP > > _channel;
-  own< range_allocator > _alloc;
-  mutable_byte_range _range;
+  own< buffer_allocator > _alloc;
+  buffer_queue _queue;
 
 public:
   fixed_stream_reader(size_t read_amount,
                       mut< client_channel2< kInet, kTCP > > channel,
-                      own< range_allocator > alloc)
+                      own< buffer_allocator > alloc)
       : _read_amount(read_amount), _channel(channel), _alloc(move(alloc)) {}
 
   void read(mut< context > cx, io::socket_readable) override {
     // std::cout << "Thread " << pthread_self() << " uses allocator "
     //           << address_of(_alloc) << std::endl;
-    if (_range.is_empty()) { _range = _alloc->allocate(_read_amount); }
-    auto read =
-        _channel->read(byte_range{_range.writable_bytes(), _range.length()});
-    if (read.has_error()) {
-      static const error_code EAgain =
-          make_error_code(std::errc::resource_unavailable_try_again);
-      static const error_code EWould_block =
-          make_error_code(std::errc::operation_would_block);
-
-      auto error = read.error();
-      if (error != EAgain && error != EWould_block) { cx->forward_read(error); }
-      return;
+    error_code error;
+    while (true) {
+      auto buf = _alloc->allocate(_read_amount);
+      auto read =
+          _channel->read(byte_range{buf->writable_bytes(), buf->length()});
+      if (XI_UNLIKELY(read.has_error())) {
+        error = read.error();
+        break;
+      }
+      _queue.push_back(move(buf));
+      if ((size_t)read < _read_amount) {
+        // a good indication that we've exhausted the buffer
+        break;
+      }
     }
-    auto read_range = move(_range);
-    _range = read_range.split(read);
-    cx->forward_read(move(read_range));
+    // cx->forward_read(move(_buffer->make_view(_offset, read)));
+    cx->forward_read(edit(_queue));
+    if (XI_UNLIKELY((bool)error)) { process_error(cx, error); }
   }
 
-  void read(mut<context>cx, error_code error)override{
-    if (error == io::error::kEOF) {
+  void process_error(mut< context > cx, error_code error) {
+    static const error_code EAgain =
+        make_error_code(std::errc::resource_unavailable_try_again);
+    static const error_code EWould_block =
+        make_error_code(std::errc::operation_would_block);
+
+    if (error != EAgain && error != EWould_block) {
+      // do nothing
+      return;
+    } else if (error == io::error::kEOF) {
       std::cout << "Channel closed by remote peer" << std::endl;
-    } else {
-      std::cout << "Channel error: " << error.message()
-                << std::endl;
-    }
+    } else { std::cout << "Channel error: " << error.message() << std::endl; }
+    cx->forward_read(error);
     _channel->close();
   }
 
-  void write(mut< context > cx, const_byte_range rg) override {
+  void write(mut< context > cx, buffer::view rg) override {
     _channel->write(byte_range{(uint8_t *)rg.readable_bytes(), rg.length()});
   }
 };
 
-class range_echo : public pipes::filter< const_byte_range > {
+struct message {
+  uint8_t version;
+  uint8_t type;
+  uint32_t size;
+  buffer::view payload;
+};
+
+class message_decoder
+    : public pipes::filter< pipes::read_only< mut< buffer_queue > >,
+                            buffer::view, pipes::write_only< message > > {
 public:
-  void read(mut< context > cx, const_byte_range rg) override {
+  void read(mut< context > cx, mut< buffer_queue > bq) override {
+    buffer_queue::cursor c(bq);
+    c.skip(sizeof(uint8_t) * 2);
+    // auto size = c.read<uint32_t>();
+    // cx->forward_write(move(rg));
+  }
+  void write(mut<context> cx, message msg) override {
+  }
+};
+
+class range_echo : public pipes::filter< buffer::view > {
+public:
+  void read(mut< context > cx, buffer::view rg) override {
     cx->forward_write(move(rg));
   }
 };
 
-class stream_rpc_data_read_filter
-    : public pipes::filter< intrusive_ptr< protocol_message >,
-                            io::socket_readable, error_code > {
-  rpc_stream_reader _reader;
-  mut< client_channel2< kInet, kTCP > > _channel;
+static thread_local own< arena_allocator > ALLOC =
+    make< arena_allocator >(1 << 20);
 
-public:
-  stream_rpc_data_read_filter(mut< client_channel2< kInet, kTCP > > channel)
-      : _reader(channel), _channel(channel) {}
-
-  // void write(mut<Context>cx, intrusive_ptr<Protocol_message> msg) override
-  // {
-  //   _channel->write();
-  // }
-  void read(mut< context > cx, io::socket_readable) override {
-    _reader.read([cx, this](auto msg) {
-                   // cx->forward_read(move(msg));
-                   _channel->write(byte_range{(uint8_t *)&msg->_header,
-                                              msg->header().size +
-                                                  sizeof(protocol_header)});
-                 },
-                 [cx, this](auto error) {
-                   if (error == io::error::kEOF) {
-                     std::cout << "Channel closed by remote peer" << std::endl;
-                   } else {
-                     std::cout << "Channel error: " << error.message()
-                               << std::endl;
-                     cx->forward_read(error);
-                   }
-                   _channel->close();
-                 });
-  }
-};
-
-static thread_local own< range_allocator > ALLOC =
-    make< paged_allocator >(1 << 28);
-
-using reactive_service =
-    xi::async::service< xi::async::reactor_service< libevent::reactor > >;
+using reactive_service = xi::async::sharded_service<
+    xi::async::reactor_service< libevent::reactor > >;
 
 class acceptor_handler
     : public pipes::filter<

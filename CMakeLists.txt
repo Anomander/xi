@@ -15,7 +15,7 @@ set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
 # boost
-find_package( Boost 1.55 REQUIRED thread system )
+find_package( Boost 1.55 REQUIRED thread system context )
 
 # libevent
 # find_package( Event )

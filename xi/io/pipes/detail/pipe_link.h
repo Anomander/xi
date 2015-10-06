@@ -40,7 +40,7 @@ namespace io {
 
       template < class M0 > struct pipe_link< read_only< M0 > > {
       private:
-        mut< read_link< M0 > > _head;
+        mut< read_link< M0 > > _head = nullptr;
 
       protected:
         void maybe_update_head(mut< generic_filter_context > ctx) {
@@ -61,7 +61,7 @@ namespace io {
 
       template < class M0 > struct pipe_link< write_only< M0 > > {
       private:
-        mut< write_link< M0 > > _tail;
+        mut< write_link< M0 > > _tail = nullptr;
 
       protected:
         void maybe_update_tail(mut< generic_filter_context > ctx) {

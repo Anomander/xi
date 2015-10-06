@@ -11,11 +11,11 @@ namespace io {
 
   template <> class endpoint< kInet > {
   public:
-    ip4Address address;
+    ip4_address address;
     uint16_t port;
 
     endpoint() : endpoint(-1) {}
-    endpoint(uint16_t p) : address(ip4Address::any()), port(p) {}
+    endpoint(uint16_t p) : address(ip4_address::any()), port(p) {}
   };
 }
 }

@@ -5,40 +5,39 @@
 namespace xi {
 namespace async {
 
-  template < class T > struct callable_applier {
+  template < class... A > struct callable_applier {
   public:
-    template < class func > static decltype(auto) apply(func &&f, T &&v) {
-      return _apply(forward< func >(f), forward< T >(v),
-                    is_same< void, result_of_t< func(T && ) > >{});
+    template < class F > static decltype(auto) apply(F &&f, A &&... args) {
+      return _apply(forward< F >(f), forward< A >(args)...,
+                    is_same< void, result_of_t< F(A && ...) > >{});
     }
 
   private:
-    template < class func >
-    static decltype(auto) _apply(func &&f, T &&v, meta::false_type) {
-      return f(forward< T >(v));
+    template < class F >
+    static decltype(auto) _apply(F &&f, A &&... args, meta::false_type) {
+      return f(forward< A >(args)...);
     }
-    template < class func >
-    static meta::null _apply(func &&f, T &&v, meta::true_type) {
-      f(forward< T >(v));
+    template < class F >
+    static meta::null _apply(F &&f, A &&... args, meta::true_type) {
+      f(forward< A >(args)...);
       return {};
     }
   };
 
   template <> struct callable_applier< meta::null > {
   public:
-    template < class func >
-    static decltype(auto) apply(func &&f, meta::null &&v) {
-      return _apply(forward< func >(f),
-                    is_same< void, result_of_t< func() > >{});
+    template < class F > static decltype(auto) apply(F &&f, meta::null &&v) {
+      return _apply(forward< F >(f), is_same< void, result_of_t< F() > >{});
+    }
+    template < class F > static decltype(auto) apply(F &&f) {
+      return _apply(forward< F >(f), is_same< void, result_of_t< F() > >{});
     }
 
   private:
-    template < class func >
-    static decltype(auto) _apply(func &&f, meta::false_type) {
+    template < class F > static decltype(auto) _apply(F &&f, meta::false_type) {
       return f();
     }
-    template < class func >
-    static meta::null _apply(func &&f, meta::true_type) {
+    template < class F > static meta::null _apply(F &&f, meta::true_type) {
       f();
       return {};
     }

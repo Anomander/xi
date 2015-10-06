@@ -2,6 +2,7 @@
 
 #include "xi/async/future/exceptions.h"
 #include "xi/async/future/future.h"
+#include "xi/async/future/detail/callable_applier.h"
 
 namespace xi {
 namespace async {
@@ -34,6 +35,10 @@ namespace async {
     void set(future< T > &&value);
     void set();
     void set(exception_ptr ex);
+
+    template < class F, class... A,
+               XI_REQUIRE_DECL(is_same< T, future_result< F, A... > >)>
+    void apply(F &&, A &&...);
   };
 
   template < class T > future< T > promise< T >::get_future() {
@@ -64,6 +69,15 @@ namespace async {
     if (test_flag(kValueSet)) { throw invalid_promise_exception(); }
     set_flag(kValueSet);
     _state->set(move(ex));
+  }
+
+  template < class T >
+  template < class F, class... A,
+             XI_REQUIRE_DECL(is_same< T, future_result< F, A... > >)>
+  void promise< T >::apply(F &&func, A &&... args) {
+    try {
+      set(callable_applier< A... >::apply(func, forward< A >(args)...));
+    } catch (...) { set(current_exception()); }
   }
 }
 }

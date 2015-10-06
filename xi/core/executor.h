@@ -14,12 +14,12 @@ namespace core {
   public:
     executor(mut< kernel > kernel, unsigned id) : _kernel(kernel), _id(id) {}
 
-    template < class func > void post(func &&f) {
-      _kernel->post(_id, forward< func >(f));
+    template < class F > void post(F &&f) {
+      _kernel->post(_id, forward< F >(f));
     }
 
-    template < class func > void dispatch(func &&f) {
-      _kernel->dispatch(_id, forward< func >(f));
+    template < class F > void dispatch(F &&f) {
+      _kernel->dispatch(_id, forward< F >(f));
     }
 
     unsigned id() const { return _id; }

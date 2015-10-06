@@ -9,6 +9,8 @@ namespace xi {
 inline namespace ext {
 
   using ::std::is_const;
+  using ::std::is_arithmetic;
+
   using ::std::add_lvalue_reference_t;
   using ::std::remove_reference_t;
   using ::std::add_pointer_t;

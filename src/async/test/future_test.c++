@@ -65,6 +65,36 @@ TEST(simple, promise_set_value) {
   ASSERT_TRUE(fut.is_ready());
 }
 
+TEST(simple, promise_apply_non_void_function) {
+  promise< int > p;
+  auto fut = p.get_future();
+  ASSERT_FALSE(fut.is_exception());
+  ASSERT_FALSE(fut.is_ready());
+  p.apply([] () -> int { return 42; });
+  ASSERT_FALSE(fut.is_exception());
+  ASSERT_TRUE(fut.is_ready());
+}
+
+TEST(simple, promise_apply_function_with_exception) {
+  promise< int > p;
+  auto fut = p.get_future();
+  ASSERT_FALSE(fut.is_exception());
+  ASSERT_FALSE(fut.is_ready());
+  p.apply([] () -> int { throw std::exception(); });
+  ASSERT_TRUE(fut.is_exception());
+  ASSERT_TRUE(fut.is_ready());
+}
+
+TEST(simple, promise_apply_void_function) {
+  promise< > p;
+  auto fut = p.get_future();
+  ASSERT_FALSE(fut.is_exception());
+  ASSERT_FALSE(fut.is_ready());
+  p.apply([] {});
+  ASSERT_FALSE(fut.is_exception());
+  ASSERT_TRUE(fut.is_ready());
+}
+
 TEST(simple, promise_set_exception_as_value) {
   promise< int > p;
   auto fut = p.get_future();

@@ -13,25 +13,28 @@ namespace async {
 
   template <> struct unwrapped_result_t< void > { using type = meta::null; };
 
-  template < class func, class T > struct future_result_t {
-    using type = typename unwrapped_result_t< result_of_t< func(T &&)> >::type;
+  template < class F, class... A > struct future_result_t {
+    using type = typename unwrapped_result_t< result_of_t< F(A &&...) > >::type;
   };
 
-  template < class func > struct future_result_t< func, void > {
-    using type = typename unwrapped_result_t< result_of_t< func() > >::type;
+  template < class F > struct future_result_t< F, void > {
+    using type = typename unwrapped_result_t< result_of_t< F() > >::type;
   };
 
-  template < class func > struct future_result_t< func, meta::null > {
-    using type = typename unwrapped_result_t< result_of_t< func() > >::type;
+  template < class F > struct future_result_t< F, meta::null > {
+    using type = typename unwrapped_result_t< result_of_t< F() > >::type;
   };
 
-  template < class func, class T >
-  using future_result = typename future_result_t< func, T >::type;
+  template < class F, class... A >
+  using future_result = typename future_result_t< F, A... >::type;
 
   STATIC_ASSERT_TEST(
       is_same< future_result< void (*)(void), void >, meta::null >);
+  STATIC_ASSERT_TEST(is_same< future_result< void (*)(void) >, meta::null >);
   STATIC_ASSERT_TEST(
       is_same< future_result< void (*)(int), int >, meta::null >);
+  STATIC_ASSERT_TEST(is_same<
+      future_result< void (*)(int, double), int, double >, meta::null >);
   STATIC_ASSERT_TEST(
       is_same< future_result< meta::null (*)(void), void >, meta::null >);
   STATIC_ASSERT_TEST(
