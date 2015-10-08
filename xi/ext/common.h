@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <iostream>
+
 namespace xi {
 inline namespace ext {
   using ::std::declval;
@@ -35,6 +37,7 @@ inline namespace ext {
   using ::std::initializer_list;
 
   using ::std::distance;
+  using ::std::advance;
 
   using ::std::begin;
   using ::std::end;

@@ -1,6 +1,5 @@
 #pragma once
-#include "xi/io/buf/buf_base.h"
-#include "xi/io/buf/mutable_byte_range.h"
+#include "xi/io/buf/arena_base.h"
 #include "xi/io/buf/buffer.h"
 
 namespace xi {
@@ -11,15 +10,9 @@ namespace io {
     }
   }
 
-  class buf : public buf_base {
+  class arena : public arena_base {
   public:
-    using buf_base::buf_base;
-    opt< mutable_byte_range > allocate_range(size_t length) {
-      if (remaining() < length) { return none; }
-      auto old_consumed = consumed();
-      consume(length);
-      return some(mutable_byte_range{share(this), old_consumed, length});
-    }
+    using arena_base::arena_base;
     opt< unique_ptr< buffer > > allocate_buffer(size_t sz) {
       auto actual_size = sz + detail::aligned_size(sizeof(buffer));
       if (remaining() < actual_size) { return none; }

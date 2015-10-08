@@ -1,3 +1,3 @@
-file(GLOB async_libevent_SRC "*.cpp")
+file(GLOB xi_async_libevent_SRC "*.cpp")
 
-set(async_SRC ${async_SRC} ${async_libevent_SRC} PARENT_SCOPE)
+set(xi_async_SRC ${xi_async_SRC} ${xi_async_libevent_SRC} PARENT_SCOPE)

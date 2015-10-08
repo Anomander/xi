@@ -22,7 +22,7 @@ namespace io {
           });
     }
     own< buffer > reallocate(own< buffer > b, size_t size) override {
-      if (size <= b->length()) return move(b);
+      if (size <= b->size()) return move(b);
       validate(size);
       auto range = allocate(size);
       copy(b->begin(), b->end(), range->begin());

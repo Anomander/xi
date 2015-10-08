@@ -8,7 +8,9 @@
 #include "xi/async/reactor_service.h"
 #include "xi/io/buf/heap_buf.h"
 #include "xi/io/buf/arena_allocator.h"
-#include "xi/io/buf/buffer_queue.h"
+#include "xi/io/buf/chain.h"
+#include "xi/io/buf/view.h"
+#include "xi/io/buf/cursor.h"
 
 using ::boost::intrusive_ptr;
 using namespace xi;
@@ -18,12 +20,12 @@ using namespace xi::io;
 
 class fixed_stream_reader
     : public pipes::filter< io::socket_readable, error_code,
-                            mut< buffer_queue >,
+                            mut< buffer::chain >,
                             pipes::write_only< buffer::view > > {
   size_t _read_amount;
   mut< client_channel2< kInet, kTCP > > _channel;
   own< buffer_allocator > _alloc;
-  buffer_queue _queue;
+  buffer::chain _chain;
 
 public:
   fixed_stream_reader(size_t read_amount,
@@ -37,20 +39,19 @@ public:
     error_code error;
     while (true) {
       auto buf = _alloc->allocate(_read_amount);
-      auto read =
-          _channel->read(byte_range{buf->writable_bytes(), buf->length()});
+      auto read = _channel->read(byte_range{buf->begin(), buf->size()});
       if (XI_UNLIKELY(read.has_error())) {
         error = read.error();
         break;
       }
-      _queue.push_back(move(buf));
+      std::cout << "read: " << read << std::endl;
+      _chain.push_back(move(buf));
       if ((size_t)read < _read_amount) {
         // a good indication that we've exhausted the buffer
         break;
       }
     }
-    // cx->forward_read(move(_buffer->make_view(_offset, read)));
-    cx->forward_read(edit(_queue));
+    cx->forward_read(edit(_chain));
     if (XI_UNLIKELY((bool)error)) { process_error(cx, error); }
   }
 
@@ -71,7 +72,7 @@ public:
   }
 
   void write(mut< context > cx, buffer::view rg) override {
-    _channel->write(byte_range{(uint8_t *)rg.readable_bytes(), rg.length()});
+    _channel->write(byte_range{(uint8_t *)rg.begin(), rg.size()});
   }
 };
 
@@ -83,23 +84,37 @@ struct message {
 };
 
 class message_decoder
-    : public pipes::filter< pipes::read_only< mut< buffer_queue > >,
+    : public pipes::filter< pipes::read_only< mut< buffer::chain > >,
                             buffer::view, pipes::write_only< message > > {
+  own< buffer_allocator > _alloc;
+
 public:
-  void read(mut< context > cx, mut< buffer_queue > bq) override {
-    buffer_queue::cursor c(bq);
-    c.skip(sizeof(uint8_t) * 2);
-    // auto size = c.read<uint32_t>();
-    // cx->forward_write(move(rg));
+  message_decoder(own< buffer_allocator > alloc) : _alloc(move(alloc)) {}
+
+public:
+  void read(mut< context > cx, mut< buffer::chain > bq) override {
+    std::cout << "reading chain" << std::endl;
+    auto c = bq->make_cursor();
+    auto pos = c.position();
+    while (!c.is_at_end()) {
+      std::cout << "version: " << c.read< uint8_t >() << std::endl;
+      std::cout << "type: " << c.read< uint8_t >() << std::endl;
+      auto size = c.read< uint32_t >();
+      std::cout << "size: " << size << std::endl;
+      c.skip(size);
+      auto view = bq->make_view(pos, c.position(), edit(_alloc));
+      pos = c.position();
+      cx->forward_write(move(view));
+    }
   }
-  void write(mut<context> cx, message msg) override {
-  }
+  void write(mut< context > cx, message msg) override {}
 };
 
 class range_echo : public pipes::filter< buffer::view > {
 public:
   void read(mut< context > cx, buffer::view rg) override {
-    cx->forward_write(move(rg));
+    std::cout << "Got view" << std::endl;
+    // cx->forward_write(move(rg));
   }
 };
 
@@ -124,6 +139,7 @@ public:
       // ch->pipe()->push_back(make< stream_rpc_data_read_filter >(edit(ch)));
       ch->pipe()->push_back(
           make< fixed_stream_reader >(1 << 12, edit(ch), share(ALLOC)));
+      ch->pipe()->push_back(make< message_decoder >(share(ALLOC)));
       ch->pipe()->push_back(make< range_echo >());
       auto reactor = _reactive_service->local()->reactor();
       reactor->attach_handler(move(ch));

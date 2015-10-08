@@ -3,7 +3,7 @@
 #include "xi/core/kernel.h"
 #include "xi/hw/hardware.h"
 #include "src/test/test_kernel.h"
-#include "util.h"
+#include "src/test/util.h"
 
 using namespace xi;
 using namespace xi::core;

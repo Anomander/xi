@@ -1,9 +1,8 @@
-file(GLOB async_SRC "*.cpp")
+file(GLOB xi_async_SRC "*.cpp")
 
 add_subdirectory(libevent)
 
-add_library(xi-async ${async_SRC})
-target_link_libraries(xi-async xi-core event)
+set(xi_SRC ${xi_SRC} ${xi_async_SRC} PARENT_SCOPE)
 
-register_test(future_test xi-async)
-register_test(latch_test xi-async)
+register_test(future_test xi)
+register_test(latch_test xi)
