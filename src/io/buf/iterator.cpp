@@ -7,6 +7,7 @@ namespace io {
     assert(other._head == _head);
     return _pos == other._pos;
   }
+
   void buffer::chain::iterator::increment() {
     if (++_pos >= _curr->end()) {
       if (XI_UNLIKELY(_curr->_next == _head)) { _pos = _curr->end(); } else {

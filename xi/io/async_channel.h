@@ -55,10 +55,16 @@ namespace io {
   public:
     expected< int > read(byte_range range) { return read({range}); }
     expected< int > read(initializer_list< byte_range > range) {
-      return detail::socket::readv(this->descriptor(), range);
+      return detail::socket::read(this->descriptor(), range);
+    }
+    expected< int > read(mut<buffer::chain> ch) {
+      return detail::socket::read(this->descriptor(), ch);
     }
     expected< int > write(byte_range range) {
       return detail::socket::write(this->descriptor(), range);
+    }
+    expected< int > write(mut<buffer::chain> ch) {
+      return detail::socket::write(this->descriptor(), ch);
     }
 
     void close() { this->cancel(); }

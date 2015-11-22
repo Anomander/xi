@@ -35,6 +35,10 @@ inline namespace ext {
   using ::std::unordered_map;
   using ::std::unordered_set;
   using ::std::initializer_list;
+  using ::std::pair;
+
+  using ::std::make_pair;
+  using ::std::tie;
 
   using ::std::distance;
   using ::std::advance;

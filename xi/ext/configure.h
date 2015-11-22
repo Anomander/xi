@@ -18,6 +18,7 @@
 #include "xi/ext/require.h"
 #include "xi/ext/scope.h"
 #include "xi/ext/string.h"
+#include "xi/ext/types.h"
 #include "xi/ext/type_traits.h"
 #include "xi/ext/tuple.h"
 

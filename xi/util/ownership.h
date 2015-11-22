@@ -144,13 +144,13 @@ inline namespace util {
     };
 
     template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                                        T, ownership::shared_policy::kSTD >)>
+                            T, ownership::shared_policy::kSTD >)>
     auto share(T *obj) {
       return shared_ptr< T >(obj->shared_from_this(),
                              reinterpret_cast< T * >(obj));
     }
     template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                                        T, ownership::shared_policy::kSTD >)>
+                            T, ownership::shared_policy::kSTD >)>
     auto is_shared(T *obj) {
       return obj->shared_from_this().use_count() > 1;
     }
@@ -161,18 +161,18 @@ inline namespace util {
       return intrusive_ptr< T >(obj);
     }
     template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                                        T, ownership::shared_policy::kRC >)>
+                            T, ownership::shared_policy::kRC >)>
     auto is_shared(T *obj) {
       return obj->use_count() > 1;
     }
 
     template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                                        T, ownership::shared_policy::kARC >)>
+                            T, ownership::shared_policy::kARC >)>
     auto share(T *obj) {
       return intrusive_ptr< T >(obj);
     }
     template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                                        T, ownership::shared_policy::kARC >)>
+                            T, ownership::shared_policy::kARC >)>
     auto is_shared(T *obj) {
       return obj->use_count() > 1;
     }
@@ -203,19 +203,21 @@ inline namespace util {
     return false;
   }
 
+  template < class T > bool is_valid(T *t) { return t != nullptr; }
+
   template < class T > bool is_valid(T const &t) { return true; }
 
   template < class T > bool is_valid(shared_ptr< T > const &t) {
-    return t != nullptr;
+    return is_valid(t.get());
   }
 
   template < class T > bool is_valid(intrusive_ptr< T > const &t) {
-    return t != nullptr;
+    return is_valid(t.get());
   }
 
   template < class T, class Deleter >
   bool is_valid(unique_ptr< T, Deleter > const &t) {
-    return t != nullptr;
+    return is_valid(t.get());
   }
 
   template < class T >

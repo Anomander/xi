@@ -19,7 +19,8 @@ namespace io {
       auto old_consumed = consumed();
       consume(actual_size);
       return some(unique_ptr< buffer >(new (data() + old_consumed) buffer(
-          share(this), old_consumed + sizeof(buffer), sz)));
+          share(this), old_consumed + detail::aligned_size(sizeof(buffer)),
+          sz)));
     }
   };
 }

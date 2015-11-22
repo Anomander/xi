@@ -7,7 +7,6 @@ namespace xi {
 namespace io {
 
   struct buffer::chain::helper {
-    static bool is_chained(mut< buffer > b) { return b->_next != b; }
     static void insert_before(mut< buffer > a, mut< buffer > b) {
       insert_after(a->_prev, b);
     }
@@ -22,20 +21,6 @@ namespace io {
       begin->_prev = a;
     }
 
-    static mut< buffer > unlink(mut< buffer > b) {
-      if (!is_chained(b)) { return nullptr; }
-      return unlink(b, b->_next);
-    }
-
-    static mut< buffer > unlink(mut< buffer > beg, mut< buffer > end) {
-      if (beg == end) { return nullptr; }
-      beg->_prev->_next = end;
-      end->_prev = beg->_prev;
-      beg->_prev = end->_prev;
-      beg->_prev->_next = beg;
-      return end;
-    }
-
     static size_t subchain_length(mut< buffer > beg, mut< buffer > end) {
       auto p = beg->_next;
       auto result = beg->size();
@@ -44,6 +29,11 @@ namespace io {
         p = p->_next;
       }
       return result;
+    }
+
+    static void reset_buffer(mut<buffer> b) {
+      b->_begin = b->_arena->data() + b->_offset;
+      b->_end = b->_begin;
     }
   };
 

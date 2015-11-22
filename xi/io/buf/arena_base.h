@@ -4,7 +4,7 @@
 namespace xi {
 namespace io {
 
-  struct arena_base : public ownership::rc_shared {
+  struct arena_base : public ownership::std_shared {
     uint8_t *_data = nullptr;
     size_t _size = 0;
     size_t _consumed = 0;

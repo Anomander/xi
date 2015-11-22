@@ -38,20 +38,24 @@ public:
     //           << address_of(_alloc) << std::endl;
     error_code error;
     while (true) {
-      auto buf = _alloc->allocate(_read_amount);
-      auto read = _channel->read(byte_range{buf->begin(), buf->size()});
+      if (! _chain.has_tailroom()) {
+        _chain.push_back(_alloc->allocate(_read_amount));
+      }
+      auto read = _channel->read(edit(_chain));
       if (XI_UNLIKELY(read.has_error())) {
         error = read.error();
         break;
       }
       std::cout << "read: " << read << std::endl;
-      _chain.push_back(move(buf));
-      if ((size_t)read < _read_amount) {
+      if (_chain.has_tailroom()) {
+        std::cout << "Bailing on non-full chain read." << std::endl;
         // a good indication that we've exhausted the buffer
         break;
       }
     }
-    cx->forward_read(edit(_chain));
+    std::cout << "Writing chain" << std::endl;
+    _channel->write(edit(_chain));
+    // cx->forward_read(edit(_chain));
     if (XI_UNLIKELY((bool)error)) { process_error(cx, error); }
   }
 
@@ -94,18 +98,19 @@ public:
 public:
   void read(mut< context > cx, mut< buffer::chain > bq) override {
     std::cout << "reading chain" << std::endl;
-    auto c = bq->make_cursor();
-    auto pos = c.position();
-    while (!c.is_at_end()) {
-      std::cout << "version: " << c.read< uint8_t >() << std::endl;
-      std::cout << "type: " << c.read< uint8_t >() << std::endl;
-      auto size = c.read< uint32_t >();
-      std::cout << "size: " << size << std::endl;
-      c.skip(size);
-      auto view = bq->make_view(pos, c.position(), edit(_alloc));
-      pos = c.position();
-      cx->forward_write(move(view));
-    }
+    // auto c = bq->make_cursor();
+    // auto pos = c.position();
+    // while (!c.is_at_end()) {
+    //   std::cout << "version: " << (int)c.read< uint8_t >() << std::endl;
+    //   std::cout << "type: " << (int)c.read< uint8_t >() << std::endl;
+    //   auto size = c.read< uint32_t >();
+    //   std::cout << "size: " << size << std::endl;
+    //   c.skip(size);
+    //   auto view = bq->make_view(pos, c.position(), edit(_alloc));
+    //   pos = c.position();
+    //   bq->consume_head(sizeof(uint8_t) * 2 + sizeof(uint32_t) + size);
+    //   cx->forward_write(move(view));
+    // }
   }
   void write(mut< context > cx, message msg) override {}
 };
@@ -173,7 +178,14 @@ int main(int argc, char *argv[]) {
   r_service->start().then([&pool, &r_service] {
     auto acc = make< acceptor< kInet, kTCP > >();
 
+    std::cout << "Acceptor created." << std::endl;
+    try{
     acc->bind(19999);
+    }catch(ref<std::exception> e) {
+      std::cout << "Bind error: " << e.what() << std::endl;
+      exit(1);
+    }
+    std::cout << "Acceptor bound." << std::endl;
     acc->pipe()->push_back(
         make< acceptor_handler >(edit(r_service), share(pool)));
 

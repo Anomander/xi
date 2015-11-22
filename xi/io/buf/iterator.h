@@ -23,7 +23,6 @@ namespace io {
     friend class chain;
 
     iterator(mut< buffer >, mut< buffer >, size_t);
-    explicit iterator(mut< buffer >);
 
   private:
     friend class boost::iterator_core_access;
@@ -46,9 +45,6 @@ namespace io {
   inline buffer::chain::iterator::iterator(mut< buffer > head,
                                            mut< buffer > curr, size_t offset)
       : _head(head), _curr(curr), _pos(_curr->begin() + offset) {}
-
-  inline buffer::chain::iterator::iterator(mut< buffer > head)
-      : iterator(head, head->_prev, head->_prev->size()) {}
 
   inline auto buffer::chain::iterator::dereference() const -> reference {
     return *_pos;
