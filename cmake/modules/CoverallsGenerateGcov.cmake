@@ -67,10 +67,6 @@ endif()
 # CMake list format.
 string(REGEX REPLACE "\\*" ";" COVERAGE_SRCS ${COVERAGE_SRCS})
 
-if (NOT DEFINED GCOV_EXECUTABLE)
-  find_program(GCOV_EXECUTABLE gcov)
-endif()
-
 # convert all paths in COVERAGE_SRCS to absolute paths
 set(COVERAGE_SRCS_TMP "")
 foreach (COVERAGE_SRC ${COVERAGE_SRCS})

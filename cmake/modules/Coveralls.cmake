@@ -24,6 +24,9 @@
 
 set(_CMAKE_SCRIPT_PATH ${CMAKE_CURRENT_LIST_DIR}) # must be outside coveralls_setup() to get correct path
 
+find_program(GCOV_EXECUTABLE_FOUND gcov)
+set(GCOV_EXECUTABLE ${GCOV_EXECUTABLE_FOUND} CACHE STRING "Executable for gcov")
+message("GCov executable: ${GCOV_EXECUTABLE}")
 #
 # Param _COVERAGE_SRCS	A list of source files that coverage should be collected for.
 # Param _COVERALLS_UPLOAD Upload the result to coveralls?
