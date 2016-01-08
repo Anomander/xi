@@ -39,7 +39,7 @@ inline namespace ext {
         typename boost::mpl::greater< boost::mpl::integral_c< size_t, A >,
                                       boost::mpl::integral_c< size_t, B > >;
 
-    enum class enabled {};
+    enum class enabled { value };
 
     template < class condition, class T = enabled >
     using enable_if = typename ::std::enable_if< condition::value, T >::type;
@@ -63,32 +63,6 @@ inline namespace ext {
     template < template < class > class base >
     struct multi_inherit_template< base > {};
 
-    template < template < class... > class Template, class vector >
-    struct variadic_template_from_vector {
-      template < class V, size_t N, class... args > struct impl {
-        using type = typename impl< typename pop_back< V >::type, N - 1,
-                                    typename back< V >::type, args... >::type;
-      };
-
-      using type = typename impl< vector, size< vector >::value >::type;
-    };
-
-    template < template < class... > class Template, class vector >
-    template < class V, class... args >
-    struct variadic_template_from_vector< Template, vector >::impl< V, 0,
-                                                                    args... > {
-      using type = Template< args... >;
-    };
-
-    namespace _static_test {
-      template < class... > class foo;
-      STATIC_ASSERT_TEST(is_same<
-          typename variadic_template_from_vector< foo, vector< int > >::type,
-          foo< int > >);
-      STATIC_ASSERT_TEST(is_same< typename variadic_template_from_vector<
-                                      foo, vector< int, double > >::type,
-                                  foo< int, double > >);
-    }
   } // namespace meta
 } // inline namespace ext
 } // namespace xi

@@ -3,7 +3,8 @@
 #include "xi/ext/meta.h"
 #include "xi/ext/type_traits.h"
 
-#define XI_REQUIRE_DECL(...) ::xi::meta::enable_if< __VA_ARGS__ >...
+#define XI_REQUIRE_DECL(...)                                                   \
+  ::xi::meta::enable_if < __VA_ARGS__ > = ::xi::meta::enabled::value
 #define XI_REQUIRE(...) ::xi::meta::enable_if< __VA_ARGS__ >
 #define XI_SPECIALIZABLE class __TRequirement = void
 #define XI_SELECT_SPECIALIZATION ::xi::meta::detail::enabler

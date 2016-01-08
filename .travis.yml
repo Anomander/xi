@@ -1,19 +1,36 @@
 language: cpp
+sudo: false
 compiler:
   #- clang
   - gcc
 
-script: cmake . && make && make test
+cache:
+  apt: true
+  pip: true
+
+addons:
+  apt:
+    sources:
+      ubuntu-toolchain-r-test
+      boost-latest-ppa
+    packages:
+      gcc-4.9
+      g++-4.9
+      cmake
+      libboost1.55-all-dev
+      libhwloc-dev
+
+script: cmake . && make && make coveralls
 
 os: linux
 
 before_install:
-  - sudo apt-get install -y python-software-properties
-  - sudo add-apt-repository -y ppa:boost-latest/ppa
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
-  - sudo apt-get install -y gcc-4.9 g++-4.9 libboost1.55-all-dev libhwloc-dev
-  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 20
-  - sudo update-alternatives --config gcc
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 20
-  - sudo update-alternatives --config g++
+# - sudo apt-get install -y python-software-properties
+# - sudo add-apt-repository -y ppa:boost-latest/ppa
+# - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+# - sudo apt-get update -qq
+# - sudo apt-get install -y gcc-4.9 g++-4.9 libboost1.55-all-dev libhwloc-dev
+# - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 20
+# - sudo update-alternatives --config gcc
+# - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 20
+# - sudo update-alternatives --config g++

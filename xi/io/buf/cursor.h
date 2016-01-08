@@ -27,7 +27,7 @@ namespace io {
   inline buffer::chain::cursor::cursor(mut< chain > c, iterator it)
       : _chain(c), _it(it) {}
 
-  template < class T, XI_REQUIRE_DECL(is_arithmetic< T >)>
+  template < class T, XI_REQUIRE(is_arithmetic< T >)>
   T buffer::chain::cursor::read() {
     T t;
     read((void*)address_of(t), sizeof(T));
@@ -38,6 +38,6 @@ namespace io {
     return _it;
   }
 
-  inline void buffer::chain::cursor::skip(size_t n) { std::advance(_it, n); }
+  inline void buffer::chain::cursor::skip(size_t n) { _it += n; }
 }
 }

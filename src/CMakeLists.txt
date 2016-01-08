@@ -7,8 +7,8 @@ add_subdirectory (io)
 add_subdirectory (hw)
 add_subdirectory (util)
 
-message(${xi_SRC})
 add_library(xi ${xi_SRC})
+set(COVERAGE_SRCS "${COVERAGE_SRCS}" "${xi_SRC}" CACHE STRING "" FORCE)
 target_link_libraries(xi)
 
 # play test

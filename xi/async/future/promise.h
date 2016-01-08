@@ -73,7 +73,7 @@ namespace async {
 
   template < class T >
   template < class F, class... A,
-             XI_REQUIRE_DECL(is_same< T, future_result< F, A... > >)>
+             XI_REQUIRE(is_same< T, future_result< F, A... > >)>
   void promise< T >::apply(F &&func, A &&... args) {
     try {
       set(callable_applier< A... >::apply(func, forward< A >(args)...));

@@ -7,8 +7,9 @@
 namespace xi {
 namespace async {
 
-  struct reactor : public async< reactor >,
+  class reactor : public async< reactor >,
                    public virtual ownership::std_shared {
+  public:
     virtual ~reactor() = default;
     virtual void poll() = 0;
     virtual own< event > create_event(mut< event_handler >) = 0;

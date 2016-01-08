@@ -4,6 +4,8 @@ project(Xi)
 
 message("Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 
+option(COVERALLS "Generate coveralls data" OFF)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -ftemplate-backtrace-limit=0")
 # set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -save-temps=obj -g -fsanitize=undefined -ftemplate-backtrace-limit=0")
@@ -32,13 +34,24 @@ add_subdirectory(third-party/googletest)
 enable_testing()
 INCLUDE_DIRECTORIES( ${gtest_SOURCE_DIR}/include )
 
+if (COVERALLS)
+    include(Coveralls)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fprofile-arcs -ftest-coverage")
+endif()
+
 # register_test(name)
 #
 # creates a named C++ test that depends on common
 # libraries with the default compiler flags.
 function(register_test name)
-  cxx_executable_with_flags(${name} "${cxx_default}" "" "test/${name}.c++")
-  # set(libraries ${Boost_LIBRARIES})
+  cxx_executable_with_flags(
+    ${name}
+    "${cxx_default} -g -O0 -ftest-coverage -fprofile-arcs"
+    "-lgcov --coverage"
+    "test/${name}.c++"
+  )
+
   foreach(arg ${ARGN})
     set(libraries ${libraries} ${arg})
   endforeach()
@@ -62,3 +75,12 @@ if (DEFINED XI_CMAKE_HAS_HWLOC)
 endif (DEFINED XI_CMAKE_HAS_HWLOC)
 
 add_subdirectory(src)
+
+if (COVERALLS)
+  coveralls_turn_on_coverage()
+  # Create the coveralls target.
+  coveralls_setup(
+    "${COVERAGE_SRCS}" # The source files.
+    ON                 # If we should upload.
+  )
+endif()

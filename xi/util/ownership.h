@@ -46,8 +46,12 @@ inline namespace util {
   } // namespace ownership
 
   namespace detail {
-    template < class T, ownership::shared_policy P >
-    struct is_shared_with_policy : is_base_of< ownership::shared< P >, T > {};
+    template < class, ownership::shared_policy >
+    struct is_shared_with_policy;
+
+    template < class T >
+    struct is_shared_with_policy< T, ownership::shared_policy::kSTD >
+      : is_base_of< ownership::std_shared, T >::type {};
     template < class T >
     struct is_shared_with_policy< T, ownership::shared_policy::kRC >
         : meta::or_< is_base_of< ownership::rc_shared, T >,
@@ -144,7 +148,7 @@ inline namespace util {
     };
 
     template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                            T, ownership::shared_policy::kSTD >)>
+                                        T, ownership::shared_policy::kSTD >)>
     auto share(T *obj) {
       return shared_ptr< T >(obj->shared_from_this(),
                              reinterpret_cast< T * >(obj));

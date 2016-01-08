@@ -24,7 +24,7 @@ inline namespace ext {
       string message(int ev) const override {
         return "Undefined boost error " + to_string(ev);
       }
-      error_condition default_error_condition(int ev) const noexcept {
+      error_condition default_error_condition(int ev) const noexcept override {
         return error_condition{ev, *this};
       };
     };
