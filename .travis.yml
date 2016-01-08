@@ -4,9 +4,9 @@ compiler:
   - gcc
 
 script:
-export COVERALLS_REPO_TOKEN=X4gbWAbAGkEWZGuU9dMd7yChRF4cuOVEH
-export COVERALLS_SERVICE_NAME=travis-ci
-cmake . -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug -DEVENT__DISABLE_TESTS=ON&& make && make coveralls
+  export COVERALLS_REPO_TOKEN=X4gbWAbAGkEWZGuU9dMd7yChRF4cuOVEH
+  export COVERALLS_SERVICE_NAME=travis-ci
+  cmake . -DCOVERALLS=ON -DCMAKE_BUILD_TYPE=Debug -DEVENT__DISABLE_TESTS=ON&& make && make coveralls
 
 os: linux
 
