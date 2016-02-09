@@ -9,7 +9,6 @@
 #include "xi/ext/exception.h"
 #include "xi/ext/expected.h"
 #include "xi/ext/fast_cast.h"
-#include "xi/ext/hash.h"
 #include "xi/ext/lock.h"
 #include "xi/ext/likely.h"
 #include "xi/ext/meta.h"

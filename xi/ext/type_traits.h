@@ -3,7 +3,6 @@
 #include "xi/ext/pointer.h"
 
 #include <type_traits>
-#include <boost/type_traits.hpp>
 
 namespace xi {
 inline namespace ext {
@@ -21,8 +20,8 @@ inline namespace ext {
   using ::std::remove_cv_t;
   using ::std::result_of_t;
 
-  using ::boost::is_same;
-  using ::boost::is_base_of;
+  using ::std::is_same;
+  using ::std::is_base_of;
 
   using ::std::aligned_storage_t;
 

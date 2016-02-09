@@ -12,5 +12,5 @@ set(COVERAGE_SRCS "${COVERAGE_SRCS}" "${xi_SRC}" CACHE STRING "" FORCE)
 target_link_libraries(xi)
 
 # play test
-add_subdirectory (play)
-add_subdirectory (tester)
+# add_subdirectory (play)
+# add_subdirectory (tester)

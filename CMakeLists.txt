@@ -5,29 +5,26 @@ project(Xi)
 message("Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 
 option(COVERALLS "Generate coveralls data" OFF)
+option(HWLOC "Has hwloc available" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -ftemplate-backtrace-limit=0")
 # set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -save-temps=obj -g -fsanitize=undefined -ftemplate-backtrace-limit=0")
 
 # boost
-set(Boost_USE_STATIC_LIBS        ON)
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_NO_BOOST_CMAKE         ON)
-set(Boost_DETAILED_FAILURE_MSG   ON)
-
-# boost
-find_package( Boost 1.55 REQUIRED thread system context )
+file(GLOB children third-party/boost/*)
+foreach(child ${children})
+  if(IS_DIRECTORY ${curdir}/${child})
+    include_directories( ${child}/include )
+    include_directories( ${child} )
+    message(h"Including Boost headers from " ${child})
+  endif()
+endforeach()
 
 # libevent
-# find_package( Event )
 add_subdirectory(third-party/libevent)
 INCLUDE_DIRECTORIES( ${libevent_SOURCE_DIR}/include )
 INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR}/third-party/libevent/include )
-
-# jemalloc
-# Will revisit when working with memory
-#find_package( JeMalloc )
 
 # googletest
 add_subdirectory(third-party/googletest)
@@ -67,12 +64,9 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${XI_CMAKE_OUTPUT_DIR}/bin )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${XI_CMAKE_OUTPUT_DIR}/lib )
 set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${XI_CMAKE_OUTPUT_DIR}/lib )
 
-include_directories(${Boost_INCLUDE_DIR})
-link_directories(${Boost_LIBRARY_DIR})
-
-if (DEFINED XI_CMAKE_HAS_HWLOC)
+if (HWLOC)
   add_definitions(-DXI_HAS_HWLOC)
-endif (DEFINED XI_CMAKE_HAS_HWLOC)
+endif ()
 
 add_subdirectory(src)
 

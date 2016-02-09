@@ -4,3 +4,21 @@
 [submodule "third-party/libevent"]
 	path = third-party/libevent
 	url = https://github.com/Anomander/libevent.git
+[submodule "third-party/boost/variant"]
+	path = third-party/boost/variant
+	url = https://github.com/boostorg/variant.git
+[submodule "third-party/boost/mpl"]
+	path = third-party/boost/mpl
+	url = https://github.com/boostorg/mpl.git
+[submodule "third-party/boost/utility"]
+	path = third-party/boost/utility
+	url = https://github.com/boostorg/utility.git
+[submodule "third-party/boost/type_traits"]
+	path = third-party/boost/type_traits
+	url = https://github.com/boostorg/type_traits.git
+[submodule "third-party/boost/detail"]
+	path = third-party/boost/detail
+	url = https://github.com/boostorg/detail.git
+[submodule "third-party/boost/range"]
+	path = third-party/boost/range
+	url = https://github.com/boostorg/range.git

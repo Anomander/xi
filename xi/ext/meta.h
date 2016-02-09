@@ -5,7 +5,6 @@
 
 #include <boost/mpl/if.hpp>
 #include <boost/mpl/or.hpp>
-#include <boost/mpl/bool.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/contains.hpp>
 #include <boost/mpl/push_back.hpp>
@@ -29,10 +28,10 @@ inline namespace ext {
     using ::boost::mpl::next;
     using ::boost::mpl::size;
 
-    using false_type = ::boost::mpl::false_;
-    using true_type = ::boost::mpl::true_;
+    using false_type = ::std::integral_constant<bool, false>;
+    using true_type = ::std::integral_constant<bool, true>;
 
-    template < bool B > using bool_type = ::boost::mpl::bool_< B >;
+    template < bool B > using bool_type = ::std::integral_constant< bool, B >;
 
     template < size_t A, size_t B >
     using ulong_greater =
