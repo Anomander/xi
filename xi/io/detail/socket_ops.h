@@ -118,10 +118,10 @@ namespace io {
         auto len =
             buffer::chain::iovec_adapter::fill_readable_iovec(*ch, iov, 64);
         std::cout << "Sending " << len << " buffers to " << descriptor << "\n";
-        for (auto i = 0; i < len; ++i) {
+        for (unsigned i = 0; i < len; ++i) {
           std::cout << i << ": " << iov[i].iov_base << " : " << iov[i].iov_len
                     << "\n";
-          for (auto j = 0; j < iov[i].iov_len; ++j) {
+          for (unsigned j = 0; j < iov[i].iov_len; ++j) {
             std::cout << (int)((uint8_t *)iov[i].iov_base)[j] << " ";
           }
           std::cout << "\n";

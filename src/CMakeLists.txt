@@ -9,7 +9,9 @@ add_subdirectory (util)
 
 add_library(xi ${xi_SRC})
 set(COVERAGE_SRCS "${COVERAGE_SRCS}" "${xi_SRC}" CACHE STRING "" FORCE)
-target_link_libraries(xi)
+if (HWLOC)
+  target_link_libraries(xi hwloc)
+endif ()
 
 # play test
 # add_subdirectory (play)

@@ -10,8 +10,8 @@ namespace hw {
 
   class cpu {
     struct {
-      unsigned os;
-      unsigned numa;
+      int os;
+      int numa;
     } _id;
 
   public:
@@ -27,7 +27,7 @@ namespace hw {
     machine(hwloc_topology_t topology);
 
     decltype(auto) cpus() const { return _cpus; }
-    cpu const &cpu(unsigned core) const { return _cpus.at(core); }
+    cpu const &core(unsigned c) const { return _cpus.at(c); }
   };
 
   extern machine enumerate();
