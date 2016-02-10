@@ -5,8 +5,8 @@ matrix:
     - os: linux
       addons:
         apt:
-          sources: ['kalakris-cmake', 'ubuntu-toolchain-r-test']
-          packages: ['python-pip', 'g++-4.9', 'cmake', 'libhwloc-dev']
+          sources: ['kalakris-cmake', 'ubuntu-toolchain-r-test', 'boost-latest']
+          packages: ['python-pip', 'g++-4.9', 'cmake', 'libhwloc-dev', 'libboost1.58-all-dev']
       before_script:
         - pip install --user git+git://github.com/eddyxu/cpp-coveralls.git
       after_success:

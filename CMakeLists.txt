@@ -12,14 +12,14 @@ set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -ftemplate-backtrace-limit=0")
 # set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -save-temps=obj -g -fsanitize=undefined -ftemplate-backtrace-limit=0")
 
 # boost
-file(GLOB children third-party/boost/*)
-foreach(child ${children})
-  if(IS_DIRECTORY ${curdir}/${child})
-    include_directories( ${child}/include )
-    include_directories( ${child} )
-    message(h"Including Boost headers from " ${child})
-  endif()
-endforeach()
+set(Boost_USE_STATIC_LIBS        ON)
+set(Boost_USE_MULTITHREADED      ON)
+set(Boost_NO_BOOST_CMAKE         ON)
+set(Boost_DETAILED_FAILURE_MSG   ON)
+
+find_package( Boost 1.55 REQUIRED thread system )
+include_directories(${Boost_INCLUDE_DIR})
+link_directories(${Boost_LIBRARY_DIR})
 
 # libevent
 add_subdirectory(third-party/libevent)
