@@ -38,13 +38,13 @@ namespace async {
 
   void io_handler::expect_read(bool flag) {
     if (flag) { _event->add_state(kRead); } else {
-      _event->add_state(kRead);
+      _event->remove_state(kRead);
     }
   }
 
   void io_handler::expect_write(bool flag) {
     if (flag) { _event->add_state(kWrite); } else {
-      _event->add_state(kWrite);
+      _event->remove_state(kWrite);
     }
   }
 

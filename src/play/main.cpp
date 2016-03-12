@@ -11,140 +11,122 @@
 #include "xi/io/buf/chain.h"
 #include "xi/io/buf/view.h"
 #include "xi/io/buf/cursor.h"
+#include "xi/io/buf/buf.h"
+#include "xi/io/byte_buffer.h"
+#include "xi/io/byte_buffer_chain.h"
+#include "xi/io/byte_buffer_allocator.h"
 
-using ::boost::intrusive_ptr;
+#include <signal.h>
+
 using namespace xi;
 using namespace xi::async;
 using namespace xi::async::libevent;
 using namespace xi::io;
 
-class fixed_stream_reader
-    : public pipes::filter< io::socket_readable, error_code,
-                            mut< buffer::chain >,
-                            pipes::write_only< buffer::view > > {
-  size_t _read_amount;
-  mut< client_channel2< kInet, kTCP > > _channel;
-  own< buffer_allocator > _alloc;
-  buffer::chain _chain;
+alignas(64) static thread_local struct {
+  usize connections = 0;
+  usize reads = 0;
+  usize r_bytes = 0;
+  usize writes = 0;
+  usize w_bytes = 0;
+} stats;
 
+class channel_handshake_filter : public pipes::filter<> {};
+
+class logging_filter : public pipes::filter< own< byte_buffer > > {
 public:
-  fixed_stream_reader(size_t read_amount,
-                      mut< client_channel2< kInet, kTCP > > channel,
-                      own< buffer_allocator > alloc)
-      : _read_amount(read_amount), _channel(channel), _alloc(move(alloc)) {}
+  logging_filter() { ++stats.connections; }
+  void read(mut< context > cx, own< byte_buffer > b) override {
+    ++stats.reads;
+    stats.r_bytes += b->size();
+    cx->forward_read(move(b));
+  }
 
-  void read(mut< context > cx, io::socket_readable) override {
-    // std::cout << "Thread " << pthread_self() << " uses allocator "
-    //           << address_of(_alloc) << std::endl;
-    error_code error;
-    while (true) {
-      if (! _chain.has_tailroom()) {
-        _chain.push_back(_alloc->allocate(_read_amount));
-      }
-      auto read = _channel->read(edit(_chain));
-      if (XI_UNLIKELY(read.has_error())) {
-        error = read.error();
-        break;
-      }
-      std::cout << "read: " << read << std::endl;
-      if (_chain.has_tailroom()) {
-        std::cout << "Bailing on non-full chain read." << std::endl;
-        // a good indication that we've exhausted the buffer
-        break;
-      }
+  void write(mut< context > cx, own< byte_buffer > b) override {
+    ++stats.writes;
+    stats.w_bytes += b->size();
+    cx->forward_write(move(b));
+  }
+};
+
+class range_echo : public pipes::filter< own< byte_buffer > > {
+public:
+  void read(mut< context > cx, own< byte_buffer > b) override {
+    // std::cout << "Got buffer " << b->size() << std::endl;
+    cx->forward_write(move(b));
+  }
+};
+
+namespace http2 {
+struct[[gnu::packed]] preamble {
+  u32 length : 24;
+  u8 type : 8;
+  u8 flags : 8;
+  bool unset : 1;
+  u32 stream : 31;
+};
+static_assert(sizeof(preamble) == 9, "");
+}
+
+class frame_decoder : public pipes::filter< pipes::in< own< byte_buffer > > > {
+  byte_buffer::chain _chain;
+
+  void read(mut< context > cx, own< byte_buffer > b) final override {
+    _chain.push_back(move(b));
+    while (auto len = decode(edit(_chain))) {
+      if (len && _chain.size() >= len) {
+        byte_buffer::chain c;
+        c.push_back(_chain.split(len));
+        cx->forward_read(move(c.pop_front()));
+      } else { break; }
     }
-    std::cout << "Writing chain" << std::endl;
-    _channel->write(edit(_chain));
-    // cx->forward_read(edit(_chain));
-    if (XI_UNLIKELY((bool)error)) { process_error(cx, error); }
   }
-
-  void process_error(mut< context > cx, error_code error) {
-    static const error_code EAgain =
-        make_error_code(std::errc::resource_unavailable_try_again);
-    static const error_code EWould_block =
-        make_error_code(std::errc::operation_would_block);
-
-    if (error != EAgain && error != EWould_block) {
-      // do nothing
-      return;
-    } else if (error == io::error::kEOF) {
-      std::cout << "Channel closed by remote peer" << std::endl;
-    } else { std::cout << "Channel error: " << error.message() << std::endl; }
-    cx->forward_read(error);
-    _channel->close();
-  }
-
-  void write(mut< context > cx, buffer::view rg) override {
-    _channel->write(byte_range{(uint8_t *)rg.begin(), rg.size()});
-  }
-};
-
-struct message {
-  uint8_t version;
-  uint8_t type;
-  uint32_t size;
-  buffer::view payload;
-};
-
-class message_decoder
-    : public pipes::filter< pipes::read_only< mut< buffer::chain > >,
-                            buffer::view, pipes::write_only< message > > {
-  own< buffer_allocator > _alloc;
 
 public:
-  message_decoder(own< buffer_allocator > alloc) : _alloc(move(alloc)) {}
-
-public:
-  void read(mut< context > cx, mut< buffer::chain > bq) override {
-    std::cout << "reading chain" << std::endl;
-    // auto c = bq->make_cursor();
-    // auto pos = c.position();
-    // while (!c.is_at_end()) {
-    //   std::cout << "version: " << (int)c.read< uint8_t >() << std::endl;
-    //   std::cout << "type: " << (int)c.read< uint8_t >() << std::endl;
-    //   auto size = c.read< uint32_t >();
-    //   std::cout << "size: " << size << std::endl;
-    //   c.skip(size);
-    //   auto view = bq->make_view(pos, c.position(), edit(_alloc));
-    //   pos = c.position();
-    //   bq->consume_head(sizeof(uint8_t) * 2 + sizeof(uint32_t) + size);
-    //   cx->forward_write(move(view));
-    // }
-  }
-  void write(mut< context > cx, message msg) override {}
+  virtual ~frame_decoder() = default;
+  virtual usize decode(mut< byte_buffer::chain > in) = 0;
 };
 
-class range_echo : public pipes::filter< buffer::view > {
+class fixed_length_frame_decoder : public frame_decoder {
+  usize _length = 4 << 12;
+
 public:
-  void read(mut< context > cx, buffer::view rg) override {
-    std::cout << "Got view" << std::endl;
-    // cx->forward_write(move(rg));
-  }
+  fixed_length_frame_decoder() = default;
+  fixed_length_frame_decoder(usize l) : _length(l){};
+
+  usize decode(mut< byte_buffer::chain >) override { return _length; }
 };
 
-static thread_local own< arena_allocator > ALLOC =
-    make< arena_allocator >(1 << 20);
+class length_field_frame_decoder : public frame_decoder {
+public:
+  length_field_frame_decoder() = default;
+
+  usize decode(mut< byte_buffer::chain > in) override {
+    if (in->size() < sizeof(http2::preamble)) { return 0; }
+    http2::preamble hdr;
+    in->read(byte_range{hdr});
+    in->trim_start(sizeof(hdr));
+    std::cout << "length:" << hdr.length << std::endl;
+    return hdr.length;
+  }
+};
 
 using reactive_service = xi::async::sharded_service<
     xi::async::reactor_service< libevent::reactor > >;
 
 class acceptor_handler
     : public pipes::filter<
-          pipes::read_only< own< client_channel2< kInet, kTCP > > > > {
+          pipes::in< own< client_channel2< kInet, kTCP > > > > {
   mut< reactive_service > _reactive_service;
-  own< core::executor_pool > _pool;
 
 public:
-  acceptor_handler(mut< reactive_service > rs, own< core::executor_pool > pool)
-      : _reactive_service(rs), _pool(move(pool)) {}
+  acceptor_handler(mut< reactive_service > rs) : _reactive_service(rs) {}
 
   void read(mut< context > cx, own< client_channel2< kInet, kTCP > > ch) {
-    _pool->post([&, ch = move(ch) ]() mutable {
-      // ch->pipe()->push_back(make< stream_rpc_data_read_filter >(edit(ch)));
-      ch->pipe()->push_back(
-          make< fixed_stream_reader >(1 << 12, edit(ch), share(ALLOC)));
-      ch->pipe()->push_back(make< message_decoder >(share(ALLOC)));
+    _reactive_service->post([ch = move(ch) ]() mutable {
+      ch->pipe()->push_back(make< logging_filter >());
+      ch->pipe()->push_back(make< fixed_length_frame_decoder >(1 << 12));
+      // ch->pipe()->push_back(make< length_field_frame_decoder >());
       ch->pipe()->push_back(make< range_echo >());
       auto reactor = _reactive_service->local()->reactor();
       reactor->attach_handler(move(ch));
@@ -160,39 +142,49 @@ public:
   }
 };
 
+auto k = make< core::launchable_kernel< core::thread_launcher > >();
+
 int main(int argc, char *argv[]) {
-  auto k = make< core::launchable_kernel< core::thread_launcher > >();
-  k->start(4, 1 << 20);
-  auto pool = make_executor_pool(edit(k), {0, 1, 2, 3});
-  // pool->post_on_all(fork_bomb(edit(pool)));
-  // pool->post_on_all(fork_bomb_task(edit(pool)));
-  // pool->post_on_all(fork_bloat< 2024 >(edit(pool)));
-  // pool->post_on_all([p = share(pool), k=edit(k)] {
-  //   std::cout << "Hello, world!" << std::endl;
-  //   p->post_on_all([p = share(p)] { std::cout << "Hello, world!" <<
-  //   std::endl; });
-  //   // k->initiate_shutdown();
-  // });
+
+  struct sigaction SIGINT_action;
+  SIGINT_action.sa_handler = [](int sig) { k->initiate_shutdown(); };
+  sigemptyset(&SIGINT_action.sa_mask);
+  SIGINT_action.sa_flags = 0;
+  sigaction(SIGINT, &SIGINT_action, nullptr);
+
+  sigblock(sigmask(SIGPIPE));
+  k->start(6, 1 << 20);
+  auto pool = make_executor_pool(edit(k));
 
   auto r_service = make< reactive_service >(share(pool));
   r_service->start().then([&pool, &r_service] {
     auto acc = make< acceptor< kInet, kTCP > >();
 
     std::cout << "Acceptor created." << std::endl;
-    try{
-    acc->bind(19999);
-    }catch(ref<std::exception> e) {
+    try {
+      acc->bind(19999);
+    } catch (ref< std::exception > e) {
       std::cout << "Bind error: " << e.what() << std::endl;
       exit(1);
     }
     std::cout << "Acceptor bound." << std::endl;
-    acc->pipe()->push_back(
-        make< acceptor_handler >(edit(r_service), share(pool)));
+    acc->pipe()->push_back(make< acceptor_handler >(edit(r_service)));
 
     pool->post([&r_service, acc = move(acc) ] {
       auto r = r_service->local()->reactor();
       r->attach_handler(move(acc));
       std::cout << "Acceptor attached." << std::endl;
+    });
+  });
+  spin_lock sl;
+  k->before_shutdown().then([&] {
+    pool->post_on_all([&] {
+      auto lock = make_unique_lock(sl);
+      std::cout << pthread_self() << "\nconns : " << stats.connections
+                << "\nreads : " << stats.reads
+                << "\nr_bytes : " << stats.r_bytes
+                << "\nwrites : " << stats.writes
+                << "\nw_bytes : " << stats.w_bytes << std::endl;
     });
   });
 

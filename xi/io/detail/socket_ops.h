@@ -4,18 +4,18 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
+#include <sys/uio.h>
 #include <arpa/inet.h>
 #include <stdio.h>
+#include <limits.h>
 
 #include "xi/io/enumerations.h"
 #include "xi/io/endpoint.h"
 #include "xi/io/error.h"
 #include "xi/io/ip_address.h"
-#include "xi/io/data_message.h"
-#include "xi/io/stream_buffer.h"
-#include "xi/io/buf/buffer.h"
-#include "xi/io/buf/chain.h"
-#include "xi/io/buf/chain_iovec_adapter.h"
+#include "xi/io/buf/buf.h"
+#include "xi/io/byte_buffer.h"
+#include "xi/io/byte_buffer_iovec_adapter.h"
 
 #include "xi/ext/expected.h"
 
@@ -71,22 +71,20 @@ namespace io {
         return retval;
       }
 
-      inline expected< int > write(int descriptor, void *bytes, size_t sz) {
-        int retval = send(descriptor, bytes, sz, MSG_DONTWAIT | MSG_NOSIGNAL);
-        if (-1 == retval) { return error_from_errno(); }
-        return retval;
-      }
+      // inline expected< int > write(int descriptor, void *bytes, size_t sz) {
+      //   int retval = send(descriptor, bytes, sz, MSG_DONTWAIT |
+      //   MSG_NOSIGNAL);
+      //   if (-1 == retval) { return error_from_errno(); }
+      //   return retval;
+      // }
 
-      inline expected< int > write(int descriptor, byte_range range) {
-        if (range.empty()) { return 0; }
-        return write(descriptor, range.data, range.size);
-      }
       inline expected< int > write(
           int descriptor, struct iovec *iov, size_t iov_len,
           opt< ref< endpoint< kInet > > > remote = none) {
-        msghdr msg;
         socklen_t socklen = sizeof(sockaddr_in);
         struct sockaddr_in addr;
+        msghdr msg;
+        memset(&msg, 0, sizeof(msg));
         msg.msg_iov = iov;
         msg.msg_iovlen = iov_len;
         msg.msg_name = &addr;
@@ -97,52 +95,74 @@ namespace io {
         return retval;
       }
 
-      inline expected< int > write(int descriptor, ref< stream_buffer > range) {
-        byte_range ranges[256];
-        auto range_count = range.fill_vec(ranges, 256);
-        iovec iov[range_count];
-        int i = 0;
-        for (auto &range : ranges) {
-          if (range.empty()) { continue; }
-          iov[i].iov_base = range.data;
-          iov[i++].iov_len = range.size;
+      inline expected< int > write(
+          int descriptor, mut< byte_buffer > b,
+          opt< ref< endpoint< kInet > > > remote = none) {
+        iovec iov[1];
+        byte_buffer::iovec_adapter::fill_readable_iovec(b, &iov[0]);
+        auto r = write(descriptor, iov, 1, move(remote));
+        if (!r.has_error()) {
+          // std::cout << "Wrote " << r << std::endl;
+        } else {
+          // std::cout << "Write error: " << r.error().message() << std::endl;
         }
-        return write(descriptor, iov, range_count);
+        return r;
       }
 
       inline expected< int > write(
-          int descriptor, mut< buffer::chain > ch,
+          int descriptor, mut< byte_buf > b,
           opt< ref< endpoint< kInet > > > remote = none) {
-        if (ch->size() == 0) { return 0; }
-        iovec iov[64];
-        auto len =
-            buffer::chain::iovec_adapter::fill_readable_iovec(*ch, iov, 64);
-        std::cout << "Sending " << len << " buffers to " << descriptor << "\n";
-        for (unsigned i = 0; i < len; ++i) {
-          std::cout << i << ": " << iov[i].iov_base << " : " << iov[i].iov_len
-                    << "\n";
-          for (unsigned j = 0; j < iov[i].iov_len; ++j) {
-            std::cout << (int)((uint8_t *)iov[i].iov_base)[j] << " ";
-          }
-          std::cout << "\n";
+        iovec iov[1];
+        byte_buf::iovec_adapter::fill_readable_iovec(b, &iov[0]);
+        auto r = write(descriptor, iov, 1, move(remote));
+        if (!r.has_error()) { std::cout << "Wrote " << r << std::endl; } else {
+          std::cout << "Write error: " << r.error().message() << std::endl;
         }
-        std::cout << std::endl;
-        auto ret = write(descriptor, iov, len, move(remote));
-        if (!ret.has_error()) {
-          std::cout << "Wrote " << ret << std::endl;
-          ch->consume_head(ret);
-        } else {
-          std::cout << "Write error: " << ret.error().message() << std::endl;
-        }
-        return ret;
+        return r;
       }
 
-      inline expected< int > read(int descriptor, void *bytes, size_t sz) {
-        int retval = recv(descriptor, bytes, sz, MSG_DONTWAIT);
-        if (-1 == retval) { return error_from_errno(); }
-        if (0 == retval) { return error_code{io::error::kEOF}; }
-        return retval;
-      }
+      // inline expected< int > write(
+      //     int descriptor, mut< buf::buf > b,
+      //     opt< ref< endpoint< kInet > > > remote = none) {
+      //   if (b->size() == 0) { return 0; }
+      //   iovec iov[IOV_MAX];
+      //   int ret = 0;
+      //   u64 len = 0;
+      //   u64 skip = 0;
+      //   do {
+      //     len = buf::buf::iovec_adapter::fill_readable_iovec(b, iov, IOV_MAX,
+      //                                                        skip);
+      //     std::cout << "Sending " << len << " buffers to " << descriptor
+      //               << "\n";
+      //     for (unsigned i = 0; i < len; ++i) {
+      //       std::cout << i << ": " << iov[i].iov_base << " : " <<
+      //       iov[i].iov_len
+      //                 << "\n";
+      //       // for (unsigned j = 0; j < iov[i].iov_len; ++j) {
+      //       //   std::cout << (int)((uint8_t *)iov[i].iov_base)[j] << " ";
+      //       // }
+      //       // std::cout << "\n";
+      //     }
+      //     std::cout << std::endl;
+      //     auto r = write(descriptor, iov, len, move(remote));
+      //     if (!r.has_error()) {
+      //       std::cout << "Wrote " << r << std::endl;
+      //     } else {
+      //       std::cout << "Write error: " << r.error().message() << std::endl;
+      //       break;
+      //     }
+      //     ret += r;
+      //     skip = len;
+      //   } while (IOV_MAX == len);
+      //   return ret;
+      // }
+
+      // inline expected< int > read(int descriptor, void *bytes, size_t sz) {
+      //   int retval = recv(descriptor, bytes, sz, MSG_DONTWAIT);
+      //   if (-1 == retval) { return error_from_errno(); }
+      //   if (0 == retval) { return error_code{io::error::kEOF}; }
+      //   return retval;
+      // }
 
       inline expected< int > read(
           int descriptor, struct iovec *iov, size_t iov_len,
@@ -150,6 +170,7 @@ namespace io {
         socklen_t socklen = sizeof(sockaddr_in);
         struct sockaddr_in addr;
         msghdr msg;
+        memset(&msg, 0, sizeof(msg));
         msg.msg_iov = iov;
         msg.msg_iovlen = iov_len;
         msg.msg_name = &addr;
@@ -161,33 +182,69 @@ namespace io {
           remote.unwrap()->address = addr.sin_addr.s_addr;
           remote.unwrap()->port = ntohs(addr.sin_port);
         }
-        std::cout << "Read " << retval << " from " << descriptor << std::endl;
+        // std::cout << "Read " << retval << " from " << descriptor <<
+        // std::endl;
         return retval;
       }
 
       inline expected< int > read(
-          int descriptor, initializer_list< byte_range > ranges,
+          int descriptor, mut< byte_buffer > b,
           opt< mut< endpoint< kInet > > > remote = none) {
-        iovec iov[ranges.size()];
-        int i = 0;
-        for (auto &range : ranges) {
-          if (range.empty()) { continue; }
-          iov[i].iov_base = range.data;
-          iov[i++].iov_len = range.size;
+        iovec iov[1];
+        if (0 == b->tailroom()) return 0;
+        byte_buffer::iovec_adapter::fill_writable_iovec(b, iov);
+        auto r = read(descriptor, iov, 1, move(remote));
+        if (!r.has_error()) {
+          // std::cout << "Report written " << r << std::endl;
+          byte_buffer::iovec_adapter::report_written(b, r);
+        } else {
+          // std::cout << "Error " << r.error().message() << std::endl;
+          if (r.error() == error::kEOF) { return error_code{error::kEOF}; }
         }
-        return read(descriptor, iov, ranges.size(), move(remote));
+        return r;
       }
 
       inline expected< int > read(
-          int descriptor, mut< buffer::chain > ch,
+          int descriptor, mut< byte_buf > b,
           opt< mut< endpoint< kInet > > > remote = none) {
-        iovec iov[64];
-        auto len =
-            buffer::chain::iovec_adapter::fill_writable_iovec(ch, iov, 64);
-        auto ret = read(descriptor, iov, len, move(remote));
-        if (!ret.has_error()) { ch->append_tail(ret); }
-        return ret;
+        iovec iov[1];
+        if (0 == b->writable_size()) return 0;
+        byte_buf::iovec_adapter::fill_writable_iovec(b, iov);
+        auto r = read(descriptor, iov, 1, move(remote));
+        if (!r.has_error()) {
+          // std::cout << "Report written " << r << std::endl;
+          byte_buf::iovec_adapter::report_written(b, r);
+        } else {
+          // std::cout << "Error " << r.error().message() << std::endl;
+          if (r.error() == error::kEOF) { return error_code{error::kEOF}; }
+        }
+        return r;
       }
+
+      // inline expected< int > read(
+      //     int descriptor, mut< buf::buf > b,
+      //     opt< mut< endpoint< kInet > > > remote = none) {
+      //   iovec iov[IOV_MAX];
+      //   u64 skip = 0;
+      //   u64 len = 0;
+      //   int ret = 0;
+      //   do {
+      //     len = buf::buf::iovec_adapter::fill_writable_iovec(b, iov, IOV_MAX,
+      //                                                        skip);
+      //     if (!len) { break; }
+      //     auto r = read(descriptor, iov, len, move(remote));
+      //     if (!r.has_error()) {
+      //       std::cout << "Report written " << r << std::endl;
+      //       buf::buf::iovec_adapter::report_written(b, r);
+      //     } else {
+      //       std::cout << "Error " << r.error().message() << std::endl;
+      //       if (r.error() == error::kEOF) { return error_code{error::kEOF}; }
+      //       break;
+      //     }
+      //     ret += r;
+      //   } while (IOV_MAX == len);
+      //   return ret;
+      // }
 
       inline expected< int > peek(int descriptor, void *bytes, size_t sz) {
         int retval = recv(descriptor, bytes, sz, MSG_DONTWAIT | MSG_PEEK);

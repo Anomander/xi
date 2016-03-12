@@ -1,7 +1,7 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipes/detail/filter_context.h"
+#include "xi/io/pipes/modifiers.h"
 
 namespace xi {
 namespace io {
@@ -13,11 +13,11 @@ namespace io {
         virtual void write(mut< C > cx, M m) { cx->forward_write(move(m)); }
       };
 
-      template < class C, class M > struct filter_impl< C, read_only< M > > {
+      template < class C, class M > struct filter_impl< C, in< M > > {
         virtual void read(mut< C > cx, M m) { cx->forward_read(move(m)); }
       };
 
-      template < class C, class M > struct filter_impl< C, write_only< M > > {
+      template < class C, class M > struct filter_impl< C, out< M > > {
         virtual void write(mut< C > cx, M m) { cx->forward_write(move(m)); }
       };
     }

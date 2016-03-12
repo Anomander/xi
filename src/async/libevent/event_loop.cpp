@@ -24,7 +24,9 @@ namespace async {
                                     void *arg) noexcept {
       if (arg) {
         auto *handler = reinterpret_cast< event_handler * >(arg);
-        handler->handle(detail::short_to_event_state(what));
+        handler->defer([ h = share(handler), what ] {
+          h->handle(detail::short_to_event_state(what));
+        });
       }
     }
 

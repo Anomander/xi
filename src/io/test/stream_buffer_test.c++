@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "xi/io/async_channel.h"
+#include "xi/io/stream_buffer.h"
 
 using namespace xi::io;
 

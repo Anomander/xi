@@ -7,9 +7,13 @@
 #include "xi/io/enumerations.h"
 #include "xi/io/error.h"
 #include "xi/io/data_message.h"
-#include "xi/io/stream_buffer.h"
 #include "xi/io/channel_options.h"
 #include "xi/io/pipes/all.h"
+#include "xi/io/channel_interface.h"
+#include "xi/io/byte_buffer.h"
+#include "xi/io/byte_buffer_allocator.h"
+#include "xi/io/basic_byte_buffer_allocator.h"
+#include "xi/io/detail/heap_byte_buffer_storage_allocator.h"
 
 namespace xi {
 namespace io {
@@ -33,55 +37,99 @@ namespace io {
     }
   };
 
-  struct socket_readable {};
-  struct socket_writable {};
+  enum class channel_event {
+    kReadable,
+    kWritable,
+    kClosing,
+  };
+
+  using heap_byte_buffer_allocator =
+      basic_byte_buffer_allocator< detail::heap_byte_buffer_storage_allocator >;
 
   template < address_family af, protocol proto = kNone >
-  class client_channel2 : public socket_base< af, kStream, proto > {
+  class client_channel2 : public socket_base< af, kStream, proto >,
+                          public channel_interface {
     using endpoint_t = endpoint< af >;
 
-    pipes::pipe< pipes::read_only< socket_readable >,
-                 pipes::read_only< socket_writable >,
-                 pipes::read_only< error_code > > _pipe;
+    pipes::pipe< channel_event, pipes::in< error_code > > _pipe;
     endpoint_t _remote;
+    own< byte_buffer_allocator > _alloc = make< heap_byte_buffer_allocator >();
 
   public:
-    client_channel2(int descriptor, endpoint_t remote)
-        : socket_base< af, kStream, proto >(descriptor)
-        , _remote(move(remote)) {}
+    class data_sink;
+    class data_source;
+
+    client_channel2(int descriptor, endpoint_t remote);
 
     auto pipe() { return edit(_pipe); }
 
   public:
-    expected< int > read(byte_range range) { return read({range}); }
-    expected< int > read(initializer_list< byte_range > range) {
-      return detail::socket::read(this->descriptor(), range);
+    void close() override {
+      this->defer([&] { _pipe.write(channel_event::kClosing); });
     }
-    expected< int > read(mut<buffer::chain> ch) {
-      return detail::socket::read(this->descriptor(), ch);
-    }
-    expected< int > write(byte_range range) {
-      return detail::socket::write(this->descriptor(), range);
-    }
-    expected< int > write(mut<buffer::chain> ch) {
-      return detail::socket::write(this->descriptor(), ch);
-    }
-
-    void close() { this->cancel(); }
 
   protected:
-    void handle_read() override { _pipe.read(socket_readable{}); }
-    void handle_write() override { _pipe.read(socket_writable{}); }
+    void handle_read() override { _pipe.read(channel_event::kReadable); }
+    void handle_write() override { _pipe.read(channel_event::kWritable); }
+    own< byte_buffer_allocator > alloc() { return share(_alloc); }
+    auto pipeline() { return edit(_pipe); }
   };
 
+  template < address_family af, protocol proto >
+  struct client_channel2< af, proto >::data_sink
+      : public pipes::filter< channel_event, pipes::in< error_code >,
+                              own< byte_buffer > > {
+    using channel = client_channel2< af, proto >;
+    mut< channel > _channel;
+    data_sink(mut< channel > c) : _channel(c) {}
+
+    void read(mut< context > cx, channel_event e) override {
+      switch (e) {
+      case channel_event::kReadable: {
+        auto b = _channel->alloc()->allocate(1 << 20);
+        auto ret = detail::socket::read(_channel->descriptor(), edit(b));
+        if (ret.has_error()) {
+          if (ret.error() == error::kEOF) { _channel->close(); } else {
+            cx->forward_read(ret.error());
+          }
+        } else { cx->forward_read(move(b)); }
+      } break;
+      default:
+        break;
+      };
+    }
+    void write(mut< context > cx, channel_event e) override {
+      switch (e) {
+        case channel_event::kClosing:
+          _channel->cancel();
+          break;
+        default:
+          break;
+      };
+    }
+    void write(mut< context > cx, own< byte_buffer > b) override {
+      detail::socket::write(_channel->descriptor(), edit(b));
+    }
+  };
+
+  template < address_family af, protocol proto >
+  client_channel2< af, proto >::client_channel2(int descriptor,
+                                                endpoint_t remote)
+      : socket_base< af, kStream, proto >(descriptor)
+      , _pipe(this)
+      , _remote(move(remote)) {
+    _pipe.push_back(make< data_sink >(this));
+  }
+
   template < address_family af, protocol proto = kNone >
-  class acceptor final : public socket_base< af, kStream, proto > {
+  class acceptor final : public socket_base< af, kStream, proto >,
+                         public channel_interface {
     using endpoint_type = endpoint< af >;
     using client_channel_type = client_channel2< af, proto >;
 
-    pipes::pipe< pipes::read_only< own< client_channel_type > >,
-                 pipes::read_only< error_code >,
-                 pipes::read_only< exception_ptr > > _pipe;
+    pipes::pipe< pipes::in< own< client_channel_type > >,
+                 pipes::in< error_code >, pipes::in< exception_ptr > > _pipe{
+        this};
 
   public:
     void bind(endpoint_type ep) {
@@ -94,6 +142,9 @@ namespace io {
 
   private:
     void handle_write() final override {}
+
+    void close() override { this->cancel(); }
+
     void handle_read() final override {
       endpoint_type remote;
       auto i = detail::socket::accept(this->descriptor(), edit(remote));
@@ -104,6 +155,5 @@ namespace io {
       }
     }
   };
-
 }
 }

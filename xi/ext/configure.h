@@ -4,7 +4,9 @@
 
 #include "xi/ext/atomic.h"
 #include "xi/ext/chrono.h"
+#include "xi/ext/class_semantics.h"
 #include "xi/ext/common.h"
+#include "xi/ext/container.h"
 #include "xi/ext/error.h"
 #include "xi/ext/exception.h"
 #include "xi/ext/expected.h"
@@ -12,6 +14,7 @@
 #include "xi/ext/lock.h"
 #include "xi/ext/likely.h"
 #include "xi/ext/meta.h"
+#include "xi/ext/number.h"
 #include "xi/ext/pointer.h"
 #include "xi/ext/range.h"
 #include "xi/ext/require.h"

@@ -11,7 +11,8 @@ namespace async {
         if (state & kRead) { result |= EV_READ; }
         if (state & kWrite) { result |= EV_WRITE; }
         if (state & kTimeout) { result |= EV_TIMEOUT; }
-        result |= EV_PERSIST | EV_ET;
+        result |= EV_PERSIST;
+        // result |= EV_ET;
 
         return result;
       }

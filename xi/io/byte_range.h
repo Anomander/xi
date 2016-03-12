@@ -5,25 +5,48 @@
 namespace xi {
 namespace io {
 
-  struct byte_range {
-    uint8_t *data;
-    size_t size;
-    void consume(size_t sz) {
-      auto actual = min(size, sz);
-      data += actual;
-      size -= actual;
-    }
-    bool empty() const { return size == 0; }
+  class byte_range {
+    u8 *_data = nullptr;
+    usize _size = 0u;
+
+  public:
+    bool empty() const { return _size == 0; }
+
+    u8 *data() { return _data; }
+    u8 const *data() const { return _data; }
+    usize size() const { return _size; }
+
+    u8 *begin() { return data(); }
+    u8 *end() { return data() + size(); }
+
+    u8 const *begin() const { return data(); }
+    u8 const *end() const { return data() + size(); }
+
+    explicit byte_range(void *p, usize l) noexcept
+        : _data(reinterpret_cast< u8 * >(p)),
+          _size(l) {}
+
+    template < class T >
+    explicit byte_range(T &t) noexcept : _data(reinterpret_cast< u8 * >(&t)),
+                                         _size(sizeof(T)) {}
+
+    explicit byte_range(string &arr, usize sz = -1) noexcept
+        : _data((u8 *)arr.data()),
+          _size(min(sz, arr.size())) {}
+
+    explicit byte_range(string_ref &arr, usize sz = -1) noexcept
+        : _data((u8 *)arr.data()),
+          _size(min(sz, arr.size())) {}
+
+    template < class T >
+    explicit byte_range(vector< T > &arr, usize sz = -1) noexcept
+        : _data(reinterpret_cast< u8 * >(arr.data())),
+          _size(min(sz, arr.size()) * sizeof(T)) {}
+
+    template < class T, usize S >
+    explicit byte_range(array< T, S > &arr, usize sz = -1) noexcept
+        : _data(reinterpret_cast< u8 * >(arr.data())),
+          _size(min(sz, arr.size()) * sizeof(T)) {}
   };
-
-  template < class T > auto byte_range_for_object(T &t) noexcept {
-    return byte_range{reinterpret_cast< uint8_t * >(&t), sizeof(t)};
-  }
-
-  template < class T, size_t S >
-  auto byte_range_for_object(array< T, S > &arr) noexcept {
-    return byte_range{reinterpret_cast< uint8_t * >(arr.data()),
-                      sizeof(T) * arr.size()};
-  }
 }
 }

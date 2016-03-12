@@ -25,6 +25,7 @@ namespace core {
       queue< unique_ptr< task > > tasks;
       spin_lock lock;
     };
+
     vector< vector< own< task_queue > > > _queues;
     vector< vector< own< poller > > > _pollers;
     vector< inbound_tasks > _inbound_task_queues;

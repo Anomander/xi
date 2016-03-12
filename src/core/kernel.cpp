@@ -60,9 +60,11 @@ namespace core {
   void kernel::await_shutdown() {
     if (_exit_exception) { rethrow_exception(_exit_exception); }
   }
+
   void kernel::exception_filter(exception_filter_type filter) {
     _exception_filter = move(filter);
   }
+
   void kernel::handle_exception(exception_ptr ex) {
     if (!_exception_filter || !_exception_filter(ex)) {
       {

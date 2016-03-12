@@ -14,6 +14,8 @@ inline namespace ext {
     using i32 = int32_t;
     using i64 = int64_t;
 
+    using usize = ::std::size_t;
+
     using byte = u8;
   } // inline namespace types
 } // inline namespace ext

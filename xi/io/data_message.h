@@ -40,7 +40,7 @@ namespace io {
 
   public:
     protocol_header const &header() const noexcept { return _header; }
-    byte_range readable_range() noexcept { return {_data, readable_size()}; }
+    byte_range readable_range() noexcept { return byte_range{_data, readable_size()}; }
     size_t readable_size() const noexcept { return _header.size; }
   };
 

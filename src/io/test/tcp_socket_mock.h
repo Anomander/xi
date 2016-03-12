@@ -9,35 +9,10 @@
 namespace xi {
 namespace io {
   namespace test {
-    class tcp_acceptor_mock {
-    public:
-      tcp_acceptor_mock()
-          : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {}
-
-      /// will only be connecting to classes under test,
-      /// so localhost only
-      int accept(uint8_t port) {
-        struct sockaddr_in servaddr;
-        ::bzero(&servaddr, sizeof(servaddr));
-        servaddr.sin_family = AF_INET;
-        servaddr.sin_addr.s_addr = INADDR_ANY;
-        servaddr.sin_port = htons(port);
-        int ret =
-            ::bind(_descriptor, (struct sockaddr *)&servaddr, sizeof(servaddr));
-        if (-1 == ret) { throw system_error(error_from_errno()); }
-        ret = ::listen(_descriptor, 1024); // TODO: clean up
-        if (-1 == ret) { throw system_error(error_from_errno()); }
-        ret = ::accept(_descriptor, (struct sockaddr *)nullptr, 0);
-        if (-1 == ret) { throw system_error(error_from_errno()); }
-        return ret;
-      }
-
-    private:
-      int _descriptor;
-    };
-
     class tcp_socket_mock {
     public:
+      tcp_socket_mock(int fd)
+        : _descriptor(fd) {}
       tcp_socket_mock()
           : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {}
 
@@ -79,6 +54,45 @@ namespace io {
     private:
       int _descriptor;
     };
+
+    class tcp_acceptor_mock {
+    public:
+      tcp_acceptor_mock()
+        : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {}
+
+      /// will only be connecting to classes under test,
+      /// so localhost only
+      void listen(uint16_t port) {
+        struct sockaddr_in servaddr;
+        ::bzero(&servaddr, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = INADDR_ANY;
+        servaddr.sin_port = htons(port);
+        auto one = 1;
+        if (setsockopt(_descriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0)
+          throw system_error(error_from_errno());
+        int ret =
+          ::bind(_descriptor, (struct sockaddr *)&servaddr, sizeof(servaddr));
+        if (-1 == ret) { throw system_error(error_from_errno()); }
+        ret = ::listen(_descriptor, 1024); // TODO: clean up
+        if (-1 == ret) { throw system_error(error_from_errno()); }
+      }
+
+      int accept() {
+        auto ret = ::accept(_descriptor, (struct sockaddr *)nullptr, 0);
+        if (-1 == ret) { throw system_error(error_from_errno()); }
+        return ret;
+      }
+
+      void close() {
+        auto ret = ::close(_descriptor);
+        if (-1 == ret) { throw system_error(error_from_errno()); }
+      }
+
+    private:
+      int _descriptor;
+    };
+
   }
 }
 }

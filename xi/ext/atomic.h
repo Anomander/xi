@@ -9,6 +9,7 @@ inline namespace ext {
   using ::std::memory_order_acquire;
   using ::std::memory_order_release;
   using ::std::memory_order_relaxed;
+  using ::std::memory_order_acq_rel;
 
 } // inline namespace ext
 } // namespace xi

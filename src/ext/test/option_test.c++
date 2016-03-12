@@ -185,18 +185,18 @@ TEST(simple, map_or_value) {
   option< own< test_unique > > not_unique = none;
 
   auto number = not_int.map_or(21, [](auto &&s) { return s * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(number) >);
-  ASSERT_EQ(21, number.unwrap());
+  STATIC_ASSERT_TEST(is_same< int, decltype(number) >);
+  ASSERT_EQ(21, number);
   ASSERT_TRUE(not_int.is_none());
 
   auto shared = not_shared.map_or(21, [](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(shared) >);
-  ASSERT_EQ(21, shared.unwrap());
+  STATIC_ASSERT_TEST(is_same< int, decltype(shared) >);
+  ASSERT_EQ(21, shared);
   ASSERT_TRUE(not_shared.is_none());
 
   auto unique = not_unique.map_or(21, [](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(unique) >);
-  ASSERT_EQ(21, unique.unwrap());
+  STATIC_ASSERT_TEST(is_same< int, decltype(unique) >);
+  ASSERT_EQ(21, unique);
   ASSERT_TRUE(not_unique.is_none());
 }
 
@@ -207,20 +207,20 @@ TEST(simple, map_or_func) {
 
   auto number =
       not_int.map_or([] { return 1; }, [](auto &&s) { return s * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(number) >);
-  ASSERT_EQ(1, number.unwrap());
+  STATIC_ASSERT_TEST(is_same< int, decltype(number) >);
+  ASSERT_EQ(1, number);
   ASSERT_TRUE(not_int.is_none());
 
   auto shared = not_shared.map_or([] { return 1; },
                                   [](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(shared) >);
-  ASSERT_EQ(1, shared.unwrap());
+  STATIC_ASSERT_TEST(is_same< int, decltype(shared) >);
+  ASSERT_EQ(1, shared);
   ASSERT_TRUE(not_shared.is_none());
 
   auto unique = not_unique.map_or([] { return 1; },
                                   [](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(unique) >);
-  ASSERT_EQ(1, unique.unwrap());
+  STATIC_ASSERT_TEST(is_same< int, decltype(unique) >);
+  ASSERT_EQ(1, unique);
   ASSERT_TRUE(not_unique.is_none());
 }
 

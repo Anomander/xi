@@ -29,11 +29,12 @@ namespace io {
 
         void read(M0 m) override {
           static_cast< mut< filter_impl< C, M0 > > >(this->handler())
-            ->read(this->context(), move(m));
+              ->read(this->context(), move(m));
         }
+
         void write(M0 m) override {
           static_cast< mut< filter_impl< C, M0 > > >(this->handler())
-            ->write(this->context(), move(m));
+              ->write(this->context(), move(m));
         }
 
         void add_read_if_null(mut< generic_filter_context > cx) override {
@@ -62,7 +63,7 @@ namespace io {
 
         void read(M0 m) override {
           static_cast< mut< filter_impl< C, read_only< M0 > > > >(
-              this->handler())->read(this->context(), m);
+              this->handler())->read(this->context(), move(m));
         }
 
         void add_read_if_null(mut< generic_filter_context > cx) override {
@@ -91,7 +92,7 @@ namespace io {
 
         void write(M0 m) override {
           static_cast< mut< filter_impl< C, write_only< M0 > > > >(
-              this->handler())->write(this->context(), m);
+              this->handler())->write(this->context(), move(m));
         }
 
         void add_read_if_null(mut< generic_filter_context > cx) override {

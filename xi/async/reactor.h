@@ -8,7 +8,7 @@ namespace xi {
 namespace async {
 
   class reactor : public async< reactor >,
-                   public virtual ownership::std_shared {
+                  public virtual ownership::std_shared {
   public:
     virtual ~reactor() = default;
     virtual void poll() = 0;

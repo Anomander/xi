@@ -2,16 +2,19 @@
 
 #include "xi/ext/configure.h"
 #include "xi/io/pipes/detail/filter_base.h"
+#include "xi/io/pipes/detail/filter_context.h"
 
 namespace xi {
 namespace io {
   namespace pipes {
 
-    template < class... messages >
-    struct filter : public detail::filter_base<
-                        detail::filter_context< messages... >, messages... >,
-                    public virtual ownership::std_shared {
-      using context = detail::filter_context< messages... >;
+    template < class... Ms >
+    struct filter
+        : public detail::filter_base< detail::channel_filter_context< Ms... >, Ms... >,
+          public virtual ownership::std_shared {
+
+    public:
+      using context = detail::channel_filter_context< Ms... >;
       virtual ~filter() = default;
     };
   }

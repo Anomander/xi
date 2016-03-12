@@ -14,5 +14,5 @@ if (HWLOC)
 endif ()
 
 # play test
-# add_subdirectory (play)
+add_subdirectory (play)
 # add_subdirectory (tester)

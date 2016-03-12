@@ -11,6 +11,7 @@ inline namespace ext {
   using ::std::is_arithmetic;
 
   using ::std::add_lvalue_reference_t;
+  using ::std::add_rvalue_reference_t;
   using ::std::remove_reference_t;
   using ::std::add_pointer_t;
   using ::std::remove_pointer_t;
@@ -22,8 +23,20 @@ inline namespace ext {
 
   using ::std::is_same;
   using ::std::is_base_of;
+  using ::std::is_arithmetic;
+  using ::std::is_unsigned;
+  using ::std::is_signed;
 
   using ::std::aligned_storage_t;
+
+  using ::std::make_signed_t;
+  using ::std::make_unsigned_t;
+
+  template < class T, class Signature > struct is_callable;
+  template < class T, class Ret, class... Args >
+  struct is_callable< T, Ret(Args...) > {
+    enum { value = is_same< Ret, result_of_t< T(Args...) > >::value };
+  };
 
   template < class src, class dst > struct copy_const {
     using type = remove_const_t< dst >;
