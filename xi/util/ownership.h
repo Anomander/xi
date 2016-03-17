@@ -46,12 +46,11 @@ inline namespace util {
   } // namespace ownership
 
   namespace detail {
-    template < class, ownership::shared_policy >
-    struct is_shared_with_policy;
+    template < class, ownership::shared_policy > struct is_shared_with_policy;
 
     template < class T >
     struct is_shared_with_policy< T, ownership::shared_policy::kSTD >
-      : is_base_of< ownership::std_shared, T >::type {};
+        : is_base_of< ownership::std_shared, T >::type {};
     template < class T >
     struct is_shared_with_policy< T, ownership::shared_policy::kRC >
         : meta::or_< is_base_of< ownership::rc_shared, T >,
@@ -148,7 +147,7 @@ inline namespace util {
     };
 
     template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                                        T, ownership::shared_policy::kSTD >)>
+                            T, ownership::shared_policy::kSTD >)>
     auto share(T *obj) {
       return shared_ptr< T >(obj->shared_from_this(),
                              reinterpret_cast< T * >(obj));
@@ -182,7 +181,9 @@ inline namespace util {
     }
   } // namespace detail
 
-  template < class T > auto share(T *t) { return detail::share(t); }
+  template < class T > auto share(T *t) {
+    return detail::share(t);
+  }
 
   template < class T > shared_ptr< T > share(shared_ptr< T > const &t) {
     return t;
@@ -192,7 +193,9 @@ inline namespace util {
     return t;
   }
 
-  template < class T > bool is_shared(T *t) { return detail::is_shared(t); }
+  template < class T > bool is_shared(T *t) {
+    return detail::is_shared(t);
+  }
 
   template < class T > bool is_shared(shared_ptr< T > const &t) {
     return t.use_count() > 1;
@@ -207,9 +210,13 @@ inline namespace util {
     return false;
   }
 
-  template < class T > bool is_valid(T *t) { return t != nullptr; }
+  template < class T > bool is_valid(T *t) {
+    return t != nullptr;
+  }
 
-  template < class T > bool is_valid(T const &t) { return true; }
+  template < class T > bool is_valid(T const &t) {
+    return true;
+  }
 
   template < class T > bool is_valid(shared_ptr< T > const &t) {
     return is_valid(t.get());
@@ -235,7 +242,9 @@ inline namespace util {
     return detail::maker< T, meta::enabled >::make(forward< A >(args)...);
   }
 
-  template < class T > inline mut< T > edit(T &t) { return &(t); }
+  template < class T > inline mut< T > edit(T &t) {
+    return &(t);
+  }
   template < class T > inline mut< T > edit(shared_ptr< T > t) {
     return mut< T >(t.get());
   }
@@ -255,7 +264,12 @@ inline namespace util {
   template < class T > inline void release(intrusive_ptr< T > t) { /* no-op */
   }
 
-  template < class T > inline decltype(auto) val(T const &t) { return t; }
+  template < class T > inline decltype(auto) val(T const &t) {
+    return t;
+  }
+  template < class T > inline decltype(auto) val(T const *t) {
+    return *t;
+  }
   template < class T > inline decltype(auto) val(shared_ptr< T > const &t) {
     return *t;
   }

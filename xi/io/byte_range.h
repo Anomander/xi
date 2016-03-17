@@ -6,47 +6,106 @@ namespace xi {
 namespace io {
 
   class byte_range {
-    u8 *_data = nullptr;
-    usize _size = 0u;
+    mutable u8 *_data = nullptr;
+    mutable usize _size = 0u;
 
   public:
-    bool empty() const { return _size == 0; }
+    XI_CLASS_DEFAULTS(byte_range, copy, move);
 
-    u8 *data() { return _data; }
-    u8 const *data() const { return _data; }
-    usize size() const { return _size; }
+    byte_range const &operator=(const byte_range &other) const {
+      _data = other._data;
+      _size = other._size;
+      return *this;
+    }
 
-    u8 *begin() { return data(); }
-    u8 *end() { return data() + size(); }
+    bool empty() const {
+      return _size == 0;
+    }
 
-    u8 const *begin() const { return data(); }
-    u8 const *end() const { return data() + size(); }
+    u8 *data() {
+      return _data;
+    }
+    u8 const *data() const {
+      return _data;
+    }
+    usize size() const {
+      return _size;
+    }
+
+    u8 *begin() {
+      return data();
+    }
+    u8 *end() {
+      return data() + size();
+    }
+
+    u8 const *begin() const {
+      return data();
+    }
+    u8 const *end() const {
+      return data() + size();
+    }
 
     explicit byte_range(void *p, usize l) noexcept
         : _data(reinterpret_cast< u8 * >(p)),
-          _size(l) {}
+          _size(l) {
+    }
 
     template < class T >
-    explicit byte_range(T &t) noexcept : _data(reinterpret_cast< u8 * >(&t)),
-                                         _size(sizeof(T)) {}
+    explicit byte_range(T &t) noexcept
+        : byte_range(reinterpret_cast< u8 * >(&t), sizeof(T)) {
+    }
 
     explicit byte_range(string &arr, usize sz = -1) noexcept
-        : _data((u8 *)arr.data()),
-          _size(min(sz, arr.size())) {}
+        : byte_range((u8 *)arr.data(), min(sz, arr.size())) {
+    }
 
     explicit byte_range(string_ref &arr, usize sz = -1) noexcept
-        : _data((u8 *)arr.data()),
-          _size(min(sz, arr.size())) {}
+        : byte_range((u8 *)arr.data(), min(sz, arr.size())) {
+    }
+
+    template < usize N >
+    explicit byte_range(const char(&arr)[N], usize sz = -1) noexcept
+        : byte_range((u8 *)arr, min(sz, N - 1)) {
+    }
 
     template < class T >
     explicit byte_range(vector< T > &arr, usize sz = -1) noexcept
-        : _data(reinterpret_cast< u8 * >(arr.data())),
-          _size(min(sz, arr.size()) * sizeof(T)) {}
+        : byte_range(reinterpret_cast< u8 * >(arr.data()),
+                     min(sz, arr.size()) * sizeof(T)) {
+    }
 
     template < class T, usize S >
     explicit byte_range(array< T, S > &arr, usize sz = -1) noexcept
-        : _data(reinterpret_cast< u8 * >(arr.data())),
-          _size(min(sz, arr.size()) * sizeof(T)) {}
+        : byte_range(reinterpret_cast< u8 * >(arr.data()),
+                     min(sz, arr.size()) * sizeof(T)) {
+    }
+
+    bool operator==(byte_range const &other) const {
+      return other._data == _data && other._size == _size;
+    }
+
+    static byte_range null() {
+      return byte_range{nullptr, 0};
+    }
+
+    byte_range subrange(usize offset, usize length = -1) {
+      if (offset >= _size) {
+        return null();
+      }
+      if (XI_LIKELY(-1ull == length || length + offset > _size)) {
+        length = _size - offset;
+      }
+      assert(offset + length <= _size);
+      assert(make_signed_t< usize >(offset) >= 0);
+      assert(make_signed_t< usize >(length) > 0);
+      assert(make_signed_t< usize >(offset + length) > 0);
+      return byte_range{_data + offset, length};
+    }
+
+    const byte_range subrange(usize offset, usize length = -1) const {
+      return const_cast< byte_range * >(this)->subrange(offset, length);
+    }
   };
 }
 }

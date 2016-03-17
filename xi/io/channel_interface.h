@@ -1,7 +1,6 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/buf/buf.h"
 
 namespace xi {
 namespace io {

@@ -10,25 +10,40 @@ inline namespace ext {
 
   template < class T > class expected {
   public:
-    expected(T val) : _value(move(val)) {}
+    expected(T val) : _value(move(val)) {
+    }
 
-    expected(error_code error) : _value(error) {}
+    expected(error_code error) : _value(error) {
+    }
 
     bool has_error() const noexcept {
       return nullptr != get< error_code >(&_value);
     }
 
-    operator T const &() const noexcept { return value(); }
+    operator T const &() const noexcept {
+      return value();
+    }
 
     error_code error() const noexcept {
       error_code er;
-      if (has_error()) { er = *(get< error_code >(&_value)); }
+      if (has_error()) {
+        er = *(get< error_code >(&_value));
+      }
       return er;
     }
 
     T const &value() const noexcept {
-      if (has_error()) { throw system_error(error()); }
+      if (has_error()) {
+        throw system_error(error());
+      }
       return get< T >(_value);
+    }
+
+    T &&move_value() noexcept {
+      if (has_error()) {
+        throw system_error(error());
+      }
+      return move(get< T >(_value));
     }
 
   private:
@@ -39,13 +54,25 @@ inline namespace ext {
   public:
     expected() = default;
 
-    expected(error_code error) : _error(error) {}
+    expected(error_code error) : _error(error) {
+    }
 
-    bool has_error() const noexcept { return (bool)_error; }
+    template < class T >
+    expected(expected< T > &&other)
+        : _error(other.has_error() ? other.error() : error_code()) {
+    }
 
-    operator bool() const noexcept { return !has_error(); }
+    bool has_error() const noexcept {
+      return (bool)_error;
+    }
 
-    error_code error() const noexcept { return _error; }
+    operator bool() const noexcept {
+      return !has_error();
+    }
+
+    error_code error() const noexcept {
+      return _error;
+    }
 
   private:
     error_code _error;
@@ -76,12 +103,23 @@ inline namespace ext {
     };
   }
 
+  template < class F, class... A >
+  auto posix_to_expected(F f, A &&... args) -> expected<result_of_t<F(A&&...)>> {
+    auto ret = f(forward< A >(args)...);
+    if (-1 == ret) {
+      return error_from_errno();
+    }
+    return {ret};
+  }
+
   template < class T, class F >
-  auto fmap(expected< T > val, F &&f)
-      -> typename detail::expected_from_return< T, F >::type {
+  auto fmap(expected< T > val, F &&f) ->
+      typename detail::expected_from_return< T, F >::type {
     if (val) {
       return detail::expected_from_return< T, F >::create(val, f);
-    } else { return val.error(); }
+    } else {
+      return val.error();
+    }
   }
 
 } // inline namespace ext

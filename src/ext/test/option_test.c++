@@ -1,4 +1,4 @@
-#include "xi/util/option.h"
+#include "xi/ext/configure.h"
 
 #include <gtest/gtest.h>
 
@@ -20,8 +20,8 @@ struct test_unique : public virtual ownership::unique {
 template < class > class P;
 
 TEST(simple, is_none) {
-  option< int > surely_int = some(42);
-  option< int > not_int = none;
+  optional< int > surely_int = some(42);
+  optional< int > not_int = none;
 
   ASSERT_TRUE(surely_int.is_some());
   ASSERT_FALSE(surely_int.is_none());
@@ -31,15 +31,15 @@ TEST(simple, is_none) {
 }
 
 TEST(simple, as_mut) {
-  option< int > maybe_int = some(42);
-  option< own< test_shared > > maybe_shared = some(make< test_shared >());
-  option< own< test_unique > > maybe_unique = some(make< test_unique >());
+  optional< int > maybe_int = some(42);
+  optional< own< test_shared > > maybe_shared = some(make< test_shared >());
+  optional< own< test_unique > > maybe_unique = some(make< test_unique >());
 
-  STATIC_ASSERT_TEST(is_same< option< int * >, decltype(maybe_int.as_mut()) >);
+  STATIC_ASSERT_TEST(is_same< optional< int * >, decltype(maybe_int.as_mut()) >);
   STATIC_ASSERT_TEST(
-      is_same< option< mut< test_shared > >, decltype(maybe_shared.as_mut()) >);
+      is_same< optional< mut< test_shared > >, decltype(maybe_shared.as_mut()) >);
   STATIC_ASSERT_TEST(
-      is_same< option< mut< test_unique > >, decltype(maybe_unique.as_mut()) >);
+      is_same< optional< mut< test_unique > >, decltype(maybe_unique.as_mut()) >);
 
   *(maybe_int.as_mut().unwrap()) = 0;
   ASSERT_EQ(*maybe_int.as_mut().unwrap(), 0);
@@ -54,16 +54,16 @@ TEST(simple, as_mut) {
 }
 
 TEST(simple, as_ref) {
-  option< int > maybe_int = some(42);
-  option< own< test_shared > > maybe_shared = some(make< test_shared >());
-  option< own< test_unique > > maybe_unique = some(make< test_unique >());
+  optional< int > maybe_int = some(42);
+  optional< own< test_shared > > maybe_shared = some(make< test_shared >());
+  optional< own< test_unique > > maybe_unique = some(make< test_unique >());
 
   STATIC_ASSERT_TEST(
-      is_same< option< int const & >, decltype(maybe_int.as_ref()) >);
+      is_same< optional< int const & >, decltype(maybe_int.as_ref()) >);
   STATIC_ASSERT_TEST(
-      is_same< option< ref< test_shared > >, decltype(maybe_shared.as_ref()) >);
+      is_same< optional< ref< test_shared > >, decltype(maybe_shared.as_ref()) >);
   STATIC_ASSERT_TEST(
-      is_same< option< ref< test_unique > >, decltype(maybe_unique.as_ref()) >);
+      is_same< optional< ref< test_unique > >, decltype(maybe_unique.as_ref()) >);
 
   auto &ref_shared = maybe_shared.as_ref().unwrap();
   ASSERT_EQ(address_of(maybe_shared.as_ref().unwrap()), address_of(ref_shared));
@@ -73,9 +73,9 @@ TEST(simple, as_ref) {
 }
 
 TEST(simple, unwrap) {
-  option< int > maybe_int = some(42);
-  option< own< test_shared > > maybe_shared = some(make< test_shared >());
-  option< own< test_unique > > maybe_unique = some(make< test_unique >());
+  optional< int > maybe_int = some(42);
+  optional< own< test_shared > > maybe_shared = some(make< test_shared >());
+  optional< own< test_unique > > maybe_unique = some(make< test_unique >());
 
   STATIC_ASSERT_TEST(is_same< int, decltype(maybe_int.unwrap()) >);
   STATIC_ASSERT_TEST(
@@ -94,9 +94,9 @@ TEST(simple, unwrap) {
 }
 
 TEST(simple, unwrap_or) {
-  option< int > maybe_int = none;
-  option< own< test_shared > > maybe_shared = none;
-  option< own< test_unique > > maybe_unique = none;
+  optional< int > maybe_int = none;
+  optional< own< test_shared > > maybe_shared = none;
+  optional< own< test_unique > > maybe_unique = none;
 
   STATIC_ASSERT_TEST(is_same< int, decltype(maybe_int.unwrap_or(42)) >);
   STATIC_ASSERT_TEST(
@@ -119,9 +119,9 @@ TEST(simple, unwrap_or) {
 }
 
 TEST(simple, unwrap_or_func) {
-  option< int > maybe_int = none;
-  option< own< test_shared > > maybe_shared = none;
-  option< own< test_unique > > maybe_unique = none;
+  optional< int > maybe_int = none;
+  optional< own< test_shared > > maybe_shared = none;
+  optional< own< test_unique > > maybe_unique = none;
 
   ASSERT_TRUE(maybe_shared.is_none());
   auto shared = maybe_shared.unwrap_or([] { return make< test_shared >(); });
@@ -138,51 +138,51 @@ TEST(simple, unwrap_or_func) {
 }
 
 TEST(simple, map_value) {
-  option< int > surely_int = some(42);
-  option< own< test_shared > > surely_shared = some(make< test_shared >());
-  option< own< test_unique > > surely_unique = some(make< test_unique >());
+  optional< int > surely_int = some(42);
+  optional< own< test_shared > > surely_shared = some(make< test_shared >());
+  optional< own< test_unique > > surely_unique = some(make< test_unique >());
 
   auto number = surely_int.map([](auto &&s) { return s * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(number) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(number) >);
   ASSERT_EQ(84, number.unwrap());
   ASSERT_TRUE(surely_int.is_none());
 
   auto shared = surely_shared.map([](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(shared) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(shared) >);
   ASSERT_EQ(84, shared.unwrap());
   ASSERT_TRUE(surely_shared.is_none());
 
   auto unique = surely_unique.map([](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(unique) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(unique) >);
   ASSERT_EQ(84, unique.unwrap());
   ASSERT_TRUE(surely_unique.is_none());
 }
 
 TEST(simple, map_none) {
-  option< int > not_int = none;
-  option< own< test_shared > > not_shared = none;
-  option< own< test_unique > > not_unique = none;
+  optional< int > not_int = none;
+  optional< own< test_shared > > not_shared = none;
+  optional< own< test_unique > > not_unique = none;
 
   auto number = not_int.map([](auto &&s) { return s * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(number) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(number) >);
   ASSERT_TRUE(number.is_none());
   ASSERT_TRUE(not_int.is_none());
 
   auto shared = not_shared.map([](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(shared) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(shared) >);
   ASSERT_TRUE(shared.is_none());
   ASSERT_TRUE(not_shared.is_none());
 
   auto unique = not_unique.map([](auto &&s) { return s->value * 2; });
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(unique) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(unique) >);
   ASSERT_TRUE(unique.is_none());
   ASSERT_TRUE(not_unique.is_none());
 }
 
 TEST(simple, map_or_value) {
-  option< int > not_int = none;
-  option< own< test_shared > > not_shared = none;
-  option< own< test_unique > > not_unique = none;
+  optional< int > not_int = none;
+  optional< own< test_shared > > not_shared = none;
+  optional< own< test_unique > > not_unique = none;
 
   auto number = not_int.map_or(21, [](auto &&s) { return s * 2; });
   STATIC_ASSERT_TEST(is_same< int, decltype(number) >);
@@ -201,9 +201,9 @@ TEST(simple, map_or_value) {
 }
 
 TEST(simple, map_or_func) {
-  option< int > not_int = none;
-  option< own< test_shared > > not_shared = none;
-  option< own< test_unique > > not_unique = none;
+  optional< int > not_int = none;
+  optional< own< test_shared > > not_shared = none;
+  optional< own< test_unique > > not_unique = none;
 
   auto number =
       not_int.map_or([] { return 1; }, [](auto &&s) { return s * 2; });
@@ -225,47 +225,47 @@ TEST(simple, map_or_func) {
 }
 
 TEST(simple, and_positive) {
-  option< int > surely_int = some(42);
-  option< own< test_shared > > surely_shared = some(make< test_shared >());
-  option< own< test_unique > > surely_unique = some(make< test_unique >());
+  optional< int > surely_int = some(42);
+  optional< own< test_shared > > surely_shared = some(make< test_shared >());
+  optional< own< test_unique > > surely_unique = some(make< test_unique >());
 
   auto number = surely_int.and_(some(21));
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(number) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(number) >);
   ASSERT_EQ(21, number.unwrap());
   ASSERT_TRUE(surely_int.is_some());
 
   auto shared = surely_shared.and_(some(21));
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(shared) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(shared) >);
   ASSERT_EQ(21, shared.unwrap());
   ASSERT_TRUE(surely_shared.is_some());
 
   auto unique = surely_unique.and_(some(21));
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(unique) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(unique) >);
   ASSERT_EQ(21, unique.unwrap());
   ASSERT_TRUE(surely_unique.is_some());
 }
 
 TEST(simple, and_negative) {
-  option< int > surely_int = none;
-  option< own< test_shared > > surely_shared = none;
-  option< own< test_unique > > surely_unique = none;
+  optional< int > surely_int = none;
+  optional< own< test_shared > > surely_shared = none;
+  optional< own< test_unique > > surely_unique = none;
 
   auto number = surely_int.and_(some(21));
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(number) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(number) >);
   ASSERT_TRUE(number.is_none());
 
   auto shared = surely_shared.and_(some(21));
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(shared) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(shared) >);
   ASSERT_TRUE(shared.is_none());
 
   auto unique = surely_unique.and_(some(21));
-  STATIC_ASSERT_TEST(is_same< option< int >, decltype(unique) >);
+  STATIC_ASSERT_TEST(is_same< optional< int >, decltype(unique) >);
   ASSERT_TRUE(unique.is_none());
 }
 
 TEST(simple, comparison) {
   auto surely_int = some(42);
-  option< int > not_int = none;
+  optional< int > not_int = none;
 
   ASSERT_FALSE(not_int == surely_int);
   ASSERT_TRUE(not_int == none);

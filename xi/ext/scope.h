@@ -2,8 +2,7 @@
 
 #include "xi/ext/common.h"
 #include "xi/ext/exception.h"
-
-#include <boost/preprocessor.hpp>
+#include "xi/ext/preprocessor.h"
 
 namespace xi {
 inline namespace ext {

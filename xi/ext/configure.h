@@ -11,6 +11,7 @@
 #include "xi/ext/exception.h"
 #include "xi/ext/expected.h"
 #include "xi/ext/fast_cast.h"
+#include "xi/ext/intrusive.h"
 #include "xi/ext/lock.h"
 #include "xi/ext/likely.h"
 #include "xi/ext/meta.h"
@@ -26,4 +27,4 @@
 
 /// include files that require the declarations above
 #include "xi/util/ownership.h"
-#include "xi/util/option.h"
+#include "xi/util/optional.h"

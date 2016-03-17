@@ -1,5 +1,7 @@
 #pragma once
 
+#include "xi/ext/preprocessor.h"
+
 #define XI_DEFAULT_COPIABLE(Class)                                             \
   Class(Class const &) = default;                                              \
   Class &operator=(Class const &) = default;
@@ -16,6 +18,8 @@
   Class(Class &&) = delete;                                                    \
   Class &operator=(Class &&) = delete;
 
+#define XI_VIRTUAL_DTOR(Class) virtual ~Class() = default;
+
 #define XI_DEFAULT_COPIABLE_AND_MOVABLE(Class)                                 \
   XI_DEFAULT_COPIABLE(Class)                                                   \
   XI_DEFAULT_MOVABLE(Class)
@@ -31,3 +35,18 @@
 #define XI_NEITHER_MOVABLE_NOR_COPIABLE(Class)                                 \
   XI_NOT_COPIABLE(Class)                                                       \
   XI_NOT_MOVABLE(Class)
+
+#define __XI_CLASS_SEMANTIC(r, Class, elem)                                    \
+  BOOST_PP_CAT(__XI_CLASS_SEMANTIC_, elem)(Class)
+
+#define __XI_CLASS_SEMANTIC_no_move(Class) XI_NOT_MOVABLE(Class)
+#define __XI_CLASS_SEMANTIC_no_copy(Class) XI_NOT_COPIABLE(Class)
+
+#define __XI_CLASS_SEMANTIC_move(Class) XI_DEFAULT_MOVABLE(Class)
+#define __XI_CLASS_SEMANTIC_copy(Class) XI_DEFAULT_COPIABLE(Class)
+
+#define __XI_CLASS_SEMANTIC_virtual_dtor(Class) XI_DEFAULT_COPIABLE(Class)
+
+#define XI_CLASS_DEFAULTS(Class, ...)                                          \
+  BOOST_PP_SEQ_FOR_EACH(__XI_CLASS_SEMANTIC, Class,                            \
+                        BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__));

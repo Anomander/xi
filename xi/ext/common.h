@@ -42,6 +42,8 @@ inline namespace ext {
 
   using ::std::distance;
   using ::std::advance;
+  using ::std::next;
+  using ::std::prev;
 
   using ::std::begin;
   using ::std::end;
@@ -51,6 +53,9 @@ inline namespace ext {
   using ::std::reference_wrapper;
 
   using ::std::copy;
+  using ::std::find;
+  using ::std::find_if;
+  using ::std::for_each;
 
   template < class T > decltype(auto) reference(T &t) { return ::std::ref(t); }
 

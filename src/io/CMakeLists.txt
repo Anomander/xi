@@ -1,14 +1,10 @@
 file(GLOB xi_io_SRC "*.cpp")
 
-add_subdirectory(buf)
 add_subdirectory(pipes)
+add_subdirectory(net)
 
 set(xi_SRC ${xi_SRC} ${xi_io_SRC} PARENT_SCOPE)
 
-#add_library(xi-io ${io_SRC})
-#target_link_libraries(xi-io xi-async)
-
 # register_test(tcp_client_socket_integration_test xi)
-# register_test(stream_buffer_test)
-register_test(socket_ops_test)
-register_test(byte_buffer_chain_test xi)
+register_test(fragment_test xi)
+register_test(buffer_test xi)

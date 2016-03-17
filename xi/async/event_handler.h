@@ -29,8 +29,6 @@ namespace async {
 
   class io_handler : public event_handler {
   public:
-    io_handler(int descriptor) : _descriptor(descriptor) {}
-
     void expect_read(bool);
     void expect_write(bool);
 
@@ -41,6 +39,7 @@ namespace async {
     void handle(event_state) override;
     opt< milliseconds > expected_timeout() const noexcept override;
     int descriptor() const noexcept override { return _descriptor; }
+    void descriptor(int d) noexcept { _descriptor = d; }
     event_state expected_state() const noexcept override { return kRead; }
 
   private:

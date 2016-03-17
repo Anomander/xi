@@ -2,7 +2,7 @@
 
 #include "xi/ext/meta.h"
 #include "xi/ext/type_traits.h"
-#include "xi/util/option.h"
+#include "xi/util/optional.h"
 
 /**
  * based on a stack_overflow answer by yakk

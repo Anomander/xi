@@ -34,6 +34,10 @@ inline namespace ext {
     return error_code(errno, generic_category());
   }
 
+  inline auto error_from_value(int value) {
+    return error_code(value, generic_category());
+  }
+
 #define XI_DECLARE_ERROR_ENUM(E)                                               \
   namespace std {                                                              \
     template <> struct is_error_code_enum< E > : true_type {};                 \
@@ -41,7 +45,9 @@ inline namespace ext {
 
 #define XI_DECLARE_ERROR_CATEGORY(C, Name)                                     \
   struct C : error_category {                                                  \
-    const char *name() const noexcept override { return Name; }                \
+    const char *name() const noexcept override {                               \
+      return Name;                                                             \
+    }                                                                          \
     std::error_condition default_error_condition(int e) const                  \
         noexcept override {                                                    \
       return std::error_condition(e, *this);                                   \
