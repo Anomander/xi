@@ -19,7 +19,7 @@ namespace io {
 
       namespace socket {
         using reuse_address = bool_opt< SOL_SOCKET, SO_REUSEADDR >;
-        using reuse_port = bool_opt< SOL_SOCKET, SO_REUSEPORT >;
+        // using reuse_port = bool_opt< SOL_SOCKET, SO_REUSEPORT >;
         using accept_conn = bool_opt< SOL_SOCKET, SO_ACCEPTCONN >;
         using broadcast = bool_opt< SOL_SOCKET, SO_BROADCAST >;
         using dont_route = bool_opt< SOL_SOCKET, SO_DONTROUTE >;
@@ -42,7 +42,7 @@ namespace io {
         using free_bind = bool_opt< IPPROTO_IP, IP_FREEBIND >;
         using mtu_discover = bool_opt< IPPROTO_IP, IP_MTU_DISCOVER >;
         using allow_multicast_loop = bool_opt< IPPROTO_IP, IP_MULTICAST_LOOP >;
-        using raw_no_defrag = bool_opt< IPPROTO_IP, IP_NODEFRAG >;
+        // using raw_no_defrag = bool_opt< IPPROTO_IP, IP_NODEFRAG >;
         using transparent_proxy = bool_opt< IPPROTO_IP, IP_TRANSPARENT >;
 
         using mtu = num_opt< IPPROTO_IP, IP_MTU >;

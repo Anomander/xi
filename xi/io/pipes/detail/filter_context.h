@@ -9,6 +9,8 @@ namespace io {
   namespace pipes {
     namespace detail {
 
+      class pipe_control_interface;
+
       template < class... messages > struct filter_context;
 
       template < class M0, class... messages >
@@ -40,9 +42,14 @@ namespace io {
       };
 
       template <> struct filter_context<> {
-        virtual ~filter_context() = default;
+        mut <pipe_control_interface> _pipe;
+
+      public:
         void forward_read() = delete;
         void forward_write() = delete;
+
+        void set_pipe(mut< pipe_control_interface > p) { _pipe = p; }
+        mut< pipe_control_interface > pipe() { return _pipe; }
       };
 
       template < class... messages >

@@ -387,6 +387,7 @@ public:
 
   void read(mut< context > cx, mut< buffer > in) final override {
     _decoder.decode(in);
+    cx->pipe()->push_front(make<range_echo>());
   }
 
   void setting_received(u16 id, u32 value) override {
@@ -434,7 +435,7 @@ public:
   http2_channel(A&&... args)
       : client_channel(forward< A >(args)...) {
     pipe()->push_back(make< logging_filter >());
-    pipe()->push_back(make< range_echo >());
+    // pipe()->push_back(make< range_echo >());
     pipe()->push_back(make< http2_codec >(alloc()));
   }
 };

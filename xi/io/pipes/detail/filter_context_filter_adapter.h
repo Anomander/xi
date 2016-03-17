@@ -107,14 +107,21 @@ namespace io {
 
       template < class C, class H >
       struct filter_context_filter_adapter< C, H > : virtual C {
-        filter_context_filter_adapter(own< H > h) : _handler(move(h)) {}
+        filter_context_filter_adapter(own< H > h) : _handler(move(h)) {
+        }
 
-        void add_read_if_null(mut< generic_filter_context > cx) {}
-        void add_write_if_null(mut< generic_filter_context > cx) {}
+        void add_read_if_null(mut< generic_filter_context > cx) {
+        }
+        void add_write_if_null(mut< generic_filter_context > cx) {
+        }
 
       protected:
-        mut< H > handler() { return edit(_handler); }
-        mut< C > context() { return this; }
+        mut< H > handler() {
+          return edit(_handler);
+        }
+        mut< C > context() {
+          return this;
+        }
 
       private:
         own< H > _handler = nullptr;
