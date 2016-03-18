@@ -2,7 +2,7 @@
 
 #include "xi/core/kernel.h"
 #include "xi/hw/hardware.h"
-#include "src/test/test_kernel.h"
+#include "src/test/mock_kernel.h"
 #include "src/test/util.h"
 
 using namespace xi;
@@ -52,7 +52,7 @@ struct poller_test : public ::testing::Test {
 };
 
 TEST_F(poller_test, poller_only_runs_in_own_thread) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
   k->register_poller(kCurrentThread, make< poller_mock >());
   ASSERT_EQ(0UL, poller_mock::POLLED);
   k->run_core(kOtherThread);
@@ -62,7 +62,7 @@ TEST_F(poller_test, poller_only_runs_in_own_thread) {
 }
 
 TEST_F(poller_test, register_poller) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
   k->register_poller(kCurrentThread, make< poller_mock >());
   ASSERT_EQ(0UL, poller_mock::POLLED);
   k->run_core(kCurrentThread);
@@ -73,7 +73,7 @@ TEST_F(poller_test, deregister_poller) {
   ASSERT_EQ(0UL, poller_mock::DESTROYED);
   std::cout << this_shard << std::endl;
 
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
   std::cout << this_shard << std::endl;
 
   auto id = k->register_poller(kCurrentThread, make< poller_mock >());
@@ -91,7 +91,7 @@ TEST_F(poller_test, deregister_poller) {
 
 // the local thread is considered managed if kernel::startup was run in it.
 TEST(simple, dispatch_runs_inline_when_in_same_thread) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
 
   int i = 0;
   k->dispatch(kCurrentThread, [&i] { i = 42; });
@@ -100,7 +100,7 @@ TEST(simple, dispatch_runs_inline_when_in_same_thread) {
 }
 
 TEST(simple, dispatch_runs_async_when_in_different_thread) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
 
   int i = 0;
   k->dispatch(kOtherThread, [&i] { i = 42; });
@@ -113,7 +113,7 @@ TEST(simple, dispatch_runs_async_when_in_different_thread) {
 }
 
 TEST(simple, post_always_runs_async) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
 
   int i = 0;
   k->post(kCurrentThread, [&i] { i = 42; });
@@ -126,17 +126,17 @@ TEST(simple, post_always_runs_async) {
 }
 
 TEST(simple, dispatch_on_wrong_core_throws) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
   ASSERT_THROW(k->dispatch(3, [] {}), std::invalid_argument);
 }
 
 TEST(simple, post_on_wrong_core_throws) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
   ASSERT_THROW(k->post(3, [] {}), std::invalid_argument);
 }
 
 TEST(exception, in_dispatch_in_other_thread_shuts_down_kernel) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
 
   ASSERT_NO_THROW(
       k->dispatch(kOtherThread, [] { throw std::runtime_error("Foo"); }));
@@ -146,7 +146,7 @@ TEST(exception, in_dispatch_in_other_thread_shuts_down_kernel) {
 }
 
 TEST(exception, in_dispatch_in_current_thread_shuts_down_kernel) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
 
   ASSERT_NO_THROW(
       k->dispatch(kCurrentThread, [] { throw std::runtime_error("Foo"); }));
@@ -155,7 +155,7 @@ TEST(exception, in_dispatch_in_current_thread_shuts_down_kernel) {
 }
 
 TEST(exception, in_post_in_other_thread_shuts_down_kernel) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
 
   ASSERT_NO_THROW(
       k->post(kOtherThread, [] { throw std::runtime_error("Foo"); }));
@@ -165,7 +165,7 @@ TEST(exception, in_post_in_other_thread_shuts_down_kernel) {
 }
 
 TEST(exception, in_post_in_current_thread_shuts_down_kernel) {
-  auto k = make< test_kernel >();
+  auto k = make< mock_kernel >();
 
   ASSERT_NO_THROW(
       k->post(kCurrentThread, [] { throw std::runtime_error("Foo"); }));
@@ -176,7 +176,7 @@ TEST(exception, in_post_in_current_thread_shuts_down_kernel) {
 
 TEST(exception, in_case_of_concurrency_the_last_exception_is_thrown) {
   {
-    auto k = make< test_kernel >();
+    auto k = make< mock_kernel >();
 
     ASSERT_NO_THROW(
         k->post(kCurrentThread, [] { throw std::logic_error("Foo"); }));
@@ -188,7 +188,7 @@ TEST(exception, in_case_of_concurrency_the_last_exception_is_thrown) {
     ASSERT_THROW(k->await_shutdown(), std::runtime_error);
   }
   {
-    auto k = make< test_kernel >();
+    auto k = make< mock_kernel >();
 
     ASSERT_NO_THROW(
         k->post(kCurrentThread, [] { throw std::logic_error("Foo"); }));

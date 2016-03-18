@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xi/ext/configure.h"
+#include "xi/core/kernel.h"
 #include "xi/io/pipes/context_aware_filter.h"
 #include "xi/io/pipes/detail/pipe_base.h"
 #include "xi/io/pipes/detail/pipe_message_impl.h"
@@ -71,7 +72,7 @@ namespace io {
           mut< generic_filter_context > cx) {
         maybe_change_head(cx);
         maybe_change_tail(cx);
-        pipe_base::remove(cx); // TODO: defer
+        defer([this, cx] { pipe_base::remove(cx); });
       }
 
       template < class C >

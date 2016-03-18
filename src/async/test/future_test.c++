@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "xi/async/future.h"
-#include "src/test/test_kernel.h"
+#include "src/test/mock_kernel.h"
 #include "xi/core/kernel_utils.h"
 
 using namespace xi;
@@ -330,7 +330,7 @@ TEST(continuation, future_from_continuation_is_unwrapped_Exception_Promise) {
 }
 
 TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
-  auto k = make< test::test_kernel >();
+  auto k = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -357,7 +357,7 @@ TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
 
 TEST(executable_test,
      async_continuation_launches_asynchronously_Ready_promise) {
-  auto k = make< test::test_kernel >();
+  auto k = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -381,7 +381,7 @@ TEST(executable_test,
 
 TEST(executable_test,
      async_continuation_launches_asynchronously_Promise_set_value) {
-  auto k = make< test::test_kernel >();
+  auto k = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -402,7 +402,7 @@ TEST(executable_test,
 }
 
 TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
-  auto k = make< test::test_kernel >();
+  auto k = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -423,7 +423,7 @@ TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
 
 TEST(executable_test,
      async_continuation_propagates_exceptions_Promise_set_value) {
-  auto k = make< test::test_kernel >();
+  auto k = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -444,7 +444,7 @@ TEST(executable_test,
 }
 
 TEST(executable_test, async_promise_set_value_Propagates_value) {
-  auto k = make< test::test_kernel >();
+  auto k = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -465,7 +465,7 @@ TEST(executable_test, async_promise_set_value_Propagates_value) {
 }
 
 TEST(executable_test, async_promise_set_value_Propagates_exception) {
-  auto k = make< test::test_kernel >();
+  auto k = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;

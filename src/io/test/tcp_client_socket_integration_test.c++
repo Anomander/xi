@@ -3,7 +3,7 @@
 // #include "xi/async/libevent/reactor.h"
 // #include "xi/io/pipeline/pipeline_handler.h"
 // #include "xi/io/pipeline/util.h"
-// #include "src/test/test_kernel.h"
+// #include "src/test/mock_kernel.h"
 // #include "xi/core/kernel_utils.h"
 
 // #include "tcp_socket_mock.h"
@@ -15,7 +15,7 @@
 // using namespace xi::io::pipeline;
 // using namespace xi::async::libevent;
 
-// using xi::test::test_kernel;
+// using xi::test::mock_kernel;
 // using xi::test::kCurrentThread;
 // using xi::io::test::tcp_socket_mock;
 
@@ -109,7 +109,7 @@
 // class test_fixture : public ::testing::Test {
 // protected:
 //   void SetUp() override {
-//     kernel = make< test_kernel >();
+//     kernel = make< mock_kernel >();
 //     pool = make_executor_pool(edit(kernel));
 //     _reactor = make< reactor >();
 //     _reactor->attach_executor(pool->share_executor(kCurrentThread));
@@ -149,7 +149,7 @@
 //   }
 
 // protected:
-//   own< test_kernel > kernel;
+//   own< mock_kernel > kernel;
 //   own< core::executor_pool > pool;
 //   own< reactor > _reactor;
 //   own< message_handler > handler;

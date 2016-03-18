@@ -1,4 +1,5 @@
 #include "xi/io/pipes/all.h"
+#include "src/test/mock_kernel.h"
 
 #include <gtest/gtest.h>
 
@@ -206,7 +207,18 @@ TEST(simple, skip_level_message_passing) {
   EXPECT_EQ(5, f4->I);
 }
 
-TEST(remove, single_handler) {
+struct kernel_test : public ::testing::Test {
+  own< test::mock_kernel > _kernel;
+  void SetUp() override {
+    _kernel = make< test::mock_kernel >();
+  }
+  void TearDown() override {
+  }
+};
+
+struct remove_test : public kernel_test {};
+
+TEST_F(remove_test, single_handler) {
   class filter1 : public int_filter {
     void write(mut< context > cx, int i) override {
       cx->forward_write(I += ++i);
@@ -230,13 +242,15 @@ TEST(remove, single_handler) {
   p->read(1);
   EXPECT_EQ(4, f1->I);
 
+  EXPECT_TRUE(is_shared(f1)); // deferred
+  _kernel->run_core(test::kCurrentThread);
   EXPECT_FALSE(is_shared(f1));
 
   p->read(1);
   EXPECT_EQ(4, f1->I);
 }
 
-TEST(remove, single_handler_multiple_times) {
+TEST_F(remove_test, single_handler_multiple_times) {
   class filter1 : public int_filter {
     void write(mut< context > cx, int i) override {
       cx->forward_write(I += i);
@@ -266,6 +280,8 @@ TEST(remove, single_handler_multiple_times) {
   p->read(1);
   EXPECT_EQ(4, f1->I);
 
+  EXPECT_TRUE(is_shared(f1)); // deferred
+  _kernel->run_core(test::kCurrentThread);
   EXPECT_FALSE(is_shared(f1));
 
   p->read(1);

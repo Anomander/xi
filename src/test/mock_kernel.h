@@ -5,11 +5,11 @@ namespace test {
 
   enum : unsigned { kCurrentThread = 0, kOtherThread = 1 };
 
-  class test_kernel : public core::kernel {
+  class mock_kernel : public core::kernel {
     bool _shutdown_initiated = false;
 
   public:
-    test_kernel() : kernel() {
+  mock_kernel() : kernel() {
       start(2, 1000);
       core::this_shard = nullptr;
       startup(kOtherThread);
@@ -20,7 +20,7 @@ namespace test {
       core::this_shard = mut_shard(kCurrentThread);
     }
 
-    ~test_kernel() {
+    ~mock_kernel() {
       core::this_shard = mut_shard(kOtherThread);
       cleanup(kOtherThread);
       core::this_shard = mut_shard(kCurrentThread);

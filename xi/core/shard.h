@@ -61,14 +61,14 @@ namespace core {
 
   extern thread_local mut< shard > this_shard;
 
-  template < class func >
-  void shard::post(func &&f) {
+  template < class F >
+  void shard::post(F &&func) {
     if (nullptr == this_shard) {
       // local thread is not managed by the kernel, so
       // we must use a common input queue
-      _push_task_to_inbound_queue(forward< func >(f));
+      _push_task_to_inbound_queue(forward< F >(func));
     } else {
-      _queues[_core_id][this_shard->_core_id]->submit(forward< func >(f));
+      _queues[_core_id][this_shard->_core_id]->submit(forward< F >(func));
     }
   }
 
@@ -112,5 +112,11 @@ namespace core {
   void shard::_push_task_to_inbound_queue(F &&func, meta::false_type) {
     _inbound.tasks.push(make_unique_copy(make_task(forward< F >(func))));
   }
+}
+
+template < class F >
+void defer(F &&func) {
+  assert(nullptr != core::this_shard);
+  core::this_shard->post(forward< F >(func));
 }
 }
