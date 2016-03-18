@@ -11,18 +11,26 @@ namespace test {
   public:
     test_kernel() : kernel() {
       start(2, 1000);
-      startup(0);
+      core::this_shard = nullptr;
+      startup(kOtherThread);
+
+      // current thread must be last
+      core::this_shard = nullptr;
+      startup(kCurrentThread);
+      core::this_shard = mut_shard(kCurrentThread);
     }
 
-    ~test_kernel() { cleanup(); }
+    ~test_kernel() {
+      core::this_shard = mut_shard(kOtherThread);
+      cleanup(kOtherThread);
+      core::this_shard = mut_shard(kCurrentThread);
+      cleanup(kCurrentThread);
+    }
 
   public:
     void run_core(unsigned id) {
-      cleanup();
-      startup(id);
+      core::this_shard = mut_shard(id);
       poll_core(id);
-      cleanup();
-      startup(kCurrentThread);
     }
 
     bool is_shut_down() const { return _shutdown_initiated; }

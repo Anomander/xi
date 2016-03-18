@@ -1,7 +1,7 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/core/executor.h"
+#include "xi/core/shard.h"
 #include "xi/async/future/forward_definitions.h"
 
 namespace xi {

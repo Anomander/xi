@@ -1,17 +1,12 @@
 #pragma once
 
-#include "xi/async/context.h"
 #include "xi/core/task_queue.h"
+#include "xi/core/shard.h"
 #include "xi/util/spin_lock.h"
 #include "xi/hw/hardware.h"
 
 namespace xi {
 namespace core {
-
-  struct alignas(64) poller : public virtual ownership::unique {
-    virtual ~poller() = default;
-    virtual unsigned poll() noexcept = 0;
-  };
 
   class kernel : public virtual ownership::unique {
   public:
@@ -26,9 +21,8 @@ namespace core {
       spin_lock lock;
     };
 
+    vector< mut< shard > > _shards;
     vector< vector< own< task_queue > > > _queues;
-    vector< vector< own< poller > > > _pollers;
-    vector< inbound_tasks > _inbound_task_queues;
     exception_filter_type _exception_filter;
     exception_ptr _exit_exception;
     spin_lock _exception_lock;
@@ -45,74 +39,51 @@ namespace core {
     virtual void exception_filter(exception_filter_type);
     virtual void handle_exception(exception_ptr);
 
-    size_t register_poller(unsigned core, own< poller > poller);
-    void deregister_poller(unsigned core, size_t poller_id);
+    usize register_poller(u16 core, own< poller > poller);
+    void deregister_poller(u16 core, usize poller_id);
 
-    template < class func > void dispatch(unsigned core, func &&f);
-    template < class func > void post(unsigned core, func &&f);
+    template < class func >
+    void dispatch(unsigned core, func &&f);
+    template < class func >
+    void post(unsigned core, func &&f);
 
-    static opt< unsigned > local_core_id();
     unsigned core_count();
+
+    mut<shard> mut_shard(u16 core);
 
   protected:
     void run_on_core(unsigned id);
     void poll_core(unsigned id);
-    void startup(unsigned id);
-    void cleanup();
+    void startup(u16 id);
+    void cleanup(u16 id);
 
-    hw::machine &machine() { return _machine; }
-
-  private:
-    template < class func >
-    void _push_task_to_inbound_queue(unsigned core, func &&f);
-    template < class func >
-    void _push_task_to_inbound_queue(unsigned core, func &&f, meta::true_type);
-    template < class func >
-    void _push_task_to_inbound_queue(unsigned core, func &&f, meta::false_type);
+    hw::machine &machine() {
+      return _machine;
+    }
   };
 
-  template < class func > void kernel::dispatch(unsigned core, func &&f) {
-    auto maybe_local_core = local_core_id();
-    if (maybe_local_core == some(core)) {
-      try {
-        f();
-      } catch (...) { handle_exception(current_exception()); }
-    } else { post(core, forward< func >(f)); }
-  }
-
-  template < class func > void kernel::post(unsigned core, func &&f) {
-    if (core > _queues.size()) {
+  inline mut<shard> kernel::mut_shard(u16 core) {
+    if (core >= _shards.size()) {
       throw std::invalid_argument("Target core not registered");
     }
-    try {
-      auto maybe_id = local_core_id();
-      if (maybe_id.is_none()) {
-        // local thread is not managed by the kernel, so
-        // we must use a common input queue
-        _push_task_to_inbound_queue(core, forward< func >(f));
-      } else { _queues[core][maybe_id.unwrap()]->submit(forward< func >(f)); }
-    } catch (...) { handle_exception(current_exception()); }
+    return _shards[core];
   }
 
   template < class func >
-  void kernel::_push_task_to_inbound_queue(unsigned core, func &&f) {
-    auto lock = make_lock(_inbound_task_queues[core].lock);
-    _push_task_to_inbound_queue(core, forward< func >(f),
-                                is_base_of< task, decay_t< func > >());
+  void kernel::dispatch(unsigned core, func &&f) {
+    if (core >= _queues.size()) {
+      throw std::invalid_argument("Target core not registered");
+    }
+    _shards[core]->dispatch(forward< func >(f));
   }
 
   template < class func >
-  void kernel::_push_task_to_inbound_queue(unsigned core, func &&f,
-                                           meta::true_type) {
-    std::cout << "New inbound task" << std::endl;
-    _inbound_task_queues[core].tasks.push(make_unique_copy(forward< func >(f)));
+  void kernel::post(unsigned core, func &&f) {
+    if (core >= _queues.size()) {
+      throw std::invalid_argument("Target core not registered");
+    }
+    _shards[core]->post(forward< func >(f));
   }
 
-  template < class func >
-  void kernel::_push_task_to_inbound_queue(unsigned core, func &&f,
-                                           meta::false_type) {
-    _inbound_task_queues[core].tasks.push(
-        make_unique_copy(make_task(forward< func >(f))));
-  }
 }
 }

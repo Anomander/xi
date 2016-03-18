@@ -22,7 +22,7 @@ namespace async {
       auto mut_handler = edit(handler);
       _handlers[address_of(handler)] = move(handler);
       XI_SCOPE(failure) { _handlers.erase(address_of(mut_handler)); };
-      mut_handler->attach_executor(share_executor());
+      mut_handler->attach_shard(shard());
       mut_handler->attach_reactor(this);
     }
 

@@ -6,15 +6,18 @@
 namespace xi {
 namespace async {
 
-  template < class R > class reactor_poller : public core::poller {
+  template < class R >
+  class reactor_poller : public core::poller {
     mut< R > _reactor;
 
   public:
-    reactor_poller(mut< R > reactor) : _reactor(reactor) {}
+    reactor_poller(mut< R > reactor) : _reactor(reactor) {
+    }
     unsigned poll() noexcept override {
       try {
         _reactor->poll();
-      } catch (...) {}
+      } catch (...) {
+      }
       return 0;
     }
   };
@@ -27,20 +30,18 @@ namespace async {
 
   public:
     void start(mut< core::executor_pool > pool) {
-      auto maybe_local_executor = pool->share_local_executor();
-      if (maybe_local_executor.is_none()) {
-        throw std::logic_error("No local executor available.");
-      }
-      _reactor->attach_executor(maybe_local_executor.unwrap());
+      _reactor->attach_shard(core::this_shard);
       _pool = pool;
-      _poller_id =
-          pool->register_poller(make< reactor_poller< R > >(edit(_reactor)));
+      _poller_id = core::this_shard->register_poller(
+          make< reactor_poller< R > >(edit(_reactor)));
     }
     void stop() {
-      _reactor->detach_executor();
-      _pool->deregister_poller(_poller_id);
+      core::this_shard->deregister_poller(_poller_id);
+      _reactor.reset();
     }
-    mut< R > reactor() { return edit(_reactor); }
+    mut< R > reactor() {
+      return edit(_reactor);
+    }
   };
 }
 }

@@ -9,16 +9,6 @@ using namespace xi;
 using namespace xi::core;
 using namespace xi::test;
 
-TEST(core_id, local_core_id) {
-  auto k = make< test_kernel >();
-  ASSERT_EQ(kCurrentThread, k->local_core_id().unwrap());
-
-  unsigned id = 1 << 15;
-  k->post(kOtherThread, [&]() mutable { id = k->local_core_id().unwrap(); });
-  k->run_core(kOtherThread);
-  ASSERT_EQ(kOtherThread, id);
-}
-
 TEST(core_id, core_count_correct) {
   auto machine = xi::hw::enumerate();
   unsigned i = 1;
@@ -53,8 +43,12 @@ struct poller_mock : public test::object_tracker, public poller {
 size_t poller_mock::POLLED = 0UL;
 
 struct poller_test : public ::testing::Test {
-  void SetUp() override { poller_mock::reset(); }
-  void TearDown() override { poller_mock::reset(); }
+  void SetUp() override {
+    poller_mock::reset();
+  }
+  void TearDown() override {
+    poller_mock::reset();
+  }
 };
 
 TEST_F(poller_test, poller_only_runs_in_own_thread) {
@@ -77,8 +71,14 @@ TEST_F(poller_test, register_poller) {
 
 TEST_F(poller_test, deregister_poller) {
   ASSERT_EQ(0UL, poller_mock::DESTROYED);
+  std::cout << this_shard << std::endl;
+
   auto k = make< test_kernel >();
+  std::cout << this_shard << std::endl;
+
   auto id = k->register_poller(kCurrentThread, make< poller_mock >());
+  std::cout << this_shard << std::endl;
+
   ASSERT_EQ(0UL, poller_mock::POLLED);
   k->run_core(kCurrentThread);
   ASSERT_EQ(1UL, poller_mock::POLLED);

@@ -45,7 +45,7 @@ namespace async {
     template < class func > auto set_continuation(func &&f);
 
     template < class func >
-    auto set_continuation(mut< core::executor > e, func &&f);
+    auto set_continuation(mut< core::shard > e, func &&f);
   };
 
   template < class T > T state< T >::get_value() {
@@ -75,7 +75,7 @@ namespace async {
 
   template < class T >
   template < class func >
-  auto state< T >::set_continuation(mut< core::executor > e, func &&f) {
+  auto state< T >::set_continuation(mut< core::shard > e, func &&f) {
     using result_type = future_result< func, T >;
     if (is_exception()) {
       return make_ready_future< result_type >(get_exception());

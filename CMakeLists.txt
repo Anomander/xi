@@ -8,7 +8,7 @@ option(COVERALLS "Generate coveralls data" OFF)
 option(HWLOC "Has hwloc available" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -ftemplate-backtrace-limit=0")
+set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O0 -g -ftemplate-backtrace-limit=0")
 # set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -save-temps=obj -g -fsanitize=undefined -ftemplate-backtrace-limit=0")
 
 # boost

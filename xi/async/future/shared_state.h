@@ -30,7 +30,7 @@ namespace async {
     template < class func > auto set_continuation(func &&f);
 
     template < class func >
-    auto set_continuation(mut< core::executor > e, func &&f);
+    auto set_continuation(mut< core::shard > e, func &&f);
   };
 
   template < class T > void shared_state< T >::set(T value) {
@@ -69,7 +69,7 @@ namespace async {
 
   template < class T >
   template < class func >
-  auto shared_state< T >::set_continuation(mut< core::executor > e, func &&f) {
+  auto shared_state< T >::set_continuation(mut< core::shard > e, func &&f) {
     auto lock = make_lock(_spin_lock);
     if (this->is_ready()) {
       return state< T >::set_continuation(e, forward< func >(f));
