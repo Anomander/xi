@@ -205,3 +205,79 @@ TEST(simple, skip_level_message_passing) {
   EXPECT_EQ("2", f3->S);
   EXPECT_EQ(5, f4->I);
 }
+
+TEST(remove, single_handler) {
+  class filter1 : public int_filter {
+    void write(mut< context > cx, int i) override {
+      cx->forward_write(I += ++i);
+    }
+    void read(mut< context > cx, int i) override { cx->remove(); I += ++i; }
+
+  public:
+    int I = 0;
+  };
+
+  auto p = make< pipes::pipe< int > >(_channel);
+  auto f1 = make< filter1 >();
+
+  p->push_back(share(f1));
+
+  p->write(1);
+  EXPECT_EQ(2, f1->I);
+
+  EXPECT_TRUE(is_shared(f1));
+
+  p->read(1);
+  EXPECT_EQ(4, f1->I);
+
+  EXPECT_FALSE(is_shared(f1));
+
+  p->read(1);
+  EXPECT_EQ(4, f1->I);
+}
+
+TEST(remove, single_handler_multiple_times) {
+  class filter1 : public int_filter {
+    void write(mut< context > cx, int i) override {
+      cx->forward_write(I += i);
+    }
+    void read(mut< context > cx, int i) override { cx->remove(); I += i; }
+
+  public:
+    int I = 0;
+  };
+
+  auto p = make< pipes::pipe< int > >(_channel);
+  auto f1 = make< filter1 >();
+
+  p->push_back(share(f1));
+  p->push_back(share(f1));
+
+  p->write(1);
+  EXPECT_EQ(2, f1->I);
+
+  EXPECT_TRUE(is_shared(f1));
+
+  p->read(1);
+  EXPECT_EQ(3, f1->I);
+
+  EXPECT_TRUE(is_shared(f1));
+
+  p->read(1);
+  EXPECT_EQ(4, f1->I);
+
+  EXPECT_FALSE(is_shared(f1));
+
+  p->read(1);
+  EXPECT_EQ(4, f1->I);
+}
+
+TEST(simple, empty_pipe_read) {
+  auto p = make< pipes::pipe< int > >(_channel);
+  p->read(1);
+}
+
+TEST(simple, empty_pipe_write) {
+  auto p = make< pipes::pipe< int > >(_channel);
+  p->write(1);
+}

@@ -9,14 +9,16 @@ namespace io {
   namespace pipes {
     namespace detail {
 
-      template < class message >
+      template < class M >
       struct read_link : virtual generic_filter_context {
-        virtual void read(message) = 0;
+        virtual void read(M) = 0;
+        virtual mut< read_link > next_read(M* = nullptr) = 0;
       };
 
-      template < class message >
+      template < class M >
       struct write_link : virtual generic_filter_context {
-        virtual void write(message) = 0;
+        virtual void write(M) = 0;
+        virtual mut< write_link > next_write(M* = nullptr) = 0;
       };
     }
   }

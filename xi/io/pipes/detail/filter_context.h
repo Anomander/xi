@@ -2,6 +2,7 @@
 
 #include "xi/ext/configure.h"
 #include "xi/io/pipes/modifiers.h"
+#include "xi/io/pipes/detail/generic_filter_context.h"
 #include "xi/io/channel_interface.h"
 
 namespace xi {
@@ -11,7 +12,8 @@ namespace io {
 
       class pipe_control_interface;
 
-      template < class... messages > struct filter_context;
+      template < class... messages >
+      struct filter_context;
 
       template < class M0, class... messages >
       struct filter_context< M0, messages... >
@@ -41,15 +43,19 @@ namespace io {
         virtual void forward_write(M0 m) = 0;
       };
 
-      template <> struct filter_context<> {
-        mut <pipe_control_interface> _pipe;
+      struct filter_context_base : public virtual generic_filter_context {
+        mut< pipe_control_interface > _pipe;
 
       public:
+        void remove();
+        void set_pipe(mut< pipe_control_interface >);
+        mut< pipe_control_interface > pipe();
+      };
+
+      template <>
+      struct filter_context<> : public virtual filter_context_base {
         void forward_read() = delete;
         void forward_write() = delete;
-
-        void set_pipe(mut< pipe_control_interface > p) { _pipe = p; }
-        mut< pipe_control_interface > pipe() { return _pipe; }
       };
 
       template < class... messages >
@@ -57,8 +63,12 @@ namespace io {
         mut< channel_interface > _channel;
 
       public:
-        void set_channel(mut< channel_interface > c) { _channel = c; }
-        mut< channel_interface > channel() { return _channel; }
+        void set_channel(mut< channel_interface > c) {
+          _channel = c;
+        }
+        mut< channel_interface > channel() {
+          return _channel;
+        }
       };
     }
   }

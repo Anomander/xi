@@ -31,9 +31,21 @@ namespace io {
           pipe_link< M0 >::maybe_update_tail(ctx);
           return super::maybe_update_tail(ctx);
         }
+        void maybe_change_head(mut< generic_filter_context > ctx) override {
+          pipe_link< M0 >::maybe_change_head(ctx);
+          return super::maybe_change_head(ctx);
+        }
+        void maybe_change_tail(mut< generic_filter_context > ctx) override {
+          pipe_link< M0 >::maybe_change_tail(ctx);
+          return super::maybe_change_tail(ctx);
+        }
       };
 
       struct pipe_message_impl_base {
+        virtual void maybe_change_head(mut< generic_filter_context > ctx) {
+        }
+        virtual void maybe_change_tail(mut< generic_filter_context > ctx) {
+        }
         virtual void maybe_update_head(mut< generic_filter_context > ctx) {
         }
         virtual void maybe_update_tail(mut< generic_filter_context > ctx) {
@@ -43,6 +55,10 @@ namespace io {
       template <>
       struct pipe_message_impl<> : public virtual pipe_message_impl_base {
       protected:
+        void maybe_change_head(mut< generic_filter_context > ctx) override {
+        }
+        void maybe_change_tail(mut< generic_filter_context > ctx) override {
+        }
         void maybe_update_head(mut< generic_filter_context > ctx) override {
         }
         void maybe_update_tail(mut< generic_filter_context > ctx) override {

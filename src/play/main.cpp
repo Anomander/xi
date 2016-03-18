@@ -167,6 +167,7 @@ public:
   }
 
   void decode(mut< buffer > in) {
+    std::cout << "Decoder state: " << (int)_state << std::endl;
     while (in->size() > 0) {
       std::cout << in->size() << std::endl;
       switch (_state) {
@@ -386,8 +387,11 @@ public:
   }
 
   void read(mut< context > cx, mut< buffer > in) final override {
+    std::cout << "Decoder: " << &_decoder << std::endl;
     _decoder.decode(in);
-    cx->pipe()->push_front(make<range_echo>());
+    // cx->pipe()->push_front(make<range_echo>());
+    // std::cout << "Removing this" << std::endl;
+    // cx->pipe()->remove(cx);
   }
 
   void setting_received(u16 id, u32 value) override {
@@ -494,14 +498,9 @@ public:
 auto k = make< core::launchable_kernel< core::thread_launcher > >();
 
 int main(int argc, char* argv[]) {
+  signal(SIGINT, [](int sig) { k->initiate_shutdown(); });
+  signal(SIGPIPE, [](auto) { std::cout << "Ignoring SIGPIPE." << std::endl; });
 
-  struct sigaction SIGINT_action;
-  SIGINT_action.sa_handler = [](int sig) { k->initiate_shutdown(); };
-  sigemptyset(&SIGINT_action.sa_mask);
-  SIGINT_action.sa_flags = 0;
-  sigaction(SIGINT, &SIGINT_action, nullptr);
-
-  sigblock(sigmask(SIGPIPE));
   k->start(1, 1 << 20);
   auto pool = make_executor_pool(edit(k));
 

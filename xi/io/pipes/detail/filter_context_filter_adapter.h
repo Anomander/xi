@@ -46,6 +46,16 @@ namespace io {
           write_link_impl< M0 >::add_link_if_null(cx);
           return super::add_write_if_null(cx);
         }
+
+        void unlink_read(mut< generic_filter_context > cx) override {
+          read_link_impl< M0 >::unlink_read(cx);
+          return super::unlink_read(cx);
+        }
+
+        void unlink_write(mut< generic_filter_context > cx) override {
+          write_link_impl< M0 >::unlink_write(cx);
+          return super::unlink_write(cx);
+        }
       };
 
       template < class C, class H, class M0, class... messages >
@@ -73,6 +83,15 @@ namespace io {
 
         void add_write_if_null(mut< generic_filter_context > cx) override {
           return super::add_write_if_null(cx);
+        }
+
+        void unlink_read(mut< generic_filter_context > cx) override {
+          read_link_impl< M0 >::unlink_read(cx);
+          return super::unlink_read(cx);
+        }
+
+        void unlink_write(mut< generic_filter_context > cx) override {
+          return super::unlink_write(cx);
         }
       };
 
@@ -103,6 +122,15 @@ namespace io {
           write_link_impl< M0 >::add_link_if_null(cx);
           return super::add_write_if_null(cx);
         }
+
+        void unlink_read(mut< generic_filter_context > cx) override {
+          return super::unlink_read(cx);
+        }
+
+        void unlink_write(mut< generic_filter_context > cx) override {
+          write_link_impl< M0 >::unlink_write(cx);
+          return super::unlink_write(cx);
+        }
       };
 
       template < class C, class H >
@@ -113,6 +141,11 @@ namespace io {
         void add_read_if_null(mut< generic_filter_context > cx) {
         }
         void add_write_if_null(mut< generic_filter_context > cx) {
+        }
+
+        void unlink_read(mut< generic_filter_context > cx) override {
+        }
+        void unlink_write(mut< generic_filter_context > cx) override {
         }
 
       protected:

@@ -28,6 +28,8 @@ namespace io {
         template < class H >
         void push_back(H);
 
+        void remove(mut< generic_filter_context >);
+
         pipe_control_interface(mut< channel_interface > c) : _channel(c) {
         }
 
@@ -63,6 +65,13 @@ namespace io {
         auto mut_cx = edit(cx);
         push_back_ctx(move(cx));
         maybe_pass_context_to_filter(mut_h, mut_cx, select_rank);
+      }
+
+      inline void pipe_control_interface::remove(
+          mut< generic_filter_context > cx) {
+        maybe_change_head(cx);
+        maybe_change_tail(cx);
+        pipe_base::remove(cx); // TODO: defer
       }
 
       template < class C >
