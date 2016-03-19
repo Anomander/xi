@@ -1,33 +1,25 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/core/kernel.h"
 
 namespace xi {
 namespace core {
 
   class kernel;
+  class shard;
 
   class executor_pool : public virtual ownership::std_shared {
     vector< mut< shard > > _shards;
     unsigned _next_core = 0;
 
   public:
-    executor_pool(mut< kernel > k, vector< unsigned > ids) {
-      for (auto id : ids) {
-        _shards.emplace_back(k->mut_shard(id));
-      }
-    }
+    executor_pool(mut< kernel > k, vector< u16 > ids);
 
-    executor_pool(mut< kernel > k, size_t count) {
-      for (u16 id = 0; id < count; ++id) {
-        _shards.emplace_back(k->mut_shard(id));
-      }
-    }
+    executor_pool(mut< kernel > k, u16 count);
 
-    size_t size() const {
-      return _shards.size();
-    }
+    ~executor_pool();
+
+    size_t size() const;
 
     template < class F >
     void post_on_all(F &&f) {
@@ -51,17 +43,9 @@ namespace core {
       next_executor()->dispatch(forward< F >(f));
     }
 
-    mut< shard > executor_for_core(unsigned id) {
-      if (id > _shards.size()) {
-        throw std::invalid_argument("Executor with id " + to_string(id) +
-                                    " is not registered");
-      }
-      return _shards[id];
-    }
+    mut< shard > executor_for_core(unsigned id);
 
-    mut< shard > next_executor() {
-      return _shards[(_next_core++) % _shards.size()];
-    }
+    mut< shard > next_executor();
   };
 }
 }

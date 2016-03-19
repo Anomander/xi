@@ -18,8 +18,10 @@ TEST(core_id, core_count_correct) {
     ASSERT_EQ(i, k->core_count());
   }
   auto k = make< kernel >();
-  ASSERT_THROW(k->start(i, 1000), std::invalid_argument);
-  ASSERT_THROW(k->start(0U, 1000), std::invalid_argument);
+  auto f1 = k->start(i, 1000);
+  ASSERT_TRUE(f1.is_exception());
+  auto f2 = k->start(i, 1000);
+  ASSERT_TRUE(f2.is_exception());
 }
 
 struct poller_mock : public test::object_tracker, public poller {

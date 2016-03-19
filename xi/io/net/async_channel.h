@@ -18,44 +18,25 @@ namespace xi {
 namespace io {
   namespace net {
 
-    template < address_family af, socket_type sock, protocol proto = kNone >
-    class socket_base : public xi::async::io_handler {
-    public:
-      virtual ~socket_base() noexcept {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-      }
-    };
-
     enum class channel_event {
       kReadable,
       kWritable,
       kClosing,
     };
 
-    using heap_buffer_allocator =
-        basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
-
-    template < address_family af, protocol proto = kNone >
-    class client_channel : public socket_base< af, kStream, proto >,
-                           public stream_client_socket,
-                           public channel_interface {
-      using endpoint_t = endpoint< af >;
-
-      pipes::pipe< channel_event, pipes::in< error_code > > _pipe;
-      endpoint_t _remote;
-      own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
+    template < address_family af, socket_type sock, protocol proto = kNone >
+    class socket_base : public xi::async::io_handler, public channel_interface {
+      pipes::pipe< channel_event, pipes::in< error_code > > _pipe {this};
 
     public:
-      class data_sink;
-      class data_source;
-
-      client_channel(stream_client_socket s);
+      virtual ~socket_base() noexcept {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+      }
 
       auto pipe() {
         return edit(_pipe);
       }
 
-    public:
       void close() override {
         this->defer([&] { _pipe.write(channel_event::kClosing); });
       }
@@ -67,11 +48,52 @@ namespace io {
       void handle_write() override {
         _pipe.read(channel_event::kWritable);
       }
+    };
+
+    using heap_buffer_allocator =
+        basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
+
+    template < address_family af, protocol proto = kNone >
+    class client_channel : public socket_base< af, kStream, proto >,
+                           public stream_client_socket {
+      using endpoint_t = endpoint< af >;
+
+      endpoint_t _remote;
+      own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
+
+    public:
+      class data_sink;
+      class data_source;
+
+      client_channel(stream_client_socket s);
+
+      using socket_base<af, kStream, proto>::close;
+
+    public:
       own< buffer_allocator > alloc() {
         return share(_alloc);
       }
-      auto pipeline() {
-        return edit(_pipe);
+    };
+
+    template < address_family af, protocol proto = kNone >
+    class datagram_channel : public socket_base< af, kDatagram, proto >,
+                             public datagram_socket {
+      using endpoint_t = endpoint< af >;
+
+      own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
+
+    public:
+      class data_sink;
+      class data_source;
+
+      datagram_channel(datagram_socket s);
+
+      using socket_base<af, kStream, proto>::close;
+
+    public:
+    protected:
+      own< buffer_allocator > alloc() {
+        return share(_alloc);
       }
     };
 
@@ -138,9 +160,9 @@ namespace io {
 
     template < address_family af, protocol proto >
     client_channel< af, proto >::client_channel(stream_client_socket s)
-        : stream_client_socket(move(s)), _pipe(this) {
+        : stream_client_socket(move(s)) {
       xi::async::io_handler::descriptor(native_handle());
-      _pipe.push_back(make< data_sink >(this));
+      this->pipe()->push_back(make< data_sink >(this));
     }
 
     template < address_family af, protocol proto = kNone >
@@ -153,7 +175,7 @@ namespace io {
     };
 
     template < address_family af, protocol proto = kNone >
-    class acceptor final : public socket_base< af, kStream, proto >,
+    class acceptor final : public xi::async::io_handler,
                            public stream_server_socket,
                            public channel_interface {
       using endpoint_type = endpoint< af >;
@@ -166,7 +188,7 @@ namespace io {
       own< channel_factory< af, proto > > _channel_factory;
 
     public:
-      acceptor() : stream_server_socket(af, kStream, proto) {
+      acceptor() : stream_server_socket(af, proto) {
         xi::async::io_handler::descriptor(native_handle());
       }
 

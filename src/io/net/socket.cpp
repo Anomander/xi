@@ -38,7 +38,7 @@ namespace io {
 
     stream_client_socket::stream_client_socket(i32 desc,
                                                opt< endpoint< kInet > > remote)
-        : socket(desc), _remote(move(remote)) {
+        : data_socket(desc), _remote(move(remote)) {
     }
 
     expected< void > socket::close() {
@@ -59,7 +59,7 @@ namespace io {
       return socket{ret};
     }
 
-    void server_socket::bind(ref< endpoint< kInet > > local) {
+    void stream_server_socket::bind(ref< endpoint< kInet > > local) {
       struct sockaddr_in servaddr;
       ::bzero(&servaddr, sizeof(servaddr));
       servaddr.sin_family = AF_INET;
@@ -90,11 +90,12 @@ namespace io {
       return stream_client_socket(retval, some(remote));
     }
 
-    void stream_server_socket::set_child_options(initializer_list<option_t> options) {
-      _child_options.insert (end(_child_options), options);
+    void stream_server_socket::set_child_options_list(
+        initializer_list< option_t > options) {
+      _child_options.insert(end(_child_options), options);
     }
 
-    expected< i32 > socket::write_iov(
+    expected< i32 > data_socket::write_iov(
         struct iovec *iov, usize iov_len,
         opt< ref< endpoint< kInet > > > remote) const {
       if (0 == iov_len) {
@@ -117,7 +118,7 @@ namespace io {
       }
       return retval;
     }
-    expected< i32 > stream_client_socket::write(
+    expected< i32 > data_socket::write(
         mut< buffer > b, opt< ref< endpoint< kInet > > > remote) const {
       if (b->size() == 0) {
         return 0;
@@ -136,7 +137,12 @@ namespace io {
       } while (IOV_MAX == len);
       return ret;
     }
-    expected< i32 > socket::read_iov(
+
+    expected< i32 > stream_client_socket::write(mut< buffer > b) const {
+      return data_socket::write(b, none);
+    }
+
+    expected< i32 > data_socket::read_iov(
         struct iovec *iov, usize iov_len,
         opt< mut< endpoint< kInet > > > remote) const {
       if (0 == iov_len) {
@@ -164,7 +170,7 @@ namespace io {
       return retval;
     }
 
-    expected< i32 > stream_client_socket::read(
+    expected< i32 > data_socket::read(
         mut< buffer > b, opt< mut< endpoint< kInet > > > remote) const {
       iovec iov[1];
       if (0 == b->tailroom())
@@ -179,6 +185,10 @@ namespace io {
         }
       }
       return r;
+    }
+
+    expected< i32 > stream_client_socket::read(mut< buffer > b) const {
+      return data_socket::read(b, none);
     }
 
     expected< usize > socket::readable_bytes() {

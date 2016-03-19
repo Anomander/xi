@@ -8,7 +8,7 @@ namespace xi {
 namespace core {
 
   own< executor_pool > make_executor_pool(mut< kernel > kernel,
-                                          vector< unsigned > cores = {}) {
+                                          vector< u16 > cores = {}) {
     if (cores.empty()) {
       return make< executor_pool >(kernel, kernel->core_count());
     }

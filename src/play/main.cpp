@@ -501,42 +501,47 @@ int main(int argc, char* argv[]) {
   signal(SIGINT, [](int sig) { k->initiate_shutdown(); });
   signal(SIGPIPE, [](auto) { std::cout << "Ignoring SIGPIPE." << std::endl; });
 
-  k->start(1, 1 << 20);
-  auto pool = make_executor_pool(edit(k));
+  own< core::executor_pool > pool;
+  own< reactive_service > r_service;
+  k->start(1, 1 << 20)
+      .then([&, argc, argv] {
+        pool = make_executor_pool(edit(k));
 
-  auto r_service = make< reactive_service >(share(pool));
-  r_service->start().then([=, &pool, &r_service] {
-    auto acc = make< net::acceptor< net::kInet, net::kTCP > >();
+        r_service = make< reactive_service >(share(pool));
+        r_service->start().then([=, &pool, &r_service] {
+          auto acc = make< net::acceptor< net::kInet, net::kTCP > >();
 
-    std::cout << "Acceptor created." << std::endl;
-    try {
-      acc->bind(argc > 1 ? atoi(argv[1]) : 19999);
-    } catch (ref< std::exception > e) {
-      std::cout << "Bind error: " << e.what() << std::endl;
-      exit(1);
-    }
-    std::cout << "Acceptor bound." << std::endl;
-    acc->set_channel_factory(make< http2_channel_factory >());
-    acc->pipe()->push_back(make< http2_handler >(edit(r_service), edit(pool)));
-    acc->set_child_option(net::option::tcp::no_delay::yes);
+          std::cout << "Acceptor created." << std::endl;
+          try {
+            acc->bind(argc > 1 ? atoi(argv[1]) : 19999);
+          } catch (ref< std::exception > e) {
+            std::cout << "Bind error: " << e.what() << std::endl;
+            exit(1);
+          }
+          std::cout << "Acceptor bound." << std::endl;
+          acc->set_channel_factory(make< http2_channel_factory >());
+          acc->pipe()->push_back(
+              make< http2_handler >(edit(r_service), edit(pool)));
+          acc->set_child_options(net::option::tcp::no_delay::yes);
 
-    pool->post([&r_service, acc = move(acc) ] {
-      auto r = r_service->local()->reactor();
-      r->attach_handler(move(acc));
-      std::cout << "Acceptor attached." << std::endl;
-    });
-  });
-  spin_lock sl;
-  k->before_shutdown().then([&] {
-    pool->post_on_all([&] {
-      auto lock = make_unique_lock(sl);
-      std::cout << pthread_self() << "\nconns : " << stats.connections
-                << "\nreads : " << stats.reads
-                << "\nr_bytes : " << stats.r_bytes
-                << "\nwrites : " << stats.writes
-                << "\nw_bytes : " << stats.w_bytes << std::endl;
-    });
-  });
+          pool->post([&r_service, acc = move(acc) ] {
+            auto r = r_service->local()->reactor();
+            r->attach_handler(move(acc));
+            std::cout << "Acceptor attached." << std::endl;
+          });
+        });
+        spin_lock sl;
+        k->before_shutdown().then([&] {
+          pool->post_on_all([&] {
+            auto lock = make_unique_lock(sl);
+            std::cout << pthread_self() << "\nconns : " << stats.connections
+                      << "\nreads : " << stats.reads
+                      << "\nr_bytes : " << stats.r_bytes
+                      << "\nwrites : " << stats.writes
+                      << "\nw_bytes : " << stats.w_bytes << std::endl;
+          });
+        });
+      });
 
   k->await_shutdown();
 }

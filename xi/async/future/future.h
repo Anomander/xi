@@ -108,17 +108,17 @@ namespace async {
   future< T > make_ready_future(T &&value) {
     return future< T >(ready_made, forward< T >(value));
   }
-  future<> make_ready_future() {
+  inline future<> make_ready_future() {
     return future<>(ready_made, meta::null{});
   }
-  future<> make_ready_future(meta::null) {
+  inline future<> make_ready_future(meta::null) {
     return make_ready_future();
   }
   template < class T >
   future< T > make_ready_future(exception_ptr ex) {
     return future< T >(ready_made, forward< exception_ptr >(ex));
   }
-  future<> make_ready_future(exception_ptr ex) {
+  inline future<> make_ready_future(exception_ptr ex) {
     return future<>(ready_made, forward< exception_ptr >(ex));
   }
   template < class U >

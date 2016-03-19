@@ -35,7 +35,7 @@ protected:
   void SetUp() override {
     ++PORT;
     _client = make_unique< test::tcp_socket_mock >();
-    _server = make_unique< stream_server_socket >(kInet, kStream, kTCP);
+    _server = make_unique< stream_server_socket >(kInet, kTCP);
     _server->set_option(option::socket::reuse_address::yes);
     _server->bind(PORT);
   }
@@ -72,7 +72,7 @@ TEST_F(stream_server_test, accept_client) {
 }
 
 TEST_F(stream_server_test, double_bind) {
-  stream_server_socket s1(kInet, kStream, kTCP), s2(kInet, kStream, kTCP);
+  stream_server_socket s1(kInet, kTCP), s2(kInet, kTCP);
 
   s1.bind(19191);
   EXPECT_SYSTEM_ERROR(EINVAL, s1.bind(19191));

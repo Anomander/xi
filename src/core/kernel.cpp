@@ -23,12 +23,14 @@ namespace core {
     }
   }
 
-  void kernel::start(unsigned count, unsigned per_core_queue_size) {
+  async::future<> kernel::start(unsigned count, unsigned per_core_queue_size) {
     if (count < 1) {
-      throw std::invalid_argument("Invalid core count.");
+      return async::make_ready_future(
+          make_exception_ptr(std::invalid_argument("Invalid core count.")));
     }
     if (_machine.cpus().size() < count) {
-      throw std::invalid_argument("Not enough cores available.");
+      return async::make_ready_future(make_exception_ptr(
+          std::invalid_argument("Not enough cores available.")));
     }
     _queues.resize(count);
     _shards.resize(count);
@@ -41,11 +43,15 @@ namespace core {
                   << address_of(_queues[dst][src]) << std::endl;
       }
     }
+
+    return async::make_ready_future();
   }
 
   void kernel::startup(u16 id) {
     assert(nullptr == _shards[id]);
-    _shards[id] = this_shard = new shard(this, id, _queues);
+    this_shard = new shard(this, id, _queues);
+    _shards[id] = this_shard;
+    std::cout << "s[" << id << "] = " << _shards[id] << std::endl;
     std::cout << __PRETTY_FUNCTION__ << " " << this_shard << std::endl;
   }
 

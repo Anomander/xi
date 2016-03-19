@@ -8,6 +8,8 @@ namespace core {
 
   shard::shard(mut< kernel > k, u16 core, queues_t &qs)
       : _core_id(core), _queues(qs), _kernel(k) {
+    std::cout << "Starting shard @" << _core_id << " in thread "
+              << pthread_self() << std::endl;
   }
 
   usize shard::register_poller(own< poller > poller) {

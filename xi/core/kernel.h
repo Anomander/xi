@@ -4,6 +4,7 @@
 #include "xi/core/shard.h"
 #include "xi/util/spin_lock.h"
 #include "xi/hw/hardware.h"
+#include "xi/async/future.h"
 
 namespace xi {
 namespace core {
@@ -33,7 +34,7 @@ namespace core {
 
     virtual ~kernel();
 
-    virtual void start(unsigned count, unsigned per_core_queue_size);
+    virtual async::future<> start(unsigned count, unsigned per_core_queue_size);
     virtual void initiate_shutdown();
     virtual void await_shutdown();
     virtual void exception_filter(exception_filter_type);
@@ -52,10 +53,10 @@ namespace core {
     mut<shard> mut_shard(u16 core);
 
   protected:
-    void run_on_core(unsigned id);
-    void poll_core(unsigned id);
-    void startup(u16 id);
-    void cleanup(u16 id);
+    virtual void run_on_core(unsigned id);
+    virtual void poll_core(unsigned id);
+    virtual void startup(u16 id);
+    virtual void cleanup(u16 id);
 
     hw::machine &machine() {
       return _machine;
