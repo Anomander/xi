@@ -3,6 +3,7 @@
 #include "xi/ext/configure.h"
 
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 namespace xi {
 namespace io {
@@ -27,17 +28,20 @@ namespace io {
         memcpy(&_address, bytes.data(), 4);
         return *this;
       }
-      ip4_address &operator=(uint32_t long_addr) {
-        _address = ntohl(long_addr);
+      ip4_address &operator=(ref<in_addr_t> addr) {
+        _address = addr;
         return *this;
       }
-
       static ip4_address any() noexcept {
         return ip4_address(INADDR_ANY);
       }
 
       in_addr_t const &native() const noexcept {
         return _address;
+      }
+
+      string to_string() const {
+        return inet_ntoa(in_addr{ _address });
       }
 
     private:

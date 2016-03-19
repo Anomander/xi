@@ -24,9 +24,13 @@ namespace io {
       kClosing,
     };
 
+    using heap_buffer_allocator =
+        basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
+
     template < address_family af, socket_type sock, protocol proto = kNone >
     class socket_base : public xi::async::io_handler, public channel_interface {
-      pipes::pipe< channel_event, pipes::in< error_code > > _pipe {this};
+      pipes::pipe< channel_event, pipes::in< error_code > > _pipe{this};
+      own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
 
     public:
       virtual ~socket_base() noexcept {
@@ -42,16 +46,20 @@ namespace io {
       }
 
     protected:
+      own< buffer_allocator > alloc() {
+        return share(_alloc);
+      }
+
       void handle_read() override {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         _pipe.read(channel_event::kReadable);
       }
+
       void handle_write() override {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
         _pipe.read(channel_event::kWritable);
       }
     };
-
-    using heap_buffer_allocator =
-        basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
 
     template < address_family af, protocol proto = kNone >
     class client_channel : public socket_base< af, kStream, proto >,
@@ -59,7 +67,6 @@ namespace io {
       using endpoint_t = endpoint< af >;
 
       endpoint_t _remote;
-      own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
 
     public:
       class data_sink;
@@ -67,12 +74,13 @@ namespace io {
 
       client_channel(stream_client_socket s);
 
-      using socket_base<af, kStream, proto>::close;
+      using socket_base< af, kStream, proto >::close;
+    };
 
-    public:
-      own< buffer_allocator > alloc() {
-        return share(_alloc);
-      }
+    template < address_family af >
+    struct datagram {
+      buffer data;
+      endpoint< af > remote;
     };
 
     template < address_family af, protocol proto = kNone >
@@ -80,22 +88,70 @@ namespace io {
                              public datagram_socket {
       using endpoint_t = endpoint< af >;
 
-      own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
-
     public:
       class data_sink;
       class data_source;
 
-      datagram_channel(datagram_socket s);
+      datagram_channel();
 
-      using socket_base<af, kStream, proto>::close;
+      using socket_base< af, kDatagram, proto >::close;
+    };
 
-    public:
-    protected:
-      own< buffer_allocator > alloc() {
-        return share(_alloc);
+    template < address_family af, protocol proto >
+    struct datagram_channel< af, proto >::data_sink
+        : public pipes::filter< channel_event, error_code, datagram< af > > {
+      using channel = datagram_channel< af, proto >;
+      using context = typename pipes::filter< channel_event, error_code,
+                                              datagram< af > >::context;
+      mut< channel > _channel;
+      data_sink(mut< channel > c) : _channel(c) {
+      }
+
+      void read(mut< context > cx, channel_event e) override {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        switch (e) {
+          case channel_event::kReadable: {
+            auto b = _channel->alloc()->allocate(1 << 20);
+            endpoint_t remote;
+            auto ret = _channel->read(edit(b), edit(remote));
+            std::cout << "Read " << ret << " bytes." << std::endl;
+            if (ret.has_error()) {
+              if (ret.error() == error::kEOF) {
+                _channel->close();
+              } else {
+                cx->forward_read(ret.error());
+              }
+            } else {
+              cx->forward_read(datagram< af >{move(b), move(remote)});
+            }
+          } break;
+          case channel_event::kWritable: {
+          } break;
+          default:
+            break;
+        };
+      }
+      void write(mut< context > cx, channel_event e) override {
+        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        switch (e) {
+          case channel_event::kClosing:
+            _channel->cancel();
+            break;
+          default:
+            break;
+        };
+      }
+      void write(mut< context > cx, datagram< af > b) override {
+        _channel->write(edit(b.data), edit(b.remote));
       }
     };
+
+    template < address_family af, protocol proto >
+    datagram_channel< af, proto >::datagram_channel()
+        : datagram_socket(af, proto) {
+      xi::async::io_handler::descriptor(native_handle());
+      this->pipe()->push_back(make< data_sink >(this));
+    }
 
     template < address_family af, protocol proto >
     struct client_channel< af, proto >::data_sink

@@ -59,7 +59,7 @@ namespace io {
       return socket{ret};
     }
 
-    void stream_server_socket::bind(ref< endpoint< kInet > > local) {
+    void bindable_socket_adapter::bind(ref< endpoint< kInet > > local) {
       struct sockaddr_in servaddr;
       ::bzero(&servaddr, sizeof(servaddr));
       servaddr.sin_family = AF_INET;
@@ -70,7 +70,11 @@ namespace io {
       if (-1 == ret) {
         throw_errno();
       }
-      ret = ::listen(_descriptor, 1024); // TODO: clean up
+    }
+
+    void stream_server_socket::bind(ref< endpoint< kInet > > local) {
+      bindable_socket_adapter::bind(local);
+      auto ret = ::listen(native_handle(), 1024); // TODO: clean up
       if (-1 == ret) {
         throw_errno();
       }
@@ -79,8 +83,8 @@ namespace io {
     expected< stream_client_socket > stream_server_socket::accept() {
       socklen_t socklen = sizeof(sockaddr_in);
       struct sockaddr_in addr;
-      i32 retval = ::accept4(_descriptor, (struct sockaddr *)&addr, &socklen,
-                             SOCK_NONBLOCK | SOCK_CLOEXEC);
+      i32 retval = ::accept4(native_handle(), (struct sockaddr *)&addr,
+                             &socklen, SOCK_NONBLOCK | SOCK_CLOEXEC);
       if (-1 == retval) {
         return error_from_errno();
       }
@@ -97,18 +101,24 @@ namespace io {
 
     expected< i32 > data_socket::write_iov(
         struct iovec *iov, usize iov_len,
-        opt< ref< endpoint< kInet > > > remote) const {
+        opt< mut< endpoint< kInet > > > remote) const {
       if (0 == iov_len) {
         return 0;
       }
       socklen_t socklen = sizeof(sockaddr_in);
       struct sockaddr_in addr;
       msghdr msg;
-      memset(&msg, 0, sizeof(msg));
+      ::bzero(&msg, sizeof(msg));
+      remote.map([&](auto ep) {
+        ::bzero(&addr, sizeof(sockaddr_in));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = ep->address.native();
+        addr.sin_port = htons(ep->port);
+        msg.msg_name = &addr;
+        msg.msg_namelen = socklen;
+      });
       msg.msg_iov = iov;
       msg.msg_iovlen = iov_len;
-      msg.msg_name = &addr;
-      msg.msg_namelen = socklen;
       i32 retval = sendmsg(_descriptor, &msg, MSG_DONTWAIT);
       if (-1 == retval) {
         return error_from_errno();
@@ -119,7 +129,7 @@ namespace io {
       return retval;
     }
     expected< i32 > data_socket::write(
-        mut< buffer > b, opt< ref< endpoint< kInet > > > remote) const {
+        mut< buffer > b, opt< mut< endpoint< kInet > > > remote) const {
       if (b->size() == 0) {
         return 0;
       }
@@ -140,6 +150,12 @@ namespace io {
 
     expected< i32 > stream_client_socket::write(mut< buffer > b) const {
       return data_socket::write(b, none);
+    }
+
+    expected< i32 > datagram_socket::write(
+        mut< buffer > b, mut< endpoint< kInet > > remote) const {
+      std::cout << "Writing datagram " << b->size() << " to " << remote->address.to_string() << std::endl;
+      return data_socket::write(b, some(remote));
     }
 
     expected< i32 > data_socket::read_iov(
@@ -163,10 +179,11 @@ namespace io {
       if (0 == retval) {
         return error_code{io::error::kEOF};
       }
-      if (remote.is_some()) {
-        remote.unwrap()->address = addr.sin_addr.s_addr;
-        remote.unwrap()->port = ntohs(addr.sin_port);
-      }
+      remote.map([&addr](auto ep) {
+        ep->address = addr.sin_addr.s_addr;
+        ep->port = ntohs(addr.sin_port);
+        std::cout << "Received  bytes from " << ep->address.to_string() << std::endl;
+      });
       return retval;
     }
 
@@ -189,6 +206,11 @@ namespace io {
 
     expected< i32 > stream_client_socket::read(mut< buffer > b) const {
       return data_socket::read(b, none);
+    }
+
+    expected< i32 > datagram_socket::read(
+        mut< buffer > b, mut< endpoint< kInet > > remote) const {
+      return data_socket::read(b, some(remote));
     }
 
     expected< usize > socket::readable_bytes() {

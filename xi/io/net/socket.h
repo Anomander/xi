@@ -60,7 +60,7 @@ namespace io {
       using socket::socket;
 
       expected< i32 > write(
-          mut< buffer > b, opt< ref< endpoint< kInet > > > remote = none) const;
+          mut< buffer > b, opt< mut< endpoint< kInet > > > remote = none) const;
 
       expected< i32 > read(mut< buffer > b,
                            opt< mut< endpoint< kInet > > > remote = none) const;
@@ -68,22 +68,34 @@ namespace io {
     private:
       expected< i32 > write_iov(
           struct iovec *iov, usize iov_len,
-          opt< ref< endpoint< kInet > > > remote = none) const;
+          opt< mut< endpoint< kInet > > > remote = none) const;
 
       expected< i32 > read_iov(
           struct iovec *iov, usize iov_len,
           opt< mut< endpoint< kInet > > > remote = none) const;
     };
 
-    struct datagram_socket : public data_socket {
+    struct bindable_socket_adapter {
+      i32 _descriptor = -1;
+
+    public:
+      bindable_socket_adapter(i32 descriptor) : _descriptor(descriptor) {
+      }
+
+      virtual void bind(ref< endpoint< kInet > > local);
+    };
+
+    struct datagram_socket : public data_socket,
+                             public bindable_socket_adapter {
       opt< endpoint< kInet > > _remote = none;
 
     public:
-      datagram_socket(i32 af, i32 proto) : data_socket(af, kDatagram, proto) {
+      datagram_socket(i32 af, i32 proto)
+          : data_socket(af, kDatagram, proto)
+          , bindable_socket_adapter(native_handle()) {
       }
 
-      void bind(ref< endpoint< kInet > > local);
-      expected< i32 > write(mut< buffer > b, ref< endpoint< kInet > >) const;
+      expected< i32 > write(mut< buffer > b, mut< endpoint< kInet > >) const;
       expected< i32 > read(mut< buffer > b, mut< endpoint< kInet > >) const;
     };
 
@@ -97,7 +109,7 @@ namespace io {
       expected< i32 > read(mut< buffer > b) const;
     };
 
-    class stream_server_socket : public socket {
+    class stream_server_socket : public socket, public bindable_socket_adapter {
       using option_t = tuple< int, int, int, int >;
       vector< option_t > _child_options;
 
@@ -108,11 +120,13 @@ namespace io {
       }
 
     public:
-      stream_server_socket(int af, int proto) : socket(af, kStream, proto) {
+      stream_server_socket(int af, int proto)
+          : socket(af, kStream, proto)
+          , bindable_socket_adapter(native_handle()) {
       }
 
+      void bind(ref< endpoint< kInet > > local) override;
       expected< stream_client_socket > accept();
-      void bind(ref< endpoint< kInet > > local);
 
       template < class... O >
       void set_child_options(O... options) {

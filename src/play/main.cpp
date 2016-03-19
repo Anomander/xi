@@ -42,11 +42,15 @@ public:
   }
 };
 
-class range_echo : public pipes::filter< mut< buffer > > {
+class range_echo : public pipes::filter< mut< buffer >, net::datagram<net::kInet> > {
 public:
   void read(mut< context > cx, mut< buffer > b) override {
     // std::cout << "Got buffer " << b->size() << std::endl;
     cx->forward_write(b);
+  }
+  void read(mut< context > cx, net::datagram<net::kInet> b) override {
+    std::cout << "Got datagram " << b.data.size() << std::endl;
+    cx->forward_write(move(b));
   }
 };
 
@@ -503,6 +507,7 @@ int main(int argc, char* argv[]) {
 
   own< core::executor_pool > pool;
   own< reactive_service > r_service;
+  spin_lock sl;
   k->start(1, 1 << 20)
       .then([&, argc, argv] {
         pool = make_executor_pool(edit(k));
@@ -510,10 +515,13 @@ int main(int argc, char* argv[]) {
         r_service = make< reactive_service >(share(pool));
         r_service->start().then([=, &pool, &r_service] {
           auto acc = make< net::acceptor< net::kInet, net::kTCP > >();
+          auto dgram = make< net::datagram_channel< net::kInet, net::kUDP > >();
+          dgram->pipe()->push_back(make< range_echo >());
 
           std::cout << "Acceptor created." << std::endl;
           try {
             acc->bind(argc > 1 ? atoi(argv[1]) : 19999);
+            dgram->bind(argc > 1 ? atoi(argv[1]) : 19999);
           } catch (ref< std::exception > e) {
             std::cout << "Bind error: " << e.what() << std::endl;
             exit(1);
@@ -524,13 +532,13 @@ int main(int argc, char* argv[]) {
               make< http2_handler >(edit(r_service), edit(pool)));
           acc->set_child_options(net::option::tcp::no_delay::yes);
 
-          pool->post([&r_service, acc = move(acc) ] {
+          pool->post([&r_service, acc = move(acc), dgram = move(dgram) ] {
             auto r = r_service->local()->reactor();
             r->attach_handler(move(acc));
+            r->attach_handler(move(dgram));
             std::cout << "Acceptor attached." << std::endl;
           });
         });
-        spin_lock sl;
         k->before_shutdown().then([&] {
           pool->post_on_all([&] {
             auto lock = make_unique_lock(sl);
