@@ -18,7 +18,7 @@ namespace xi {
 namespace io {
   namespace net {
 
-    enum class channel_event {
+    enum class socket_event {
       kReadable,
       kWritable,
       kClosing,
@@ -27,22 +27,24 @@ namespace io {
     using heap_buffer_allocator =
         basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
 
+    using socket_pipe_base =
+        pipes::pipe< socket_event, pipes::in< error_code > >;
     template < address_family af, socket_type sock, protocol proto = kNone >
-    class socket_base : public xi::async::io_handler, public channel_interface {
-      pipes::pipe< channel_event, pipes::in< error_code > > _pipe{this};
+    class socket_base : public xi::async::io_handler,
+                        public channel_interface,
+                        public socket_pipe_base {
       own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
 
     public:
+      socket_base() : socket_pipe_base(this) {
+      }
+
       virtual ~socket_base() noexcept {
         std::cout << __PRETTY_FUNCTION__ << std::endl;
       }
 
-      auto pipe() {
-        return edit(_pipe);
-      }
-
       void close() override {
-        this->defer([&] { _pipe.write(channel_event::kClosing); });
+        this->defer([&] { write(socket_event::kClosing); });
       }
 
     protected:
@@ -51,19 +53,17 @@ namespace io {
       }
 
       void handle_read() override {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-        _pipe.read(channel_event::kReadable);
+        read(socket_event::kReadable);
       }
 
       void handle_write() override {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
-        _pipe.read(channel_event::kWritable);
+        read(socket_event::kWritable);
       }
     };
 
     template < address_family af, protocol proto = kNone >
-    class client_channel : public socket_base< af, kStream, proto >,
-                           public stream_client_socket {
+    class client_pipe : public socket_base< af, kStream, proto >,
+                        public stream_client_socket {
       using endpoint_t = endpoint< af >;
 
       endpoint_t _remote;
@@ -72,7 +72,7 @@ namespace io {
       class data_sink;
       class data_source;
 
-      client_channel(stream_client_socket s);
+      client_pipe(stream_client_socket s);
 
       using socket_base< af, kStream, proto >::close;
     };
@@ -84,15 +84,15 @@ namespace io {
     };
 
     template < address_family af, protocol proto = kNone >
-    class datagram_channel : public socket_base< af, kDatagram, proto >,
-                             public datagram_socket {
+    class datagram_pipe : public socket_base< af, kDatagram, proto >,
+                          public datagram_socket {
       using endpoint_t = endpoint< af >;
 
     public:
       class data_sink;
       class data_source;
 
-      datagram_channel();
+      datagram_pipe();
 
       void bind(endpoint_t ep) {
         datagram_socket::bind(ep.to_posix());
@@ -102,26 +102,27 @@ namespace io {
     };
 
     template < address_family af, protocol proto >
-    struct datagram_channel< af, proto >::data_sink
-        : public pipes::filter< channel_event, error_code, datagram< af > > {
-      using channel = datagram_channel< af, proto >;
-      using context = typename pipes::filter< channel_event, error_code,
+    struct datagram_pipe< af, proto >::data_sink
+        : public pipes::filter< socket_event, error_code, datagram< af > > {
+      using channel = datagram_pipe< af, proto >;
+      using context = typename pipes::filter< socket_event, error_code,
                                               datagram< af > >::context;
-      mut< channel > _channel;
-      data_sink(mut< channel > c) : _channel(c) {
+      mut< channel > _pipe;
+      data_sink(mut< channel > c) : _pipe(c) {
       }
 
-      void read(mut< context > cx, channel_event e) override {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
+      void read(mut< context > cx, socket_event e) override {
         switch (e) {
-          case channel_event::kReadable: {
-            auto b = _channel->alloc()->allocate(1 << 20);
+          case socket_event::kReadable: {
+            auto b = _pipe->alloc()->allocate(1 << 20);
             endpoint_t remote;
-            auto ret = _channel->read(edit(b), remote.to_posix());
-            std::cout << "Read " << ret << " bytes from " << remote.to_string() << std::endl;
+            auto ret = _pipe->read_buffer_from(edit(b), remote.to_posix());
+            // std::cout << "Read " << ret << " bytes from " <<
+            // remote.to_string()
+            //           << std::endl;
             if (ret.has_error()) {
               if (ret.error() == error::kEOF) {
-                _channel->close();
+                _pipe->close();
               } else {
                 cx->forward_read(ret.error());
               }
@@ -129,64 +130,65 @@ namespace io {
               cx->forward_read(datagram< af >{move(b), move(remote)});
             }
           } break;
-          case channel_event::kWritable: {
+          case socket_event::kWritable: {
           } break;
           default:
             break;
         };
       }
-      void write(mut< context > cx, channel_event e) override {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
+
+      void write(mut< context > cx, socket_event e) override {
         switch (e) {
-          case channel_event::kClosing:
-            _channel->cancel();
+          case socket_event::kClosing:
+            _pipe->cancel();
             break;
           default:
             break;
         };
       }
+
       void write(mut< context > cx, datagram< af > b) override {
-        std::cout << "Writing " << b.data.size() << " bytes to " << b.remote.to_string() << std::endl;
-        _channel->write(edit(b.data), b.remote.to_posix());
+        // std::cout << "Writing " << b.data.size() << " bytes to "
+        //           << b.remote.to_string() << std::endl;
+        _pipe->write_buffer_to(edit(b.data), b.remote.to_posix());
       }
     };
 
     template < address_family af, protocol proto >
-    datagram_channel< af, proto >::datagram_channel()
+    datagram_pipe< af, proto >::datagram_pipe()
         : datagram_socket(af, proto) {
       xi::async::io_handler::descriptor(native_handle());
-      this->pipe()->push_back(make< data_sink >(this));
+      this->push_back(make< data_sink >(this));
     }
 
     template < address_family af, protocol proto >
-    struct client_channel< af, proto >::data_sink
-        : public pipes::filter< channel_event, pipes::in< error_code >,
-                                mut< buffer > > {
-      using channel = client_channel< af, proto >;
-      mut< channel > _channel;
-      buffer _read_buf, _write_buf;
-      data_sink(mut< channel > c) : _channel(c) {
+    struct client_pipe< af, proto >::data_sink
+        : public pipes::filter< socket_event, pipes::in< error_code >,
+                                buffer > {
+      using channel = client_pipe< af, proto >;
+      mut< channel > _pipe;
+      buffer _write_buf;
+      data_sink(mut< channel > c) : _pipe(c) {
       }
 
-      void read(mut< context > cx, channel_event e) override {
+      void read(mut< context > cx, socket_event e) override {
         switch (e) {
-          case channel_event::kReadable: {
-            auto b = _channel->alloc()->allocate(1 << 20);
-            auto ret = _channel->read(edit(b));
-            _read_buf.push_back(move(b));
+          case socket_event::kReadable: {
+            auto b = _pipe->alloc()->allocate(1 << 20);
+            auto ret = _pipe->read_buffer(edit(b));
             if (ret.has_error()) {
               if (ret.error() == error::kEOF) {
-                _channel->close();
+                _pipe->close();
               } else {
                 cx->forward_read(ret.error());
               }
             } else {
-              cx->forward_read(edit(_read_buf));
+              cx->forward_read(move(b));
             }
           } break;
-          case channel_event::kWritable: {
+          case socket_event::kWritable: {
             if (!_write_buf.empty()) {
-              _channel->write(edit(_write_buf));
+              _pipe->write_buffer(edit(_write_buf));
               std::cout << "write queue: " << _write_buf.size() << std::endl;
             }
           } break;
@@ -194,71 +196,71 @@ namespace io {
             break;
         };
       }
-      void write(mut< context > cx, channel_event e) override {
+      void write(mut< context > cx, socket_event e) override {
         switch (e) {
-          case channel_event::kClosing:
-            _channel->cancel();
+          case socket_event::kClosing:
+            _pipe->cancel();
             break;
           default:
             break;
         };
       }
-      void write(mut< context > cx, mut< buffer > b) override {
+      void write(mut< context > cx, buffer b) override {
         if (_write_buf.empty()) {
-          _channel->write(b);
-          if (!b->size()) {
+          _pipe->write_buffer(edit(b));
+          if (!b.size()) {
             return;
           }
         }
-        _write_buf.push_back(b->split(b->size()));
+        _write_buf.push_back(b.split(b.size()));
         std::cout << "write queue: " << _write_buf.size() << std::endl;
         if (_write_buf.size() > 100 << 20) { // 100 MiB
           std::cout << "Closing connection due to slow reader" << std::endl;
-          _channel->close();
+          _pipe->close();
         }
       }
     };
 
     template < address_family af, protocol proto >
-    client_channel< af, proto >::client_channel(stream_client_socket s)
+    client_pipe< af, proto >::client_pipe(stream_client_socket s)
         : stream_client_socket(move(s)) {
       xi::async::io_handler::descriptor(native_handle());
-      this->pipe()->push_back(make< data_sink >(this));
+      this->push_back(make< data_sink >(this));
     }
 
     template < address_family af, protocol proto = kNone >
-    struct channel_factory : public virtual ownership::std_shared {
-      using channel_t = client_channel< af, proto >;
+    struct pipe_factory : public virtual ownership::std_shared {
+      using pipe_t = client_pipe< af, proto >;
       using endpoint_t = endpoint< af >;
 
-      virtual ~channel_factory() = default;
-      virtual own< channel_t > create_channel(stream_client_socket) = 0;
+      virtual ~pipe_factory() = default;
+      virtual own< pipe_t > create_pipe(stream_client_socket) = 0;
     };
 
     template < address_family af, protocol proto = kNone >
-    class acceptor final : public xi::async::io_handler,
-                           public stream_server_socket,
-                           public channel_interface {
+    using pipe_acceptor_base =
+        pipes::pipe< pipes::in< own< client_pipe< af, proto > > >,
+                     pipes::in< error_code >, pipes::in< exception_ptr > >;
+
+    template < address_family af, protocol proto = kNone >
+    class acceptor_pipe final : public xi::async::io_handler,
+                                public stream_server_socket,
+                                public channel_interface,
+                                public pipe_acceptor_base< af, proto > {
       using endpoint_type = endpoint< af >;
-      using client_channel_type = client_channel< af, proto >;
+      using client_pipe_type = client_pipe< af, proto >;
 
-      pipes::pipe< pipes::in< own< client_channel_type > >,
-                   pipes::in< error_code >, pipes::in< exception_ptr > > _pipe{
-          this};
-
-      own< channel_factory< af, proto > > _channel_factory;
+      own< pipe_factory< af, proto > > _pipe_factory;
 
     public:
-      acceptor() : stream_server_socket(af, proto) {
+      acceptor_pipe()
+          : stream_server_socket(af, proto)
+          , pipe_acceptor_base< af, proto >(this) {
         xi::async::io_handler::descriptor(native_handle());
       }
 
-      auto pipe() {
-        return edit(_pipe);
-      }
-
-      void set_channel_factory(own< channel_factory< af, proto > > f) {
-        _channel_factory = move(f);
+      void set_pipe_factory(own< pipe_factory< af, proto > > f) {
+        _pipe_factory = move(f);
       }
 
       void bind(endpoint_type ep) {
@@ -270,30 +272,40 @@ namespace io {
       }
 
       void close() override {
-        this->cancel();
+        xi::async::io_handler::cancel();
+        stream_server_socket::close();
       }
 
       void handle_read() final override {
         endpoint_type remote;
         auto client = accept();
         if (client.has_error()) {
-          _pipe.read(client.error());
+          this->read(client.error());
         } else {
           auto socket = client.move_value();
           try {
-            own< client_channel_type > ch;
-            if (is_valid(_channel_factory)) {
-              ch = _channel_factory->create_channel(move(socket));
+            own< client_pipe_type > ch;
+            if (is_valid(_pipe_factory)) {
+              ch = _pipe_factory->create_pipe(move(socket));
             } else {
-              ch = make< client_channel_type >(move(socket));
+              ch = make< client_pipe_type >(move(socket));
             }
-            _pipe.read(move(ch));
+            this->read(move(ch));
           } catch (...) {
-            _pipe.read(current_exception());
+            this->read(current_exception());
           }
         }
       }
     };
+
+    using ip_datagram = datagram< kInet >;
+    using unix_datagram = datagram< kUnix >;
+    using tcp_stream_pipe = client_pipe< kInet, kTCP >;
+    using udp_datagram_pipe = datagram_pipe< kInet, kUDP >;
+    using unix_stream_pipe = client_pipe< kUnix >;
+    using unix_datagram_pipe = datagram_pipe< kUnix >;
+    using tcp_acceptor_pipe = acceptor_pipe< kInet, kTCP >;
+    using unix_acceptor_pipe = acceptor_pipe< kUnix >;
   }
 }
 }

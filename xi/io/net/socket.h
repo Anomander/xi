@@ -93,16 +93,16 @@ namespace io {
           , bindable_socket_adapter(this->native_handle()) {
       }
 
-      expected< i32 > write(mut< buffer > b, posix_endpoint) const;
-      expected< i32 > read(mut< buffer > b, posix_endpoint) const;
+      expected< i32 > write_buffer_to(mut< buffer > b, posix_endpoint) const;
+      expected< i32 > read_buffer_from(mut< buffer > b, posix_endpoint) const;
     };
 
     struct stream_client_socket : public data_socket {
     public:
       stream_client_socket(i32 desc);
 
-      expected< i32 > write(mut< buffer > b) const;
-      expected< i32 > read(mut< buffer > b) const;
+      expected< i32 > write_buffer(mut< buffer > b) const;
+      expected< i32 > read_buffer(mut< buffer > b) const;
     };
 
     class stream_server_socket : public socket,

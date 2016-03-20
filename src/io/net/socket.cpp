@@ -131,11 +131,11 @@ namespace io {
       return ret;
     }
 
-    expected< i32 > stream_client_socket::write(mut< buffer > b) const {
+    expected< i32 > stream_client_socket::write_buffer(mut< buffer > b) const {
       return data_socket::write(b, none);
     }
 
-    expected< i32 > datagram_socket::write(mut< buffer > b,
+    expected< i32 > datagram_socket::write_buffer_to(mut< buffer > b,
                                            posix_endpoint remote) const {
       return data_socket::write(b, some(remote));
     }
@@ -180,11 +180,11 @@ namespace io {
       return r;
     }
 
-    expected< i32 > stream_client_socket::read(mut< buffer > b) const {
+    expected< i32 > stream_client_socket::read_buffer(mut< buffer > b) const {
       return data_socket::read(b, none);
     }
 
-    expected< i32 > datagram_socket::read(mut< buffer > b,
+    expected< i32 > datagram_socket::read_buffer_from(mut< buffer > b,
                                           posix_endpoint remote) const {
       return data_socket::read(b, some(remote));
     }

@@ -9,6 +9,7 @@
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
 
+
 #include <signal.h>
 
 using namespace xi;
@@ -24,37 +25,58 @@ alignas(64) static thread_local struct {
   usize w_bytes = 0;
 } stats;
 
-class logging_filter : public pipes::filter< mut< buffer > > {
+class logging_filter : public pipes::filter< buffer, net::ip_datagram,
+                                             net::unix_datagram > {
 public:
   logging_filter() {
     ++stats.connections;
   }
-  void read(mut< context > cx, mut< buffer > b) override {
+  void read(mut< context > cx, buffer b) override {
     ++stats.reads;
-    stats.r_bytes += b->size();
+    stats.r_bytes += b.size();
     cx->forward_read(move(b));
   }
 
-  void write(mut< context > cx, mut< buffer > b) override {
+  void write(mut< context > cx, buffer b) override {
     ++stats.writes;
-    stats.w_bytes += b->size();
+    stats.w_bytes += b.size();
+    cx->forward_write(move(b));
+  }
+  void read(mut< context > cx, net::ip_datagram b) override {
+    ++stats.reads;
+    stats.r_bytes += b.data.size();
+    cx->forward_read(move(b));
+  }
+  void read(mut< context > cx, net::unix_datagram b) override {
+    ++stats.reads;
+    stats.r_bytes += b.data.size();
+    cx->forward_read(move(b));
+  }
+  void write(mut< context > cx, net::ip_datagram b) override {
+    ++stats.writes;
+    stats.w_bytes += b.data.size();
+    cx->forward_write(move(b));
+  }
+  void write(mut< context > cx, net::unix_datagram b) override {
+    ++stats.writes;
+    stats.w_bytes += b.data.size();
     cx->forward_write(move(b));
   }
 };
 
-class range_echo
-  : public pipes::filter< mut< buffer >, net::datagram< net::kUnix >, net::datagram< net::kInet > > {
+class range_echo : public pipes::filter< buffer, net::ip_datagram,
+                                         net::unix_datagram > {
 public:
-  void read(mut< context > cx, mut< buffer > b) override {
+  void read(mut< context > cx, buffer b) override {
     // std::cout << "Got buffer " << b->size() << std::endl;
-    cx->forward_write(b);
-  }
-  void read(mut< context > cx, net::datagram< net::kInet > b) override {
-    std::cout << "Got datagram " << b.data.size() << std::endl;
     cx->forward_write(move(b));
   }
-  void read(mut< context > cx, net::datagram< net::kUnix > b) override {
-    std::cout << "Got unix datagram " << b.data.size() << std::endl;
+  void read(mut< context > cx, net::ip_datagram b) override {
+    // std::cout << "Got datagram " << b.data.size() << std::endl;
+    cx->forward_write(move(b));
+  }
+  void read(mut< context > cx, net::unix_datagram b) override {
+    // std::cout << "Got unix datagram " << b.data.size() << std::endl;
     cx->forward_write(move(b));
   }
 };
@@ -377,7 +399,7 @@ private:
   }
 };
 
-class http2_codec : public pipes::context_aware_filter< mut< buffer > >,
+class http2_codec : public pipes::context_aware_filter< buffer >,
                     public http2_delegate {
 
   http2_frame_decoder _decoder{this};
@@ -395,9 +417,9 @@ public:
   http2_codec(own< buffer_allocator > alloc) : _alloc(move(alloc)) {
   }
 
-  void read(mut< context > cx, mut< buffer > in) final override {
+  void read(mut< context > cx, buffer in) final override {
     std::cout << "Decoder: " << &_decoder << std::endl;
-    _decoder.decode(in);
+    _decoder.decode(edit(in));
     // cx->pipe()->push_front(make<range_echo>());
     // std::cout << "Removing this" << std::endl;
     // cx->pipe()->remove(cx);
@@ -431,25 +453,25 @@ public:
   void settings_end() override {
     auto b = _alloc->allocate(1 << 10);
     b.write(byte_range{"\0\0\0\4\1\0\0\0\0"});
-    my_context()->forward_write(edit(b));
+    my_context()->forward_write(move(b));
   }
   void send_connection_error(http2::error e) override {
     auto b = _alloc->allocate(1 << 10);
     b.write(byte_range{"\0\0\x8\7\0\0\0\0\0\0\0\0\0\0\0\0"});
     b.write(byte_range{e});
-    my_context()->forward_write(edit(b));
+    my_context()->forward_write(move(b));
     my_context()->channel()->close();
   }
 };
 
-class http2_channel : public net::client_channel< net::kInet, net::kTCP > {
+class http2_pipe : public net::client_pipe< net::kInet, net::kTCP > {
 public:
   template < class... A >
-  http2_channel(A&&... args)
-      : client_channel(forward< A >(args)...) {
-    pipe()->push_back(make< logging_filter >());
-    // pipe()->push_back(make< range_echo >());
-    pipe()->push_back(make< http2_codec >(alloc()));
+  http2_pipe(A&&... args)
+      : client_pipe(forward< A >(args)...) {
+    push_back(make< logging_filter >());
+    push_back(make< range_echo >());
+    push_back(make< http2_codec >(alloc()));
   }
 };
 
@@ -457,50 +479,44 @@ using reactive_service = xi::async::sharded_service<
     xi::async::reactor_service< libevent::reactor > >;
 
 template < net::address_family af, net::protocol p >
-class channel_initialize_filter
+class pipe_initialize_filter
     : public pipes::filter<
-          pipes::in< own< net::client_channel< net::kInet, net::kTCP > > > > {
+          pipes::in< own< net::client_pipe< net::kInet, net::kTCP > > > > {
   mut< reactive_service > _reactive_service;
   mut< core::executor_pool > _pool;
 
 protected:
-  using channel = net::client_channel< af, p >;
-  using base = channel_initialize_filter;
+  using pipe = net::client_pipe< af, p >;
+  using base = pipe_initialize_filter;
 
-  void read(mut< context > cx, own< channel > ch) final override {
+  void read(mut< context > cx, own< pipe > ch) final override {
     _pool->post([ this, rs = _reactive_service, ch = move(ch) ]() mutable {
-      initialize_channel(edit(ch));
+      initialize_pipe(edit(ch));
       rs->local()->reactor()->attach_handler(move(ch));
     });
   }
 
 public:
-  channel_initialize_filter(mut< reactive_service > rs,
-                            mut< core::executor_pool > pool)
+  pipe_initialize_filter(mut< reactive_service > rs,
+                         mut< core::executor_pool > pool)
       : _reactive_service(rs), _pool(pool) {
   }
 
-  virtual ~channel_initialize_filter() = default;
-  virtual void initialize_channel(mut< channel > ch) = 0;
+  virtual ~pipe_initialize_filter() = default;
+  virtual void initialize_pipe(mut< pipe > ch) = 0;
 };
 
-struct http2_channel_factory
-    : public net::channel_factory< net::kInet, net::kTCP > {
-  own< channel_t > create_channel(net::stream_client_socket s) override {
-    return make< http2_channel >(move(s));
+struct http2_pipe_factory : public net::pipe_factory< net::kInet, net::kTCP > {
+  own< pipe_t > create_pipe(net::stream_client_socket s) override {
+    return make< http2_pipe >(move(s));
   }
 };
 
-class http2_handler
-    : public channel_initialize_filter< net::kInet, net::kTCP > {
+class http2_handler : public pipe_initialize_filter< net::kInet, net::kTCP > {
 public:
   using base::base;
 
-  void initialize_channel(mut< channel > ch) override {
-    // ch->pipe()->push_back(make< logging_filter >());
-    // ch->pipe()->push_back(make< fixed_length_frame_decoder >(1 << 12));
-    // ch->pipe()->push_back(make< http2_frame_decoder >());
-    // ch->pipe()->push_back(make< range_echo >());
+  void initialize_pipe(mut< pipe > ch) override {
   }
 };
 
@@ -519,26 +535,25 @@ int main(int argc, char* argv[]) {
 
         r_service = make< reactive_service >(share(pool));
         r_service->start().then([=, &pool, &r_service] {
-          auto acc = make< net::acceptor< net::kInet, net::kTCP > >();
-          // auto dgram = make< net::datagram_channel< net::kInet, net::kUDP > >();
-          auto dgram = make< net::datagram_channel< net::kUnix, net::kNone > >();
-          dgram->pipe()->push_back(make< range_echo >());
+          auto acc = make< net::tcp_acceptor_pipe >();
+          auto dgram = make< net::udp_datagram_pipe >();
+          // auto dgram = make< net::unix_datagram_pipe >();
+          dgram->push_back(make< range_echo >());
 
           std::cout << "Acceptor created." << std::endl;
           try {
             acc->bind(argc > 1 ? atoi(argv[1]) : 19999);
-            auto path = argc > 1 ? argv[1] : "/tmp/xi.sock";
-            unlink(path); // FIXME: will do for now
-            dgram->bind(path);
-            // dgram->bind(argc > 1 ? atoi(argv[1]) : 19999);
+            // auto path = argc > 1 ? argv[1] : "/tmp/xi.sock";
+            // unlink(path); // FIXME: will do for now
+            // dgram->bind(path);
+            dgram->bind(argc > 1 ? atoi(argv[1]) : 19999);
           } catch (ref< std::exception > e) {
             std::cout << "Bind error: " << e.what() << std::endl;
             exit(1);
           }
           std::cout << "Acceptor bound." << std::endl;
-          acc->set_channel_factory(make< http2_channel_factory >());
-          acc->pipe()->push_back(
-              make< http2_handler >(edit(r_service), edit(pool)));
+          acc->set_pipe_factory(make< http2_pipe_factory >());
+          acc->push_back(make< http2_handler >(edit(r_service), edit(pool)));
           acc->set_child_options(net::option::tcp::no_delay::yes);
 
           pool->post([&r_service, acc = move(acc), dgram = move(dgram) ] {
@@ -549,8 +564,8 @@ int main(int argc, char* argv[]) {
           });
         });
         k->before_shutdown().then([&] {
-            r_service->stop();
-            pool->post_on_all([&] {
+          r_service->stop();
+          pool->post_on_all([&] {
             auto lock = make_unique_lock(sl);
             std::cout << pthread_self() << "\nconns : " << stats.connections
                       << "\nreads : " << stats.reads

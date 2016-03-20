@@ -44,11 +44,11 @@ namespace test {
     }
 
     auto read(mut< buffer > b) {
-      return _socket->read(b, _last_endpoint.to_posix());
+      return _socket->read_buffer_from(b, _last_endpoint.to_posix());
     }
 
     auto write(mut< buffer > b) {
-      return _socket->write(b, _last_endpoint.to_posix());
+      return _socket->write_buffer_to(b, _last_endpoint.to_posix());
     }
 
     void test_big_writes(int);
