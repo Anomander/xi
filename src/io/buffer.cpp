@@ -25,7 +25,6 @@ namespace io {
     assert(b);
     _size = b->size();
     _fragments.push_back(*b.release());
-    _write_cursor = _fragments.begin();
   }
 
   buffer::buffer(list_t&& fragments, usize sz)
@@ -143,8 +142,10 @@ namespace io {
   }
 
   usize buffer::read(byte_range r) {
-    if (empty() || r.empty())
+    if (XI_UNLIKELY(empty() || r.empty())) {
       return 0;
+    }
+
     auto sz = r.size();
     for (auto& c : _fragments) {
       c.read(r);
@@ -157,30 +158,19 @@ namespace io {
   }
 
   usize buffer::write(const byte_range r) {
-    if (empty() || r.empty())
+    if (XI_UNLIKELY(empty() || r.empty())) {
       return 0;
+    }
 
-    auto beg = _fragments.rbegin();
-    auto end = _fragments.rend();
-    while (beg != end && beg->size() == 0) {
-      ++beg;
-    }
-    auto it = (beg == end) ? _fragments.begin() : beg.base();
-    usize sz = r.size();
-    for (; it != _fragments.end(); ++it) {
-      auto ret = it->write(r);
-      r = r.subrange(ret);
-      if (r.empty()) {
-        break;
-      }
-    }
-    _size += sz - r.size();
-    return sz - r.size();
+    auto ret = prev(end(_fragments))->write(r);
+    _size += ret;
+    return ret;
   }
 
   void buffer::skip_bytes(usize sz, bool free) {
-    if (empty())
+    if (XI_UNLIKELY(empty())) {
       return;
+    }
 
     auto remainder = sz;
     auto beg = _fragments.begin();
@@ -201,8 +191,9 @@ namespace io {
   }
 
   void buffer::ignore_bytes_at_end(usize sz, bool free) {
-    if (empty())
+    if (XI_UNLIKELY(empty())) {
       return;
+    }
 
     auto remainder = sz;
     auto beg = _fragments.rbegin();

@@ -5,6 +5,8 @@
 namespace xi {
 namespace io {
 
+  // FIXME: you can now get a const string and make a mutable
+  //        range out of it
   class byte_range {
     mutable u8 *_data = nullptr;
     mutable usize _size = 0u;
@@ -51,16 +53,15 @@ namespace io {
           _size(l) {
     }
 
-    template < class T >
-    explicit byte_range(T &t) noexcept
-        : byte_range(reinterpret_cast< u8 * >(&t), sizeof(T)) {
-    }
-
-    explicit byte_range(string &arr, usize sz = -1) noexcept
+    explicit byte_range(string &arr, usize sz) noexcept
         : byte_range((u8 *)arr.data(), min(sz, arr.size())) {
     }
 
-    explicit byte_range(string_ref &arr, usize sz = -1) noexcept
+    explicit byte_range(string const &arr, usize sz) noexcept
+        : byte_range((u8 *)arr.data(), min(sz, arr.size())) {
+    }
+
+    explicit byte_range(string_ref arr, usize sz = -1) noexcept
         : byte_range((u8 *)arr.data(), min(sz, arr.size())) {
     }
 
@@ -71,6 +72,12 @@ namespace io {
 
     template < class T >
     explicit byte_range(vector< T > &arr, usize sz = -1) noexcept
+        : byte_range(reinterpret_cast< u8 * >(arr.data()),
+                     min(sz, arr.size()) * sizeof(T)) {
+    }
+
+    template < class T >
+    explicit byte_range(vector< T > const &arr, usize sz = -1) noexcept
         : byte_range(reinterpret_cast< u8 * >(arr.data()),
                      min(sz, arr.size()) * sizeof(T)) {
     }
@@ -107,5 +114,17 @@ namespace io {
       return const_cast< byte_range * >(this)->subrange(offset, length);
     }
   };
+
+  template < class T >
+  const byte_range byte_range_for_object(T const & t) noexcept {
+    std::cout << sizeof(T) << std::endl;
+    return byte_range((u8 *)(&t), sizeof(T));
+  }
+
+  template < class T >
+  byte_range byte_range_for_object(T & t) noexcept {
+    std::cout << sizeof(T) << std::endl;
+    return byte_range((u8 *)(&t), sizeof(T));
+  }
 }
 }

@@ -13,7 +13,6 @@ namespace io {
                          intrusive::link_mode< intrusive::normal_link >,
                          intrusive::constant_time_size< true > >;
     list_t _fragments;
-    list_t::iterator _write_cursor;
     usize _size = 0;
 
   private:
@@ -46,10 +45,11 @@ namespace io {
     usize read(byte_range);
     usize write(const byte_range);
 
-    template < class T > opt< T > read() {
+    template < class T >
+    opt< T > read() {
       if (size() >= sizeof(T)) {
         T value;
-        read(byte_range{value});
+        read(byte_range_for_object(value));
         skip_bytes(sizeof(T));
         return some(value);
       }

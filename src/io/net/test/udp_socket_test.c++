@@ -124,14 +124,11 @@ namespace test {
   }
 
   TEST_F(client, large_messages_are_rejected) {
-    buffer b;
+    buffer b = ALLOC->allocate(100 * 1024);
     auto in = prepare_data(100 * 1024);
-    for (int i = 0; i < 1024; ++i) {
-      b.push_back(ALLOC->allocate(100));
-    }
     b.write(byte_range{in});
     EXPECT_EQ(100u * 1024, b.size());
-    EXPECT_EQ(1024u, b.length());
+    EXPECT_EQ(1u, b.length());
 
     auto ret = write(edit(b));
     EXPECT_TRUE(ret.has_error());

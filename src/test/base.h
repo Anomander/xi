@@ -10,16 +10,25 @@ namespace xi {
       own< test::mock_kernel > _kernel;
 
     public:
-      void SetUp() override {
+      virtual void set_up() {
         _kernel = make< test::mock_kernel >();
       }
-      void TearDown() override {
+      virtual void tear_down() {
       }
 
     protected:
       void poll_core(u16 id = kCurrentThread) {
         _kernel->run_core(id);
       }
+
+    private:
+      void SetUp() final override {
+        set_up();
+      }
+      void TearDown() final override {
+        tear_down();
+      }
+
     };
 
   }

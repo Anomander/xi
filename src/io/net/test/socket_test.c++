@@ -126,14 +126,11 @@ TEST_F(client, read_more_data_and_close) {
 }
 
 void client::test_big_writes(int how_big) {
-  buffer b;
+  buffer b = ALLOC->allocate(100 * how_big);
   auto in = prepare_data(100 * how_big);
-  for (int i = 0; i < how_big; ++i) {
-    b.push_back(ALLOC->allocate(100));
-  }
   b.write(byte_range{in});
   EXPECT_EQ(100u * how_big, b.size());
-  EXPECT_EQ((usize)how_big, b.length());
+  EXPECT_EQ(1u, b.length());
 
   auto ret = write(edit(b));
   ASSERT_FALSE(ret.has_error());

@@ -1,7 +1,8 @@
 file(GLOB xi_io_SRC "*.cpp")
 
-add_subdirectory(pipes)
 add_subdirectory(net)
+add_subdirectory(pipes)
+add_subdirectory(proto)
 
 set(xi_SRC ${xi_SRC} ${xi_io_SRC} PARENT_SCOPE)
 
