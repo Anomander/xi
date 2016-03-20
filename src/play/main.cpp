@@ -43,7 +43,7 @@ public:
 };
 
 class range_echo
-    : public pipes::filter< mut< buffer >, net::datagram< net::kInet > > {
+  : public pipes::filter< mut< buffer >, net::datagram< net::kUnix >, net::datagram< net::kInet > > {
 public:
   void read(mut< context > cx, mut< buffer > b) override {
     // std::cout << "Got buffer " << b->size() << std::endl;
@@ -51,6 +51,10 @@ public:
   }
   void read(mut< context > cx, net::datagram< net::kInet > b) override {
     std::cout << "Got datagram " << b.data.size() << std::endl;
+    cx->forward_write(move(b));
+  }
+  void read(mut< context > cx, net::datagram< net::kUnix > b) override {
+    std::cout << "Got unix datagram " << b.data.size() << std::endl;
     cx->forward_write(move(b));
   }
 };
@@ -516,13 +520,17 @@ int main(int argc, char* argv[]) {
         r_service = make< reactive_service >(share(pool));
         r_service->start().then([=, &pool, &r_service] {
           auto acc = make< net::acceptor< net::kInet, net::kTCP > >();
-          auto dgram = make< net::datagram_channel< net::kInet, net::kUDP > >();
+          // auto dgram = make< net::datagram_channel< net::kInet, net::kUDP > >();
+          auto dgram = make< net::datagram_channel< net::kUnix, net::kNone > >();
           dgram->pipe()->push_back(make< range_echo >());
 
           std::cout << "Acceptor created." << std::endl;
           try {
             acc->bind(argc > 1 ? atoi(argv[1]) : 19999);
-            dgram->bind(argc > 1 ? atoi(argv[1]) : 19999);
+            auto path = argc > 1 ? argv[1] : "/tmp/xi.sock";
+            unlink(path); // FIXME: will do for now
+            dgram->bind(path);
+            // dgram->bind(argc > 1 ? atoi(argv[1]) : 19999);
           } catch (ref< std::exception > e) {
             std::cout << "Bind error: " << e.what() << std::endl;
             exit(1);
@@ -541,7 +549,8 @@ int main(int argc, char* argv[]) {
           });
         });
         k->before_shutdown().then([&] {
-          pool->post_on_all([&] {
+            r_service->stop();
+            pool->post_on_all([&] {
             auto lock = make_unique_lock(sl);
             std::cout << pthread_self() << "\nconns : " << stats.connections
                       << "\nreads : " << stats.reads

@@ -37,7 +37,8 @@ protected:
     _client = make_unique< test::tcp_socket_mock >();
     _server = make_unique< stream_server_socket >(kInet, kTCP);
     _server->set_option(option::socket::reuse_address::yes);
-    _server->bind(PORT);
+    endpoint<kInet> ep {PORT};
+    _server->bind(ep.to_posix());
   }
 
   void TearDown() override {
@@ -74,18 +75,19 @@ TEST_F(stream_server_test, accept_client) {
 TEST_F(stream_server_test, double_bind) {
   stream_server_socket s1(kInet, kTCP), s2(kInet, kTCP);
 
-  s1.bind(19191);
-  EXPECT_SYSTEM_ERROR(EINVAL, s1.bind(19191));
-  EXPECT_SYSTEM_ERROR(EADDRINUSE, s2.bind(19191));
+  endpoint<kInet> ep {19191};
+  s1.bind(ep.to_posix());
+  EXPECT_SYSTEM_ERROR(EINVAL, s1.bind(ep.to_posix()));
+  EXPECT_SYSTEM_ERROR(EADDRINUSE, s2.bind(ep.to_posix()));
 
   // option doesn't change anything
   s2.set_option(option::socket::reuse_address::yes);
-  EXPECT_SYSTEM_ERROR(EADDRINUSE, s2.bind(19191));
+  EXPECT_SYSTEM_ERROR(EADDRINUSE, s2.bind(ep.to_posix()));
 
   s1.close();
 
   // succeeds now
-  s2.bind(19191);
+  s2.bind(ep.to_posix());
 }
 
 TEST_F(stream_server_test, connect_and_close_before_accept) {

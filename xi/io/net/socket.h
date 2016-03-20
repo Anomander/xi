@@ -54,25 +54,23 @@ namespace io {
     }
 
     struct data_socket : public socket {
-      opt< endpoint< kInet > > _remote = none;
-
     public:
       using socket::socket;
 
-      expected< i32 > write(
-          mut< buffer > b, opt< mut< endpoint< kInet > > > remote = none) const;
+      expected< i32 > write(mut< buffer > b,
+                            opt< posix_endpoint > remote = none) const;
 
       expected< i32 > read(mut< buffer > b,
-                           opt< mut< endpoint< kInet > > > remote = none) const;
+                           opt< posix_endpoint > remote = none) const;
 
     private:
       expected< i32 > write_iov(
           struct iovec *iov, usize iov_len,
-          opt< mut< endpoint< kInet > > > remote = none) const;
+          opt< posix_endpoint > remote = none) const;
 
       expected< i32 > read_iov(
           struct iovec *iov, usize iov_len,
-          opt< mut< endpoint< kInet > > > remote = none) const;
+          opt< posix_endpoint > remote = none) const;
     };
 
     struct bindable_socket_adapter {
@@ -82,34 +80,33 @@ namespace io {
       bindable_socket_adapter(i32 descriptor) : _descriptor(descriptor) {
       }
 
-      virtual void bind(ref< endpoint< kInet > > local);
+      virtual void bind(posix_endpoint local);
     };
 
     struct datagram_socket : public data_socket,
                              public bindable_socket_adapter {
-      opt< endpoint< kInet > > _remote = none;
+      opt< posix_endpoint > _remote = none;
 
     public:
       datagram_socket(i32 af, i32 proto)
           : data_socket(af, kDatagram, proto)
-          , bindable_socket_adapter(native_handle()) {
+          , bindable_socket_adapter(this->native_handle()) {
       }
 
-      expected< i32 > write(mut< buffer > b, mut< endpoint< kInet > >) const;
-      expected< i32 > read(mut< buffer > b, mut< endpoint< kInet > >) const;
+      expected< i32 > write(mut< buffer > b, posix_endpoint) const;
+      expected< i32 > read(mut< buffer > b, posix_endpoint) const;
     };
 
     struct stream_client_socket : public data_socket {
-      endpoint< kInet > _remote;
-
     public:
-      stream_client_socket(i32 desc, opt< endpoint< kInet > > remote = none);
+      stream_client_socket(i32 desc);
 
       expected< i32 > write(mut< buffer > b) const;
       expected< i32 > read(mut< buffer > b) const;
     };
 
-    class stream_server_socket : public socket, public bindable_socket_adapter {
+    class stream_server_socket : public socket,
+                                 public bindable_socket_adapter {
       using option_t = tuple< int, int, int, int >;
       vector< option_t > _child_options;
 
@@ -122,10 +119,10 @@ namespace io {
     public:
       stream_server_socket(int af, int proto)
           : socket(af, kStream, proto)
-          , bindable_socket_adapter(native_handle()) {
+          , bindable_socket_adapter(this->native_handle()) {
       }
 
-      void bind(ref< endpoint< kInet > > local) override;
+      void bind(posix_endpoint local) override;
       expected< stream_client_socket > accept();
 
       template < class... O >

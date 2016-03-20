@@ -94,6 +94,10 @@ namespace io {
 
       datagram_channel();
 
+      void bind(endpoint_t ep) {
+        datagram_socket::bind(ep.to_posix());
+      }
+
       using socket_base< af, kDatagram, proto >::close;
     };
 
@@ -113,8 +117,8 @@ namespace io {
           case channel_event::kReadable: {
             auto b = _channel->alloc()->allocate(1 << 20);
             endpoint_t remote;
-            auto ret = _channel->read(edit(b), edit(remote));
-            std::cout << "Read " << ret << " bytes." << std::endl;
+            auto ret = _channel->read(edit(b), remote.to_posix());
+            std::cout << "Read " << ret << " bytes from " << remote.to_string() << std::endl;
             if (ret.has_error()) {
               if (ret.error() == error::kEOF) {
                 _channel->close();
@@ -142,7 +146,8 @@ namespace io {
         };
       }
       void write(mut< context > cx, datagram< af > b) override {
-        _channel->write(edit(b.data), edit(b.remote));
+        std::cout << "Writing " << b.data.size() << " bytes to " << b.remote.to_string() << std::endl;
+        _channel->write(edit(b.data), b.remote.to_posix());
       }
     };
 
@@ -254,6 +259,10 @@ namespace io {
 
       void set_channel_factory(own< channel_factory< af, proto > > f) {
         _channel_factory = move(f);
+      }
+
+      void bind(endpoint_type ep) {
+        stream_server_socket::bind(ep.to_posix());
       }
 
     private:

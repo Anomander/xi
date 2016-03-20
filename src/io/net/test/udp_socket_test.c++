@@ -28,7 +28,8 @@ namespace test {
       _remote.bind(54321);
       _remote.connect(12345);
       _socket = make_unique< datagram_socket >(kInet, kUDP);
-      _socket->bind(12345);
+      endpoint<kInet> ep {12345};
+      _socket->bind(ep.to_posix());
     }
 
     void TearDown() override {
@@ -43,11 +44,11 @@ namespace test {
     }
 
     auto read(mut< buffer > b) {
-      return _socket->read(b, edit(_last_endpoint));
+      return _socket->read(b, _last_endpoint.to_posix());
     }
 
     auto write(mut< buffer > b) {
-      return _socket->write(b, edit(_last_endpoint));
+      return _socket->write(b, _last_endpoint.to_posix());
     }
 
     void test_big_writes(int);
