@@ -1,7 +1,5 @@
 #include "xi/io/pipes/all.h"
-#include "src/test/mock_kernel.h"
-
-#include <gtest/gtest.h>
+#include "src/test/base.h"
 
 using namespace xi;
 using namespace xi::io;
@@ -207,16 +205,7 @@ TEST(simple, skip_level_message_passing) {
   EXPECT_EQ(5, f4->I);
 }
 
-struct kernel_test : public ::testing::Test {
-  own< test::mock_kernel > _kernel;
-  void SetUp() override {
-    _kernel = make< test::mock_kernel >();
-  }
-  void TearDown() override {
-  }
-};
-
-struct remove_test : public kernel_test {};
+struct remove_test : public test::base {};
 
 TEST_F(remove_test, single_handler) {
   class filter1 : public int_filter {
@@ -243,7 +232,7 @@ TEST_F(remove_test, single_handler) {
   EXPECT_EQ(4, f1->I);
 
   EXPECT_TRUE(is_shared(f1)); // deferred
-  _kernel->run_core(test::kCurrentThread);
+  poll_core();
   EXPECT_FALSE(is_shared(f1));
 
   p->read(1);
@@ -281,7 +270,7 @@ TEST_F(remove_test, single_handler_multiple_times) {
   EXPECT_EQ(4, f1->I);
 
   EXPECT_TRUE(is_shared(f1)); // deferred
-  _kernel->run_core(test::kCurrentThread);
+  poll_core();
   EXPECT_FALSE(is_shared(f1));
 
   p->read(1);

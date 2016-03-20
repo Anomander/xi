@@ -42,13 +42,14 @@ public:
   }
 };
 
-class range_echo : public pipes::filter< mut< buffer >, net::datagram<net::kInet> > {
+class range_echo
+    : public pipes::filter< mut< buffer >, net::datagram< net::kInet > > {
 public:
   void read(mut< context > cx, mut< buffer > b) override {
     // std::cout << "Got buffer " << b->size() << std::endl;
     cx->forward_write(b);
   }
-  void read(mut< context > cx, net::datagram<net::kInet> b) override {
+  void read(mut< context > cx, net::datagram< net::kInet > b) override {
     std::cout << "Got datagram " << b.data.size() << std::endl;
     cx->forward_write(move(b));
   }

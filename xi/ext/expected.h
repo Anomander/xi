@@ -8,7 +8,8 @@
 namespace xi {
 inline namespace ext {
 
-  template < class T > class expected {
+  template < class T >
+  class expected {
   public:
     expected(T val) : _value(move(val)) {
     }
@@ -50,7 +51,8 @@ inline namespace ext {
     variant< T, error_code > _value;
   };
 
-  template <> class expected< void > {
+  template <>
+  class expected< void > {
   public:
     expected() = default;
 
@@ -94,7 +96,8 @@ inline namespace ext {
         return f();
       }
     };
-    template < class T, class F > struct expected_from_return< T, F, void > {
+    template < class T, class F >
+    struct expected_from_return< T, F, void > {
       using type = expected< void >;
       static expected< void > create(expected< T > const &val, F &f) {
         f(val.value());
@@ -104,12 +107,13 @@ inline namespace ext {
   }
 
   template < class F, class... A >
-  auto posix_to_expected(F f, A &&... args) -> expected<result_of_t<F(A&&...)>> {
+  auto posix_to_expected(F f, A &&... args) {
     auto ret = f(forward< A >(args)...);
+    using return_t = expected< decltype(ret) >;
     if (-1 == ret) {
-      return error_from_errno();
+      return return_t{error_from_errno()};
     }
-    return {ret};
+    return return_t{ret};
   }
 
   template < class T, class F >

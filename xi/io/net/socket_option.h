@@ -23,11 +23,11 @@ namespace io {
       socket_option(ValueType value) : _value(value) {
       }
 
-      operator ValueType() {
+      operator ValueType() const {
         return _value;
       }
 
-      ValueType value() {
+      ValueType value() const {
         return _value;
       }
 

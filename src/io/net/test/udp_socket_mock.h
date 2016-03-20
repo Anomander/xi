@@ -6,14 +6,12 @@
 #include "xi/ext/configure.h"
 
 namespace xi {
-namespace io {
-  namespace test {
-    class tcp_socket_mock {
+namespace test {
+  namespace io {
+    class udp_socket_mock {
     public:
-      tcp_socket_mock(int fd) : _descriptor(fd) {
-      }
-      tcp_socket_mock()
-          : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
+      udp_socket_mock()
+          : _descriptor(::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) {
       }
 
       /// will only be connecting to classes under test,
@@ -59,26 +57,6 @@ namespace io {
         return ret;
       }
 
-      void close() {
-        if (-1 == _descriptor)
-          return;
-        auto ret = ::close(_descriptor);
-        if (-1 == ret) {
-          throw system_error(error_from_errno());
-        }
-        _descriptor = -1;
-      }
-
-    private:
-      int _descriptor;
-    };
-
-    class tcp_acceptor_mock {
-    public:
-      tcp_acceptor_mock()
-          : _descriptor(::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) {
-      }
-
       /// will only be connecting to classes under test,
       /// so localhost only
       void bind(uint16_t port) {
@@ -96,25 +74,16 @@ namespace io {
         if (-1 == ret) {
           throw system_error(error_from_errno());
         }
-        ret = ::listen(_descriptor, 1024); // TODO: clean up
-        if (-1 == ret) {
-          throw system_error(error_from_errno());
-        }
-      }
-
-      int accept() {
-        auto ret = ::accept(_descriptor, (struct sockaddr *)nullptr, 0);
-        if (-1 == ret) {
-          throw system_error(error_from_errno());
-        }
-        return ret;
       }
 
       void close() {
+        if (-1 == _descriptor)
+          return;
         auto ret = ::close(_descriptor);
         if (-1 == ret) {
           throw system_error(error_from_errno());
         }
+        _descriptor = -1;
       }
 
     private:

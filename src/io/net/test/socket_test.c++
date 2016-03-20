@@ -21,7 +21,7 @@ protected:
 
 protected:
   void SetUp() override {
-    _acceptor.listen(12345);
+    _acceptor.bind(12345);
     _remote.connect(12345);
     _socket = make_unique< stream_client_socket >(_acceptor.accept());
   }

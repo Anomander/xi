@@ -145,10 +145,11 @@ namespace io {
     template < class O >
     inline expected< O > socket::get_option() {
       typename O::value_t value;
+      u32 len = O::length;
       auto ret = posix_to_expected(getsockopt, _descriptor, O::level, O::name,
-                                   &value, O::length);
+                                   edit(value), edit(len));
       if (ret.has_error()) {
-        return ret;
+        return ret.error();
       }
       return {move(value)};
     }

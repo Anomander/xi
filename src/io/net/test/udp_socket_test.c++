@@ -1,0 +1,140 @@
+#include "xi/io/net/socket.h"
+#include "xi/io/channel_options.h"
+#include "xi/io/basic_buffer_allocator.h"
+#include "xi/io/detail/heap_buffer_storage_allocator.h"
+#include "udp_socket_mock.h"
+#include "src/test/base.h"
+
+#include <gtest/gtest.h>
+
+using namespace xi;
+using namespace xi::io;
+using namespace xi::io::net;
+
+auto ALLOC = make<
+    basic_buffer_allocator< io::detail::heap_buffer_storage_allocator > >();
+
+namespace xi {
+namespace test {
+
+  class client : public ::testing::Test {
+  protected:
+    io::udp_socket_mock _remote;
+    unique_ptr< datagram_socket > _socket;
+    endpoint< kInet > _last_endpoint;
+
+  protected:
+    void SetUp() override {
+      _remote.bind(54321);
+      _remote.connect(12345);
+      _socket = make_unique< datagram_socket >(kInet, kUDP);
+      _socket->bind(12345);
+    }
+
+    void TearDown() override {
+      _remote.close();
+    }
+
+    vector< u8 > prepare_data(usize size) {
+      auto data = vector< u8 >(size);
+      u16 i = 0;
+      std::generate_n(begin(data), size, [&i] { return i++; });
+      return move(data);
+    }
+
+    auto read(mut< buffer > b) {
+      return _socket->read(b, edit(_last_endpoint));
+    }
+
+    auto write(mut< buffer > b) {
+      return _socket->write(b, edit(_last_endpoint));
+    }
+
+    void test_big_writes(int);
+  };
+
+  TEST_F(client, read_into_empty_buf) {
+    auto in = prepare_data(100);
+    _remote.send(in.data(), in.size());
+
+    auto b = ALLOC->allocate(0);
+    auto ret = read(edit(b));
+    EXPECT_FALSE(ret.has_error());
+    EXPECT_EQ(0, ret);
+  }
+
+  TEST_F(client, read_into_smaller_buf) {
+    auto in = prepare_data(100);
+    _remote.send(in.data(), in.size());
+
+    auto b = ALLOC->allocate(50);
+    auto ret = read(edit(b));
+    EXPECT_FALSE(ret.has_error());
+    EXPECT_EQ(50, ret);
+    EXPECT_EQ(0U, b.tailroom());
+    EXPECT_EQ(50U, b.size());
+  }
+
+  TEST_F(client, read_from_closed_conn) {
+    _remote.close();
+
+    auto b = ALLOC->allocate(50);
+    auto ret = read(edit(b));
+    EXPECT_TRUE(ret.has_error());
+    EXPECT_EQ(error_from_value(EAGAIN), ret.error());
+    EXPECT_EQ(50U, b.tailroom());
+    EXPECT_EQ(0U, b.size());
+  }
+
+  TEST_F(client, read_some_data_and_close) {
+    auto in = prepare_data(40);
+    _remote.send(in.data(), in.size());
+    _remote.close();
+
+    auto b = ALLOC->allocate(50);
+    auto ret = read(edit(b));
+    EXPECT_FALSE(ret.has_error());
+    EXPECT_EQ(10U, b.tailroom());
+    EXPECT_EQ(40U, b.size());
+
+    ret = read(edit(b));
+    EXPECT_TRUE(ret.has_error());
+    EXPECT_EQ(error_from_value(EAGAIN), ret.error());
+    EXPECT_EQ(10U, b.tailroom());
+    EXPECT_EQ(40U, b.size());
+  }
+
+  TEST_F(client, read_truncated_data_and_close) {
+    auto in = prepare_data(100);
+    _remote.send(in.data(), in.size());
+    _remote.close();
+
+    auto b = ALLOC->allocate(50);
+
+    auto ret = read(edit(b));
+    EXPECT_FALSE(ret.has_error());
+    EXPECT_EQ(0U, b.tailroom());
+    EXPECT_EQ(50U, b.size());
+
+    b = ALLOC->allocate(50);
+    ret = read(edit(b));
+    EXPECT_TRUE(ret.has_error());
+    EXPECT_EQ(error_from_value(EAGAIN), ret.error());
+  }
+
+  TEST_F(client, large_messages_are_rejected) {
+    buffer b;
+    auto in = prepare_data(100 * 1024);
+    for (int i = 0; i < 1024; ++i) {
+      b.push_back(ALLOC->allocate(100));
+    }
+    b.write(byte_range{in});
+    EXPECT_EQ(100u * 1024, b.size());
+    EXPECT_EQ(1024u, b.length());
+
+    auto ret = write(edit(b));
+    EXPECT_TRUE(ret.has_error());
+    EXPECT_EQ(error_from_value(EMSGSIZE), ret.error());
+  }
+}
+}
