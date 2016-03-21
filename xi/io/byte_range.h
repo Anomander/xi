@@ -113,17 +113,23 @@ namespace io {
     const byte_range subrange(usize offset, usize length = -1) const {
       return const_cast< byte_range * >(this)->subrange(offset, length);
     }
+
+    string_ref to_string_ref() {
+      return {(char*)_data, _size};
+    }
+
+    const string_ref to_string_ref() const {
+      return {(char*)_data, _size};
+    }
   };
 
   template < class T >
   const byte_range byte_range_for_object(T const & t) noexcept {
-    std::cout << sizeof(T) << std::endl;
     return byte_range((u8 *)(&t), sizeof(T));
   }
 
   template < class T >
   byte_range byte_range_for_object(T & t) noexcept {
-    std::cout << sizeof(T) << std::endl;
     return byte_range((u8 *)(&t), sizeof(T));
   }
 }

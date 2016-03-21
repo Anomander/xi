@@ -81,6 +81,8 @@ inline namespace ext {
     template < class U >
     auto and_(optional< U > &&optb) -> opt< U >;
 
+    bool operator==(none_t const &other) const;
+    bool operator!=(none_t const &other) const;
     bool operator==(optional< T > const &other) const;
     bool operator!=(optional< T > const &other) const;
     bool operator<(optional< T > const &other) const;
@@ -200,6 +202,14 @@ inline namespace ext {
   }
   /// OPERARTORS
   template < class T >
+  bool optional< T >::operator==(none_t const &other) const {
+    return is_none();
+  }
+  template < class T >
+  bool optional< T >::operator!=(none_t const &other) const {
+    return !(*this == other);
+  }
+  template < class T >
   bool optional< T >::operator==(optional< T > const &other) const {
     if (is_none()) {
       return other.is_none();
@@ -248,5 +258,13 @@ inline namespace ext {
     return move(ext::get< T >(_value));
   }
 
+  template < class T >
+  bool operator==(none_t const &, optional< T > const &o) {
+    return o.is_none();
+  }
+  template < class T >
+  bool operator!=(none_t const &, optional< T > const &o) {
+    return !o.is_none();
+  }
 } // inline namespace ext
 } // namespace xi

@@ -141,6 +141,24 @@ namespace io {
     return write_fragment_it->size();
   }
 
+  byte_range buffer::range(mut< buffer_allocator > alloc, usize offset,
+                           usize length) {
+    if (offset >= _size) {
+      return byte_range::null();
+    }
+    coalesce(alloc, offset, length);
+
+    auto it = _fragments.begin();
+    auto end = _fragments.end();
+
+    for (; it != end && offset >= it->size(); ++it) {
+      // find the first buffer past offset
+      offset -= it->size();
+    }
+
+    return byte_range{it->data() + offset, min(length, it->size() - offset)};
+  }
+
   usize buffer::read(byte_range r) {
     if (XI_UNLIKELY(empty() || r.empty())) {
       return 0;
@@ -167,6 +185,34 @@ namespace io {
     return ret;
   }
 
+  opt< usize > buffer::find_byte(u8 target, usize offset) const {
+    if (offset >= _size) {
+      return none;
+    }
+
+    auto it = _fragments.begin();
+    auto end = _fragments.end();
+
+    for (; it != end && offset >= it->size(); ++it) {
+      // find the first buffer past offset
+      offset -= it->size();
+    }
+
+    void* found = nullptr;
+    usize size = 0u;
+    do {
+      found = ::memchr(it->data() + offset, target, it->size() - offset);
+      if (found) {
+        size += ((u8*)found - it->data()) - offset;
+      } else {
+        size += it->size() - offset;
+        offset = 0;
+      }
+      ++it;
+    } while (nullptr == found && end != it);
+    return found ? some(size) : none;
+  }
+
   void buffer::skip_bytes(usize sz, bool free) {
     if (XI_UNLIKELY(empty())) {
       return;
@@ -183,6 +229,7 @@ namespace io {
       it->skip_bytes(remainder);
       _size -= sz;
     }
+
     if (free) {
       _fragments.erase_and_dispose(beg, it, fragment_deleter);
     } else {
@@ -212,6 +259,37 @@ namespace io {
     } else {
       for_each(beg, it, [](auto& i) { i.ignore_bytes_at_end(i.size()); });
     }
+  }
+  usize buffer::read_string(mut< string > s, usize len) {
+    if (0 == size()) {
+      return 0;
+    }
+    auto it = _fragments.begin();
+    auto end = _fragments.end();
+    auto size = len;
+
+    while (!it->size()) {
+      ++it;
+    }
+    auto consume_begin = it;
+    while (len && it != end) {
+      auto r = it->data_range();
+      if (XI_UNLIKELY(len >= r.size())) {
+        s->append((char*)r.data(), r.size());
+        len -= r.size();
+        ++it;
+      } else {
+        s->append((char*)r.data(), len);
+        it->skip_bytes(len);
+        len = 0;
+        break;
+      }
+    }
+    if (consume_begin != it) {
+      _fragments.erase_and_dispose(consume_begin, it, fragment_deleter);
+    }
+    _size -= (size - len);
+    return size - len;
   }
 }
 }

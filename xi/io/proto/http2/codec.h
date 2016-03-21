@@ -31,11 +31,7 @@ namespace io {
         }
 
         void read(mut< context > cx, buffer in) final override {
-          std::cout << "Decoder: " << &_decoder << std::endl;
           _decoder.decode(edit(in));
-          // cx->pipe()->push_front(make<range_echo>());
-          // std::cout << "Removing this" << std::endl;
-          // cx->pipe()->remove(cx);
         }
 
         void setting_received(u16 id, u32 value) override {

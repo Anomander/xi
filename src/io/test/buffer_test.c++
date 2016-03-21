@@ -10,8 +10,7 @@ using namespace xi;
 using namespace xi::io;
 using namespace xi::io::detail;
 
-auto ALLOC =
-    make< basic_buffer_allocator< heap_buffer_storage_allocator > >();
+auto ALLOC = make< basic_buffer_allocator< heap_buffer_storage_allocator > >();
 
 auto make_buffer(usize headroom, usize data, usize tailroom) {
   vector< u8 > in(data);
@@ -489,4 +488,73 @@ TEST(interface, split_multiple_full_buffers_completely) {
   EXPECT_FALSE(d.empty());
   EXPECT_EQ(3u, d.length());
   EXPECT_EQ(150u, d.size());
+}
+
+TEST(interface, find_byte_empty_buffer) {
+  buffer b;
+
+  EXPECT_EQ(none, b.find_byte(1));
+  EXPECT_EQ(none, b.find_byte(1, 100));
+}
+
+TEST(interface, find_byte_single_buffer) {
+  buffer b;
+  b.push_back(make_buffer(0, 50, 50));
+
+  for (u8 i = 1; i <= 50; ++i) {
+    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
+  }
+  for (u8 i = 1; i <= 50; ++i) {
+    EXPECT_EQ(none, b.find_byte(i, i));
+  }
+}
+
+TEST(interface, find_byte_multiple_buffers) {
+  buffer b;
+  b.push_back(make_buffer(0, 50, 50));
+  b.push_back(make_buffer(0, 50, 50));
+
+  for (u8 i = 1; i <= 50; ++i) {
+    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
+  }
+
+  for (u8 i = 1; i <= 50; ++i) {
+    EXPECT_EQ(49u, b.find_byte(i, i).unwrap());
+  }
+}
+
+TEST(interface, find_byte_single_buffer_boundaries) {
+  buffer b;
+  b.push_back(make_buffer(0, 50, 50));
+  b.ignore_bytes_at_end(10);
+  EXPECT_EQ(40u, b.size());
+
+  for (u8 i = 1; i <= 40; ++i) {
+    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
+  }
+
+  for (u8 i = 41; i <= 50; ++i) {
+    EXPECT_EQ(none, b.find_byte(i));
+  }
+}
+
+TEST(interface, find_byte_multiple_buffers_boundaries) {
+  buffer b;
+  b.push_back(make_buffer(0, 50, 50));
+  b.push_back(make_buffer(0, 50, 50));
+
+  b.ignore_bytes_at_end(10);
+  EXPECT_EQ(90u, b.size());
+
+  for (u8 i = 1; i <= 50; ++i) {
+    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
+  }
+
+  for (u8 i = 1; i <= 40; ++i) {
+    EXPECT_EQ(49u, b.find_byte(i,i).unwrap());
+  }
+
+  for (u8 i = 41; i <= 50; ++i) {
+    EXPECT_EQ(none, b.find_byte(i, i));
+  }
 }
