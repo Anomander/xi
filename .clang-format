@@ -38,6 +38,17 @@ BraceWrapping: {
     BeforeElse : 'true'
     IndentBraces : 'true'
 }
+IncludeCategories:
+  - Regex:           '^"xi/ext/configure.h"$'
+    Priority:        0
+  - Regex:           '^"xi/ext'
+    Priority:        1
+  - Regex:           '^"xi'
+    Priority:        2
+  - Regex:           '^<'
+    Priority:        3
+  - Regex:           '^<gtest'
+    Priority:        4
 IndentFunctionDeclarationAfterType: false
 MaxEmptyLinesToKeep: 1
 KeepEmptyLinesAtTheStartOfBlocks: true

@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "src/test/mock_kernel.h"
 #include "xi/async/future.h"
 #include "xi/core/kernel_utils.h"
+#include "src/test/mock_kernel.h"
 
 using namespace xi;
 using namespace xi::async;

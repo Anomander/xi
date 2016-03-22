@@ -1,5 +1,5 @@
-#include "src/test/base.h"
 #include "xi/io/pipes/all.h"
+#include "src/test/base.h"
 
 using namespace xi;
 using namespace xi::io;

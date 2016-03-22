@@ -1,9 +1,9 @@
-#include "src/test/base.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
 #include "xi/io/byte_range.h"
 #include "xi/io/detail/heap_buffer_storage_allocator.h"
+#include "src/test/base.h"
 
 namespace xi {
 namespace test {

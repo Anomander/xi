@@ -1,5 +1,5 @@
-#include "xi/io/net/socket.h"
 #include "xi/ext/configure.h"
+#include "xi/io/net/socket.h"
 #include "xi/io/buffer_iovec_adapter.h"
 #include "xi/io/error.h"
 #include "xi/io/net/endpoint.h"

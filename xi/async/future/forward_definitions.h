@@ -1,8 +1,8 @@
 #pragma once
 
+#include "xi/ext/configure.h"
 #include "xi/async/future/forward_definitions.h"
 #include "xi/core/shard.h"
-#include "xi/ext/configure.h"
 
 namespace xi {
 namespace async {

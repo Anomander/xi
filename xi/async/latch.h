@@ -1,7 +1,7 @@
 #pragma once
 
-#include "xi/async/future.h"
 #include "xi/ext/configure.h"
+#include "xi/async/future.h"
 
 namespace xi {
 namespace async {

@@ -1,5 +1,5 @@
-#include "xi/hw/hardware.h"
 #include "xi/ext/configure.h"
+#include "xi/hw/hardware.h"
 
 namespace xi {
 namespace hw {

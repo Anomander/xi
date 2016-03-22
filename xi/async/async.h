@@ -1,7 +1,7 @@
 #pragma once
 
-#include "xi/core/shard.h"
 #include "xi/ext/configure.h"
+#include "xi/core/shard.h"
 
 namespace xi {
 namespace async {

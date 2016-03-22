@@ -1,7 +1,7 @@
 #pragma once
 
-#include "xi/core/kernel.h"
 #include "xi/ext/configure.h"
+#include "xi/core/kernel.h"
 #include "xi/io/channel_interface.h"
 #include "xi/io/pipes/context_aware_filter.h"
 #include "xi/io/pipes/detail/filter_context_filter_adapter.h"

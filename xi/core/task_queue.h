@@ -1,8 +1,8 @@
 #pragma once
 
-#include "xi/core/task.h"
 #include "xi/ext/configure.h"
 #include "xi/ext/lockfree.h"
+#include "xi/core/task.h"
 #include "xi/util/polymorphic_sp_sc_ring_buffer.h"
 #include "xi/util/spin_lock.h"
 

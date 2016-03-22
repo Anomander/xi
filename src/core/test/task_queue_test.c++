@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "src/test/util.h"
 #include "xi/core/task_queue.h"
+#include "src/test/util.h"
 
 using namespace xi;
 using xi::core::task_queue;

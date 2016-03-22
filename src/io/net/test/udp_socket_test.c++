@@ -1,9 +1,9 @@
-#include "src/test/base.h"
-#include "udp_socket_mock.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/channel_options.h"
 #include "xi/io/detail/heap_buffer_storage_allocator.h"
 #include "xi/io/net/socket.h"
+#include "src/test/base.h"
+#include "udp_socket_mock.h"
 
 #include <gtest/gtest.h>
 

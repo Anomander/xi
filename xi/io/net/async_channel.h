@@ -1,7 +1,7 @@
 #pragma once
 
-#include "xi/async/event_handler.h"
 #include "xi/ext/configure.h"
+#include "xi/async/event_handler.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"

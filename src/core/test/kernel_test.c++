@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "src/test/mock_kernel.h"
-#include "src/test/util.h"
 #include "xi/core/kernel.h"
 #include "xi/hw/hardware.h"
+#include "src/test/mock_kernel.h"
+#include "src/test/util.h"
 
 using namespace xi;
 using namespace xi::core;
