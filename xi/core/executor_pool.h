@@ -1,12 +1,12 @@
 #pragma once
 
 #include "xi/ext/configure.h"
+#include "xi/core/shard.h"
 
 namespace xi {
 namespace core {
 
   class kernel;
-  class shard;
 
   class executor_pool : public virtual ownership::std_shared {
     vector< mut< shard > > _shards;
