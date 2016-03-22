@@ -1,6 +1,6 @@
+#include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_reader.h"
-#include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/detail/heap_buffer_storage_allocator.h"
 
 #include <gtest/gtest.h>
@@ -13,7 +13,8 @@ using namespace xi::io::detail;
 
 auto ALLOC = make< basic_buffer_allocator< heap_buffer_storage_allocator > >();
 
-auto make_buffer(usize headroom, usize data, usize tailroom) {
+auto
+make_buffer(usize headroom, usize data, usize tailroom) {
   vector< u8 > in(data);
   usize i = 0u;
   std::generate_n(begin(in), data, [&] { return ++i; });
@@ -505,7 +506,7 @@ TEST(reader, find_byte_single_buffer) {
   auto r = make_reader(edit(b));
 
   for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
+    EXPECT_EQ(i - 1u, r.find_byte(i).unwrap());
   }
   for (u8 i = 1; i <= 50; ++i) {
     EXPECT_EQ(none, r.find_byte(i, i));
@@ -519,7 +520,7 @@ TEST(reader, find_byte_multiple_buffers) {
   auto r = make_reader(edit(b));
 
   for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
+    EXPECT_EQ(i - 1u, r.find_byte(i).unwrap());
   }
 
   for (u8 i = 1; i <= 50; ++i) {
@@ -535,7 +536,7 @@ TEST(reader, find_byte_single_buffer_boundaries) {
   auto r = make_reader(edit(b));
 
   for (u8 i = 1; i <= 40; ++i) {
-    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
+    EXPECT_EQ(i - 1u, r.find_byte(i).unwrap());
   }
 
   for (u8 i = 41; i <= 50; ++i) {
@@ -553,11 +554,11 @@ TEST(reader, find_byte_multiple_buffers_boundaries) {
   auto r = make_reader(edit(b));
 
   for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
+    EXPECT_EQ(i - 1u, r.find_byte(i).unwrap());
   }
 
   for (u8 i = 1; i <= 40; ++i) {
-    EXPECT_EQ(49u, r.find_byte(i,i).unwrap());
+    EXPECT_EQ(49u, r.find_byte(i, i).unwrap());
   }
 
   for (u8 i = 41; i <= 50; ++i) {

@@ -15,10 +15,9 @@ namespace io {
           public virtual ownership::std_shared {
 
     public:
-      using context = detail::channel_filter_context< Ms... >;
+      using context     = detail::channel_filter_context< Ms... >;
       virtual ~filter() = default;
     };
-
   }
 }
 }

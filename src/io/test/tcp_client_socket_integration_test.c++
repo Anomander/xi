@@ -31,10 +31,12 @@
 //     std::ostream &operator<<(std::ostream &os, channel_error const &rhs) {
 //       return os << typeid(rhs).name();
 //     }
-//     std::ostream &operator<<(std::ostream &os, channel_exception const &rhs) {
+//     std::ostream &operator<<(std::ostream &os, channel_exception const &rhs)
+//     {
 //       return os << typeid(rhs).name();
 //     }
-//     std::ostream &operator<<(std::ostream &os, channel_registered const &rhs) {
+//     std::ostream &operator<<(std::ostream &os, channel_registered const &rhs)
+//     {
 //       return os << typeid(rhs).name();
 //     }
 //     std::ostream &operator<<(std::ostream &os,
@@ -145,7 +147,8 @@
 
 //   void verify_data_read(uint8_t *data, size_t size) {
 //     ASSERT_EQ(size, handler->size_read);
-//     for (size_t i = 0; i < size; ++i) { ASSERT_EQ(data[i], handler->data[i]); }
+//     for (size_t i = 0; i < size; ++i) { ASSERT_EQ(data[i], handler->data[i]);
+//     }
 //   }
 
 // protected:

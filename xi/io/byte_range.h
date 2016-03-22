@@ -8,7 +8,7 @@ namespace io {
   // FIXME: you can now get a const string and make a mutable
   //        range out of it
   class byte_range {
-    mutable u8 *_data = nullptr;
+    mutable u8 *_data   = nullptr;
     mutable usize _size = 0u;
 
   public:
@@ -49,8 +49,7 @@ namespace io {
     }
 
     explicit byte_range(void *p, usize l) noexcept
-        : _data(reinterpret_cast< u8 * >(p)),
-          _size(l) {
+        : _data(reinterpret_cast< u8 * >(p)), _size(l) {
     }
 
     explicit byte_range(string &arr, usize sz) noexcept
@@ -66,7 +65,7 @@ namespace io {
     }
 
     template < usize N >
-    explicit byte_range(const char(&arr)[N], usize sz = -1) noexcept
+    explicit byte_range(const char (&arr)[N], usize sz = -1) noexcept
         : byte_range((u8 *)arr, min(sz, N - 1)) {
     }
 
@@ -115,21 +114,21 @@ namespace io {
     }
 
     string_ref to_string_ref() {
-      return {(char*)_data, _size};
+      return {(char *)_data, _size};
     }
 
     const string_ref to_string_ref() const {
-      return {(char*)_data, _size};
+      return {(char *)_data, _size};
     }
   };
 
   template < class T >
-  const byte_range byte_range_for_object(T const & t) noexcept {
+  const byte_range byte_range_for_object(T const &t) noexcept {
     return byte_range((u8 *)(&t), sizeof(T));
   }
 
   template < class T >
-  byte_range byte_range_for_object(T & t) noexcept {
+  byte_range byte_range_for_object(T &t) noexcept {
     return byte_range((u8 *)(&t), sizeof(T));
   }
 }

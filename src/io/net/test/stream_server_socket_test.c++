@@ -1,8 +1,8 @@
-#include "xi/io/net/socket.h"
-#include "xi/io/channel_options.h"
-#include "xi/io/basic_buffer_allocator.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 #include "tcp_socket_mock.h"
+#include "xi/io/basic_buffer_allocator.h"
+#include "xi/io/channel_options.h"
+#include "xi/io/detail/heap_buffer_storage_allocator.h"
+#include "xi/io/net/socket.h"
 
 #include <gtest/gtest.h>
 
@@ -37,7 +37,7 @@ protected:
     _client = make_unique< test::tcp_socket_mock >();
     _server = make_unique< stream_server_socket >(kInet, kTCP);
     _server->set_option(option::socket::reuse_address::yes);
-    endpoint<kInet> ep {PORT};
+    endpoint< kInet > ep{PORT};
     _server->bind(ep.to_posix());
   }
 
@@ -49,7 +49,7 @@ protected:
 
   vector< u8 > prepare_data(usize size) {
     auto data = vector< u8 >(size);
-    u16 i = 0;
+    u16 i     = 0;
     std::generate_n(begin(data), size, [&i] { return i++; });
     return move(data);
   }
@@ -75,7 +75,7 @@ TEST_F(stream_server_test, accept_client) {
 TEST_F(stream_server_test, double_bind) {
   stream_server_socket s1(kInet, kTCP), s2(kInet, kTCP);
 
-  endpoint<kInet> ep {19191};
+  endpoint< kInet > ep{19191};
   s1.bind(ep.to_posix());
   EXPECT_SYSTEM_ERROR(EINVAL, s1.bind(ep.to_posix()));
   EXPECT_SYSTEM_ERROR(EADDRINUSE, s2.bind(ep.to_posix()));
@@ -97,7 +97,7 @@ TEST_F(stream_server_test, connect_and_close_before_accept) {
   auto conn = accept();
   EXPECT_FALSE(conn.has_error());
 
-  auto b = ALLOC->allocate(50);
+  auto b   = ALLOC->allocate(50);
   auto ret = conn.value().read(edit(b));
   EXPECT_TRUE(ret.has_error());
   EXPECT_EQ(io::error::kEOF, ret.error());

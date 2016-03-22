@@ -37,13 +37,13 @@ inline namespace ext {
 
   template < class T >
   class optional final {
-    using variant_t = variant< none_t, T >;
+    using variant_t  = variant< none_t, T >;
     variant_t _value = none;
 
   public:
-    optional() = default;
+    optional()                      = default;
     optional(optional< T > const &) = default;
-    optional(optional< T > &&) = default;
+    optional(optional< T > &&)      = default;
     optional &operator=(optional< T > const &) = default;
     optional &operator=(optional< T > &&) = default;
     explicit optional(T value) : _value(move(value)) {
@@ -66,17 +66,21 @@ inline namespace ext {
     template < class G >
     T unwrap_or(G &&generator);
 
-    template < class F, XI_UNLESS_DECL(is_same< void, result_of_t< F(T &&)> >)>
-    auto map(F &&f) -> opt< result_of_t< F(T &&)> >;
-    template < class F, XI_REQUIRE_DECL(is_same< void, result_of_t< F(T &&)> >)>
+    template < class F,
+               XI_UNLESS_DECL(is_same< void, result_of_t< F(T &&) > >) >
+    auto map(F &&f) -> opt< result_of_t< F(T &&) > >;
+    template < class F,
+               XI_REQUIRE_DECL(is_same< void, result_of_t< F(T &&) > >) >
     void map(F &&f);
-    template < class F, class U,
-               XI_REQUIRE_DECL(is_same< U, result_of_t< F(T &&)> >)>
+    template < class F,
+               class U,
+               XI_REQUIRE_DECL(is_same< U, result_of_t< F(T &&) > >) >
     auto map_or(U &&def, F &&f) -> U;
     template <
-        class F, class G,
-        XI_REQUIRE_DECL(is_same< result_of_t< G() >, result_of_t< F(T &&)> >)>
-    auto map_or(G &&generator, F &&f) -> result_of_t< F(T &&)>;
+        class F,
+        class G,
+        XI_REQUIRE_DECL(is_same< result_of_t< G() >, result_of_t< F(T &&) > >) >
+    auto map_or(G &&generator, F &&f) -> result_of_t< F(T &&) >;
 
     template < class U >
     auto and_(optional< U > &&optb) -> opt< U >;
@@ -156,8 +160,8 @@ inline namespace ext {
   }
 
   template < class T >
-  template < class F, XI_UNLESS(is_same< void, result_of_t< F(T &&)> >)>
-  auto optional< T >::map(F &&f) -> opt< result_of_t< F(T &&)> > {
+  template < class F, XI_UNLESS(is_same< void, result_of_t< F(T &&) > >) >
+  auto optional< T >::map(F &&f) -> opt< result_of_t< F(T &&) > > {
     if (is_none()) {
       return none;
     }
@@ -165,7 +169,7 @@ inline namespace ext {
   }
 
   template < class T >
-  template < class F, XI_REQUIRE(is_same< void, result_of_t< F(T &&)> >)>
+  template < class F, XI_REQUIRE(is_same< void, result_of_t< F(T &&) > >) >
   void optional< T >::map(F &&f) {
     if (is_none()) {
       return;
@@ -174,18 +178,21 @@ inline namespace ext {
   }
 
   template < class T >
-  template < class F, class U, XI_REQUIRE(is_same< U, result_of_t< F(T &&)> >)>
+  template < class F,
+             class U,
+             XI_REQUIRE(is_same< U, result_of_t< F(T &&) > >) >
   auto optional< T >::map_or(U &&def, F &&f) -> U {
     if (is_none()) {
-      return forward< result_of_t< F(T && ) > >(def);
+      return forward< result_of_t< F(T &&) > >(def);
     }
     return f(extract_value());
   }
 
   template < class T >
-  template < class F, class G,
-             XI_REQUIRE(is_same< result_of_t< G() >, result_of_t< F(T &&)> >)>
-  auto optional< T >::map_or(G &&generator, F &&f) -> result_of_t< F(T &&)> {
+  template < class F,
+             class G,
+             XI_REQUIRE(is_same< result_of_t< G() >, result_of_t< F(T &&) > >) >
+  auto optional< T >::map_or(G &&generator, F &&f) -> result_of_t< F(T &&) > {
     if (is_none()) {
       return generator();
     }
@@ -214,8 +221,9 @@ inline namespace ext {
     if (is_none()) {
       return other.is_none();
     }
-    return other.is_none() ? false : ext::get< T >(_value) ==
-                                         ext::get< T >(other._value);
+    return other.is_none()
+               ? false
+               : ext::get< T >(_value) == ext::get< T >(other._value);
   }
   template < class T >
   bool optional< T >::operator!=(optional< T > const &other) const {

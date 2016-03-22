@@ -3,16 +3,16 @@
 #include "xi/ext/test.h"
 #include "xi/ext/type_traits.h"
 
-#include <boost/mpl/if.hpp>
-#include <boost/mpl/or.hpp>
-#include <boost/mpl/vector.hpp>
-#include <boost/mpl/contains.hpp>
-#include <boost/mpl/push_back.hpp>
-#include <boost/mpl/pop_back.hpp>
 #include <boost/mpl/back.hpp>
-#include <boost/mpl/next.hpp>
-#include <boost/mpl/size.hpp>
+#include <boost/mpl/contains.hpp>
 #include <boost/mpl/greater.hpp>
+#include <boost/mpl/if.hpp>
+#include <boost/mpl/next.hpp>
+#include <boost/mpl/or.hpp>
+#include <boost/mpl/pop_back.hpp>
+#include <boost/mpl/push_back.hpp>
+#include <boost/mpl/size.hpp>
+#include <boost/mpl/vector.hpp>
 
 namespace xi {
 inline namespace ext {
@@ -28,10 +28,11 @@ inline namespace ext {
     using ::boost::mpl::next;
     using ::boost::mpl::size;
 
-    using false_type = ::std::integral_constant<bool, false>;
-    using true_type = ::std::integral_constant<bool, true>;
+    using false_type = ::std::integral_constant< bool, false >;
+    using true_type  = ::std::integral_constant< bool, true >;
 
-    template < bool B > using bool_type = ::std::integral_constant< bool, B >;
+    template < bool B >
+    using bool_type = ::std::integral_constant< bool, B >;
 
     template < size_t A, size_t B >
     using ulong_greater =

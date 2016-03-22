@@ -1,8 +1,8 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipes/modifiers.h"
 #include "xi/io/pipes/detail/generic_filter_context.h"
+#include "xi/io/pipes/modifiers.h"
 
 namespace xi {
 namespace io {

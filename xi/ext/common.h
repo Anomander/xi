@@ -1,17 +1,17 @@
 #pragma once
 
-#include <map>
+#include <algorithm>
 #include <array>
 #include <deque>
-#include <tuple>
-#include <queue>
-#include <memory>
-#include <thread>
-#include <vector>
 #include <functional>
-#include <algorithm>
+#include <map>
+#include <memory>
+#include <queue>
+#include <thread>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include <iostream>
 
@@ -57,7 +57,10 @@ inline namespace ext {
   using ::std::find_if;
   using ::std::for_each;
 
-  template < class T > decltype(auto) reference(T &t) { return ::std::ref(t); }
+  template < class T >
+  decltype(auto) reference(T &t) {
+    return ::std::ref(t);
+  }
 
 } // inline namespace ext
 } // namespace xi

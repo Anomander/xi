@@ -1,18 +1,18 @@
 #pragma once
 
-#include "xi/ext/configure.h"
 #include "xi/async/event_handler.h"
-#include "xi/io/net/socket.h"
-#include "xi/io/net/endpoint.h"
-#include "xi/io/net/enumerations.h"
-#include "xi/io/error.h"
-#include "xi/io/channel_options.h"
-#include "xi/io/pipes/all.h"
-#include "xi/io/channel_interface.h"
+#include "xi/ext/configure.h"
+#include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
-#include "xi/io/basic_buffer_allocator.h"
+#include "xi/io/channel_interface.h"
+#include "xi/io/channel_options.h"
 #include "xi/io/detail/heap_buffer_storage_allocator.h"
+#include "xi/io/error.h"
+#include "xi/io/net/endpoint.h"
+#include "xi/io/net/enumerations.h"
+#include "xi/io/net/socket.h"
+#include "xi/io/pipes/all.h"
 
 namespace xi {
 namespace io {
@@ -105,8 +105,8 @@ namespace io {
     struct datagram_pipe< af, proto >::data_sink
         : public pipes::filter< socket_event, error_code, datagram< af > > {
       using channel = datagram_pipe< af, proto >;
-      using context = typename pipes::filter< socket_event, error_code,
-                                              datagram< af > >::context;
+      using context = typename pipes::
+          filter< socket_event, error_code, datagram< af > >::context;
       mut< channel > _pipe;
       data_sink(mut< channel > c) : _pipe(c) {
       }
@@ -155,16 +155,15 @@ namespace io {
     };
 
     template < address_family af, protocol proto >
-    datagram_pipe< af, proto >::datagram_pipe()
-        : datagram_socket(af, proto) {
+    datagram_pipe< af, proto >::datagram_pipe() : datagram_socket(af, proto) {
       xi::async::io_handler::descriptor(native_handle());
       this->push_back(make< data_sink >(this));
     }
 
     template < address_family af, protocol proto >
     struct client_pipe< af, proto >::data_sink
-        : public pipes::filter< socket_event, pipes::in< error_code >,
-                                buffer > {
+        : public pipes::
+              filter< socket_event, pipes::in< error_code >, buffer > {
       using channel = client_pipe< af, proto >;
       mut< channel > _pipe;
       buffer _write_buf;
@@ -174,7 +173,7 @@ namespace io {
       void read(mut< context > cx, socket_event e) override {
         switch (e) {
           case socket_event::kReadable: {
-            auto b = _pipe->alloc()->allocate(1 << 20);
+            auto b   = _pipe->alloc()->allocate(1 << 20);
             auto ret = _pipe->read_buffer(edit(b));
             if (ret.has_error()) {
               if (ret.error() == error::kEOF) {
@@ -230,24 +229,25 @@ namespace io {
 
     template < address_family af, protocol proto = kNone >
     struct pipe_factory : public virtual ownership::std_shared {
-      using pipe_t = client_pipe< af, proto >;
+      using pipe_t     = client_pipe< af, proto >;
       using endpoint_t = endpoint< af >;
 
-      virtual ~pipe_factory() = default;
+      virtual ~pipe_factory()                                 = default;
       virtual own< pipe_t > create_pipe(stream_client_socket) = 0;
     };
 
     template < address_family af, protocol proto = kNone >
     using pipe_acceptor_base =
         pipes::pipe< pipes::in< own< client_pipe< af, proto > > >,
-                     pipes::in< error_code >, pipes::in< exception_ptr > >;
+                     pipes::in< error_code >,
+                     pipes::in< exception_ptr > >;
 
     template < address_family af, protocol proto = kNone >
     class acceptor_pipe final : public xi::async::io_handler,
                                 public stream_server_socket,
                                 public channel_interface,
                                 public pipe_acceptor_base< af, proto > {
-      using endpoint_type = endpoint< af >;
+      using endpoint_type    = endpoint< af >;
       using client_pipe_type = client_pipe< af, proto >;
 
       own< pipe_factory< af, proto > > _pipe_factory;
@@ -298,13 +298,13 @@ namespace io {
       }
     };
 
-    using ip_datagram = datagram< kInet >;
-    using unix_datagram = datagram< kUnix >;
-    using tcp_stream_pipe = client_pipe< kInet, kTCP >;
-    using udp_datagram_pipe = datagram_pipe< kInet, kUDP >;
-    using unix_stream_pipe = client_pipe< kUnix >;
+    using ip_datagram        = datagram< kInet >;
+    using unix_datagram      = datagram< kUnix >;
+    using tcp_stream_pipe    = client_pipe< kInet, kTCP >;
+    using udp_datagram_pipe  = datagram_pipe< kInet, kUDP >;
+    using unix_stream_pipe   = client_pipe< kUnix >;
     using unix_datagram_pipe = datagram_pipe< kUnix >;
-    using tcp_acceptor_pipe = acceptor_pipe< kInet, kTCP >;
+    using tcp_acceptor_pipe  = acceptor_pipe< kInet, kTCP >;
     using unix_acceptor_pipe = acceptor_pipe< kUnix >;
   }
 }

@@ -1,6 +1,6 @@
 #include "xi/async/libevent/event.h"
-#include "xi/async/libevent/event_loop.h"
 #include "xi/async/libevent/detail/event_state_to_short.h"
+#include "xi/async/libevent/event_loop.h"
 
 #include <event2/event.h>
 
@@ -8,7 +8,8 @@ namespace xi {
 namespace async {
   namespace libevent {
 
-    event::event(mut< event_loop > loop, event_state state,
+    event::event(mut< event_loop > loop,
+                 event_state state,
                  mut< xi::async::event_handler > handler)
         : _loop(loop), _handler(handler), _state(state) {
       std::cout << "Event()" << std::endl;
@@ -23,13 +24,17 @@ namespace async {
       _event = nullptr;
     }
 
-    bool event::is_active() { return (nullptr != _event); }
+    bool event::is_active() {
+      return (nullptr != _event);
+    }
 
     void event::arm() {
       std::cout << "Event::arm" << std::endl;
       auto timeout = _handler->expected_timeout();
-      if (timeout == none) { event_add((::event *)_event, NULL); } else {
-        auto &&ms = timeout.unwrap();
+      if (timeout == none) {
+        event_add((::event *)_event, NULL);
+      } else {
+        auto &&ms         = timeout.unwrap();
         struct timeval tv = {ms.count() / 1000, ms.count() % 1000};
         event_add((::event *)_event, &tv);
       }

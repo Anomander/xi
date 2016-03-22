@@ -10,16 +10,20 @@ class Coroutine {
 public:
   Coroutine()
       : my_context(boost::context::make_fcontext(
-            stack.data() + stack.size(), stack.size(), Coroutine::dispatch)) {}
-  virtual ~Coroutine() {}
+            stack.data() + stack.size(), stack.size(), Coroutine::dispatch)) {
+  }
+  virtual ~Coroutine() {
+  }
 
   void operator()() {
-    boost::context::jump_fcontext(&yield_context, my_context,
-                                  reinterpret_cast< intptr_t >(this));
+    boost::context::jump_fcontext(
+        &yield_context, my_context, reinterpret_cast< intptr_t >(this));
   }
 
 protected:
-  void yield() { boost::context::jump_fcontext(my_context, &yield_context, 0); }
+  void yield() {
+    boost::context::jump_fcontext(my_context, &yield_context, 0);
+  }
 
   virtual void call() = 0;
 
@@ -27,7 +31,8 @@ private:
   static void dispatch(intptr_t coroutine_ptr) {
     Coroutine *coroutine = reinterpret_cast< Coroutine * >(coroutine_ptr);
     coroutine->call();
-    while (true) coroutine->yield();
+    while (true)
+      coroutine->yield();
   }
 
 private:
@@ -72,7 +77,8 @@ struct C : public Coroutine {
   }
 };
 
-int old_main() {
+int
+old_main() {
   std::cerr << "So, this is what happened.\n";
   A a;
   B b;
@@ -88,16 +94,18 @@ int old_main() {
 
 fcontext_t mainc, *fc;
 
-void f1(intptr_t arg) {
+void
+f1(intptr_t arg) {
   std::cout << "1: " << arg << std::endl;
   jump_fcontext(fc, &mainc, 0);
   std::cout << "2: " << arg << std::endl;
   jump_fcontext(fc, &mainc, 0);
 }
 
-int main() {
+int
+main() {
   std::array< intptr_t, 64 * 1024 > stack;
-  fc =(make_fcontext(stack.data() + stack.size(), stack.size(), f1));
+  fc = (make_fcontext(stack.data() + stack.size(), stack.size(), f1));
   jump_fcontext(&mainc, fc, 42);
   jump_fcontext(&mainc, fc, 43);
 }

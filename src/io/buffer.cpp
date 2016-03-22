@@ -38,20 +38,23 @@ namespace io {
   }
 
   usize buffer::headroom() const {
-    if (empty())
+    if (empty()) {
       return 0;
+    }
     return begin(_fragments)->headroom();
   }
 
   usize buffer::tailroom() const {
-    if (empty())
+    if (empty()) {
       return 0;
+    }
     return prev(end(_fragments))->tailroom();
   }
 
   auto buffer::split(usize sz) -> buffer {
-    if (XI_UNLIKELY(empty() || 0 == sz))
+    if (XI_UNLIKELY(empty() || 0 == sz)) {
       return {};
+    }
     if (XI_UNLIKELY(size() < sz)) {
       auto old_size = _size;
       _size         = 0;
@@ -82,8 +85,9 @@ namespace io {
   usize buffer::coalesce(mut< buffer_allocator > alloc,
                          usize offset,
                          usize length) {
-    if (XI_UNLIKELY(empty() || 0 == length || offset >= size()))
+    if (XI_UNLIKELY(empty() || 0 == length || offset >= size())) {
       return 0;
+    }
 
     if (length > _size - offset) {
       length = _size - offset;

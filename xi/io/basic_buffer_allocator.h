@@ -43,7 +43,7 @@ namespace io {
 
     buffer allocate(usize sz, usize headroom = 0, usize tailroom = 0) override {
       auto total_size = sz + headroom + tailroom;
-      auto c = this->allocate_arena(total_size);
+      auto c          = this->allocate_arena(total_size);
       XI_SCOPE(fail) {
         this->deallocate(c);
       };

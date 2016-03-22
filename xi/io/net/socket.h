@@ -1,18 +1,18 @@
 #pragma once
 
 #include "xi/ext/configure.h"
+#include "xi/io/buffer.h"
+#include "xi/io/error.h"
+#include "xi/io/net/endpoint.h"
 #include "xi/io/net/enumerations.h"
 #include "xi/io/net/ip_address.h"
-#include "xi/io/net/endpoint.h"
-#include "xi/io/error.h"
-#include "xi/io/buffer.h"
 
-#include <sys/socket.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
-#include <limits.h>
-#include <fcntl.h>
+#include <sys/socket.h>
 
 namespace xi {
 namespace io {
@@ -64,13 +64,13 @@ namespace io {
                            opt< posix_endpoint > remote = none) const;
 
     private:
-      expected< i32 > write_iov(
-          struct iovec *iov, usize iov_len,
-          opt< posix_endpoint > remote = none) const;
+      expected< i32 > write_iov(struct iovec *iov,
+                                usize iov_len,
+                                opt< posix_endpoint > remote = none) const;
 
-      expected< i32 > read_iov(
-          struct iovec *iov, usize iov_len,
-          opt< posix_endpoint > remote = none) const;
+      expected< i32 > read_iov(struct iovec *iov,
+                               usize iov_len,
+                               opt< posix_endpoint > remote = none) const;
     };
 
     struct bindable_socket_adapter {
@@ -105,8 +105,7 @@ namespace io {
       expected< i32 > read_buffer(mut< buffer > b) const;
     };
 
-    class stream_server_socket : public socket,
-                                 public bindable_socket_adapter {
+    class stream_server_socket : public socket, public bindable_socket_adapter {
       using option_t = tuple< int, int, int, int >;
       vector< option_t > _child_options;
 
@@ -135,16 +134,16 @@ namespace io {
     template < class O >
     inline expected< void > socket::set_option(O option) {
       auto value = option.value();
-      return posix_to_expected(setsockopt, _descriptor, O::level, O::name,
-                               &value, O::length);
+      return posix_to_expected(
+          setsockopt, _descriptor, O::level, O::name, &value, O::length);
     }
 
     template < class O >
     inline expected< O > socket::get_option() {
       typename O::value_t value;
-      u32 len = O::length;
-      auto ret = posix_to_expected(getsockopt, _descriptor, O::level, O::name,
-                                   edit(value), edit(len));
+      u32 len  = O::length;
+      auto ret = posix_to_expected(
+          getsockopt, _descriptor, O::level, O::name, edit(value), edit(len));
       if (ret.has_error()) {
         return ret.error();
       }

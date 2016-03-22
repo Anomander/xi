@@ -49,7 +49,7 @@ namespace core {
 
   void kernel::startup(u16 id) {
     assert(nullptr == _shards[id]);
-    this_shard = new shard(this, id, _queues);
+    this_shard  = new shard(this, id, _queues);
     _shards[id] = this_shard;
     std::cout << "s[" << id << "] = " << _shards[id] << std::endl;
     std::cout << __PRETTY_FUNCTION__ << " " << this_shard << std::endl;
@@ -80,7 +80,7 @@ namespace core {
   void kernel::handle_exception(exception_ptr ex) {
     if (!_exception_filter || !_exception_filter(ex)) {
       {
-        auto lock = make_unique_lock(_exception_lock);
+        auto lock       = make_unique_lock(_exception_lock);
         _exit_exception = move(ex);
       }
       initiate_shutdown();

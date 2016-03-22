@@ -1,9 +1,9 @@
-#include "xi/io/net/socket.h"
-#include "xi/io/channel_options.h"
-#include "xi/io/basic_buffer_allocator.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
-#include "udp_socket_mock.h"
 #include "src/test/base.h"
+#include "udp_socket_mock.h"
+#include "xi/io/basic_buffer_allocator.h"
+#include "xi/io/channel_options.h"
+#include "xi/io/detail/heap_buffer_storage_allocator.h"
+#include "xi/io/net/socket.h"
 
 #include <gtest/gtest.h>
 
@@ -28,7 +28,7 @@ namespace test {
       _remote.bind(54321);
       _remote.connect(12345);
       _socket = make_unique< datagram_socket >(kInet, kUDP);
-      endpoint<kInet> ep {12345};
+      endpoint< kInet > ep{12345};
       _socket->bind(ep.to_posix());
     }
 
@@ -38,7 +38,7 @@ namespace test {
 
     vector< u8 > prepare_data(usize size) {
       auto data = vector< u8 >(size);
-      u16 i = 0;
+      u16 i     = 0;
       std::generate_n(begin(data), size, [&i] { return i++; });
       return move(data);
     }
@@ -58,7 +58,7 @@ namespace test {
     auto in = prepare_data(100);
     _remote.send(in.data(), in.size());
 
-    auto b = ALLOC->allocate(0);
+    auto b   = ALLOC->allocate(0);
     auto ret = read(edit(b));
     EXPECT_FALSE(ret.has_error());
     EXPECT_EQ(0, ret);
@@ -68,7 +68,7 @@ namespace test {
     auto in = prepare_data(100);
     _remote.send(in.data(), in.size());
 
-    auto b = ALLOC->allocate(50);
+    auto b   = ALLOC->allocate(50);
     auto ret = read(edit(b));
     EXPECT_FALSE(ret.has_error());
     EXPECT_EQ(50, ret);
@@ -79,7 +79,7 @@ namespace test {
   TEST_F(client, read_from_closed_conn) {
     _remote.close();
 
-    auto b = ALLOC->allocate(50);
+    auto b   = ALLOC->allocate(50);
     auto ret = read(edit(b));
     EXPECT_TRUE(ret.has_error());
     EXPECT_EQ(error_from_value(EAGAIN), ret.error());
@@ -92,7 +92,7 @@ namespace test {
     _remote.send(in.data(), in.size());
     _remote.close();
 
-    auto b = ALLOC->allocate(50);
+    auto b   = ALLOC->allocate(50);
     auto ret = read(edit(b));
     EXPECT_FALSE(ret.has_error());
     EXPECT_EQ(10U, b.tailroom());
@@ -117,7 +117,7 @@ namespace test {
     EXPECT_EQ(0U, b.tailroom());
     EXPECT_EQ(50U, b.size());
 
-    b = ALLOC->allocate(50);
+    b   = ALLOC->allocate(50);
     ret = read(edit(b));
     EXPECT_TRUE(ret.has_error());
     EXPECT_EQ(error_from_value(EAGAIN), ret.error());
@@ -125,7 +125,7 @@ namespace test {
 
   TEST_F(client, large_messages_are_rejected) {
     buffer b = ALLOC->allocate(100 * 1024);
-    auto in = prepare_data(100 * 1024);
+    auto in  = prepare_data(100 * 1024);
     b.write(byte_range{in});
     EXPECT_EQ(100u * 1024, b.size());
     EXPECT_EQ(1u, b.length());

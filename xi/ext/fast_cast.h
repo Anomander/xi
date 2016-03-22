@@ -14,7 +14,9 @@ inline namespace ext {
   template < class T, class U >
   opt< shared_ptr< T > > consuming_dynamic_cast(shared_ptr< U > src) {
     auto cst = dynamic_pointer_cast< T >(move(src));
-    if (cst) { return cst; } else {
+    if (cst) {
+      return cst;
+    } else {
       return none;
     }
   }
@@ -25,19 +27,27 @@ inline namespace ext {
     if (cst) {
       src.release();
       return unique_ptr< T >(cst);
-    } else { return none; }
+    } else {
+      return none;
+    }
   }
 
-  template < typename T > struct fast_castable_node {
-    virtual T *cast(T *overload_only = nullptr) { return nullptr; }
-    virtual T const *cast(T *overload_only = nullptr) const { return nullptr; }
+  template < typename T >
+  struct fast_castable_node {
+    virtual T *cast(T *overload_only = nullptr) {
+      return nullptr;
+    }
+    virtual T const *cast(T *overload_only = nullptr) const {
+      return nullptr;
+    }
 
   protected:
     /// needs not be public, should not be accessible from outside
     ~fast_castable_node() noexcept = default;
   };
 
-  template < class group > struct fast_castable;
+  template < class group >
+  struct fast_castable;
 
   template <>
   /// empty cast group ends recursion
@@ -52,7 +62,8 @@ inline namespace ext {
     using fast_castable_group_types = meta::vector< ts... >;
   };
 
-  template < typename T > T *fast_cast(fast_castable_node< T > *src) {
+  template < typename T >
+  T *fast_cast(fast_castable_node< T > *src) {
     return src->cast();
   }
   template < typename T >
@@ -62,7 +73,9 @@ inline namespace ext {
   template < typename T >
   shared_ptr< T > fast_cast(shared_ptr< fast_castable_node< T > > src) {
     auto *cast = src->cast();
-    if (nullptr != cast) { return shared_ptr< T >(src, cast); }
+    if (nullptr != cast) {
+      return shared_ptr< T >(src, cast);
+    }
     return nullptr;
   }
   template < typename T >
@@ -73,7 +86,9 @@ inline namespace ext {
   unique_ptr< T > consuming_fast_cast(
       unique_ptr< fast_castable_node< T > > src) {
     auto *cast = src->cast();
-    if (nullptr != cast) { return unique_ptr< T >(cast); }
+    if (nullptr != cast) {
+      return unique_ptr< T >(cast);
+    }
     return nullptr;
   }
 
@@ -96,13 +111,16 @@ inline namespace ext {
   struct fast_cast_group_member_impl< D, group, meta::vector< T, ts... > >
       : fast_cast_group_member_impl< D, group, meta::vector< ts... > > {
   private:
-    template < class S > static auto _do_cast(S *src, meta::true_type) {
+    template < class S >
+    static auto _do_cast(S *src, meta::true_type) {
       return static_cast< D * >(src);
     }
-    template < class S > static auto _do_cast(S const *src, meta::true_type) {
+    template < class S >
+    static auto _do_cast(S const *src, meta::true_type) {
       return static_cast< D const * >(src);
     }
-    template < class src > static auto _do_cast(src *, meta::false_type) {
+    template < class src >
+    static auto _do_cast(src *, meta::false_type) {
       return nullptr;
     }
 
@@ -118,7 +136,9 @@ inline namespace ext {
   template < class D, class group >
   struct fast_cast_group_member
       : fast_cast_group_member_impl<
-            D, group, typename group::fast_castable_group_types > {
+            D,
+            group,
+            typename group::fast_castable_group_types > {
     static_assert(
         meta::contains< typename group::fast_castable_group_types, D >::value,
         "Declared type is not a member of the provided fast_castable_group. "

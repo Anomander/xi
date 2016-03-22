@@ -1,8 +1,8 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipes/modifiers.h"
 #include "xi/io/pipes/detail/links.h"
+#include "xi/io/pipes/modifiers.h"
 
 namespace xi {
 namespace io {
@@ -12,7 +12,7 @@ namespace io {
       template < class M0 >
       struct pipe_link {
       private:
-        mut< read_link< M0 > > _head = nullptr;
+        mut< read_link< M0 > > _head  = nullptr;
         mut< write_link< M0 > > _tail = nullptr;
 
       protected:

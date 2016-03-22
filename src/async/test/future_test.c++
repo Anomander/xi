@@ -1,13 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "xi/async/future.h"
 #include "src/test/mock_kernel.h"
+#include "xi/async/future.h"
 #include "xi/core/kernel_utils.h"
 
 using namespace xi;
 using namespace xi::async;
 
-template < class T > T get_value_from_future(future< T > &f) {
+template < class T >
+T
+get_value_from_future(future< T > &f) {
   T val;
   f.then([&val](T v) { val = v; });
   return val;
@@ -70,7 +72,7 @@ TEST(simple, promise_apply_non_void_function) {
   auto fut = p.get_future();
   ASSERT_FALSE(fut.is_exception());
   ASSERT_FALSE(fut.is_ready());
-  p.apply([] () -> int { return 42; });
+  p.apply([]() -> int { return 42; });
   ASSERT_FALSE(fut.is_exception());
   ASSERT_TRUE(fut.is_ready());
 }
@@ -80,13 +82,13 @@ TEST(simple, promise_apply_function_with_exception) {
   auto fut = p.get_future();
   ASSERT_FALSE(fut.is_exception());
   ASSERT_FALSE(fut.is_ready());
-  p.apply([] () -> int { throw std::exception(); });
+  p.apply([]() -> int { throw std::exception(); });
   ASSERT_TRUE(fut.is_exception());
   ASSERT_TRUE(fut.is_ready());
 }
 
 TEST(simple, promise_apply_void_function) {
-  promise< > p;
+  promise<> p;
   auto fut = p.get_future();
   ASSERT_FALSE(fut.is_exception());
   ASSERT_FALSE(fut.is_ready());
@@ -131,7 +133,7 @@ TEST(simple, promise_set_value_twice) {
 }
 
 TEST(simple, promise_get_future_twice) {
-  auto p = promise< int >{};
+  auto p  = promise< int >{};
   auto f1 = p.get_future();
   ASSERT_THROW(auto f2 = p.get_future(), invalid_promise_exception);
   ASSERT_NO_THROW(p.set(1));
@@ -141,7 +143,7 @@ TEST(simple, promise_get_future_twice) {
 
 TEST(continuation, if_ready_executes_immediately) {
   auto f = make_ready_future(1);
-  int i = 0;
+  int i  = 0;
   auto r = f.then([&i](int j) { i = j; });
   ASSERT_EQ(1, i);
   ASSERT_TRUE(r.is_ready());
@@ -150,7 +152,7 @@ TEST(continuation, if_ready_executes_immediately) {
 
 TEST(continuation, if_ready_returns_correct_value) {
   auto f = make_ready_future(42);
-  int i = 0;
+  int i  = 0;
   auto r = f.then([](int j) { return j * j; }).then([&i](int k) { i = k; });
   ASSERT_EQ(42 * 42, i);
   ASSERT_TRUE(r.is_ready());
@@ -159,7 +161,7 @@ TEST(continuation, if_ready_returns_correct_value) {
 
 TEST(continuation, if_ready_with_exception_calls_correctly) {
   auto f = make_ready_future< int >(std::make_exception_ptr(std::exception{}));
-  int i = 0;
+  int i  = 0;
   auto r = f.then([](int j) { return j * j; });
   ASSERT_EQ(0, i);
   ASSERT_TRUE(r.is_ready());
@@ -170,7 +172,7 @@ TEST(continuation, if_ready_via_promise_executes_immediately) {
   promise< int > p;
   auto f = p.get_future();
   p.set(1);
-  int i = 0;
+  int i  = 0;
   auto r = f.then([&i](int j) { i = j; });
   ASSERT_EQ(1, i);
   ASSERT_TRUE(r.is_ready());
@@ -180,7 +182,7 @@ TEST(continuation, if_ready_via_promise_executes_immediately) {
 TEST(continuation, set_exception_via_future_triggers_continuation) {
   promise< int > p;
   auto f = p.get_future();
-  int i = 0;
+  int i  = 0;
   auto r = f.then([&i](int j) { i = j * j; });
 
   ASSERT_NO_THROW(p.set(make_exception_ptr(std::exception{})));
@@ -193,7 +195,7 @@ TEST(continuation, set_exception_via_future_triggers_continuation) {
 TEST(continuation, set_value_via_future_triggers_continuation) {
   promise< int > p;
   auto f = p.get_future();
-  int i = 0;
+  int i  = 0;
   auto r = f.then([&i](int j) { i = j * j; });
 
   p.set(42);
@@ -206,7 +208,7 @@ TEST(continuation, set_value_via_future_triggers_continuation) {
 TEST(continuation, set_exception_via_future_triggers_large_continuation) {
   promise< int > p;
   auto f = p.get_future();
-  int i = 0;
+  int i  = 0;
   char padding[1024];
   auto continuation = [&i, padding](int j) { i = j * j; };
   static_assert(sizeof(continuation) > 1024, "Too small!");
@@ -223,7 +225,7 @@ TEST(continuation, set_exception_via_future_triggers_large_continuation) {
 TEST(continuation, set_value_via_future_triggers_large_continuation) {
   promise< int > p;
   auto f = p.get_future();
-  int i = 0;
+  int i  = 0;
   char padding[1024];
   auto continuation = [&i, padding](int j) { i = j * j; };
   static_assert(sizeof(continuation) > 1024, "Too small!");
@@ -257,8 +259,8 @@ TEST(continuation, exception_from_continuation_propagates_Future) {
 }
 
 TEST(continuation, future_from_continuation_is_unwrapped_Future) {
-  auto r = make_ready_future(42)
-               .then([](int j) { return make_ready_future< int >(j * j); });
+  auto r = make_ready_future(42).then(
+      [](int j) { return make_ready_future< int >(j * j); });
 
   ASSERT_TRUE(r.is_ready());
   ASSERT_FALSE(r.is_exception());
@@ -330,7 +332,7 @@ TEST(continuation, future_from_continuation_is_unwrapped_Exception_Promise) {
 }
 
 TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
-  auto k = make< test::mock_kernel >();
+  auto k    = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -357,7 +359,7 @@ TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
 
 TEST(executable_test,
      async_continuation_launches_asynchronously_Ready_promise) {
-  auto k = make< test::mock_kernel >();
+  auto k    = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -381,7 +383,7 @@ TEST(executable_test,
 
 TEST(executable_test,
      async_continuation_launches_asynchronously_Promise_set_value) {
-  auto k = make< test::mock_kernel >();
+  auto k    = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -402,7 +404,7 @@ TEST(executable_test,
 }
 
 TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
-  auto k = make< test::mock_kernel >();
+  auto k    = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -423,7 +425,7 @@ TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
 
 TEST(executable_test,
      async_continuation_propagates_exceptions_Promise_set_value) {
-  auto k = make< test::mock_kernel >();
+  auto k    = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -444,7 +446,7 @@ TEST(executable_test,
 }
 
 TEST(executable_test, async_promise_set_value_Propagates_value) {
-  auto k = make< test::mock_kernel >();
+  auto k    = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;
@@ -465,7 +467,7 @@ TEST(executable_test, async_promise_set_value_Propagates_value) {
 }
 
 TEST(executable_test, async_promise_set_value_Propagates_exception) {
-  auto k = make< test::mock_kernel >();
+  auto k    = make< test::mock_kernel >();
   auto pool = make_executor_pool(edit(k));
 
   int i = 0;

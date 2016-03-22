@@ -1,5 +1,5 @@
-#include "xi/ext/configure.h"
 #include "xi/hw/hardware.h"
+#include "xi/ext/configure.h"
 
 namespace xi {
 namespace hw {
@@ -11,18 +11,22 @@ namespace hw {
   }
 
   machine::machine(hwloc_topology_t topology) {
-    auto depth = hwloc_get_type_or_below_depth(topology, HWLOC_OBJ_CORE);
+    auto depth  = hwloc_get_type_or_below_depth(topology, HWLOC_OBJ_CORE);
     auto ncores = hwloc_get_nbobjs_by_depth(topology, depth);
     for (unsigned core = 0; core < ncores; ++core) {
       auto cpu = hwloc_get_obj_by_depth(topology, depth, core);
-      if (cpu) { _cpus.emplace_back(cpu); }
+      if (cpu) {
+        _cpus.emplace_back(cpu);
+      }
     }
   }
 
   machine enumerate() {
     hwloc_topology_t topology;
     hwloc_topology_init(&topology);
-    XI_SCOPE(exit) { hwloc_topology_destroy(topology); };
+    XI_SCOPE(exit) {
+      hwloc_topology_destroy(topology);
+    };
 
     hwloc_topology_load(topology);
 
@@ -31,7 +35,8 @@ namespace hw {
 
 #else // XI_HAS_HWLOC
 
-  cpu::cpu(unsigned core) : _id{core, core} {}
+  cpu::cpu(unsigned core) : _id{core, core} {
+  }
 
   machine::machine() {
     for (unsigned core = 0; core < std::thread::hardware_concurrency();
@@ -40,7 +45,9 @@ namespace hw {
     }
   }
 
-  machine enumerate() { return machine{}; }
+  machine enumerate() {
+    return machine{};
+  }
 
 #endif // XI_HAS_HWLOC
 }

@@ -48,5 +48,5 @@
 #define __XI_CLASS_SEMANTIC_virtual_dtor(Class) XI_DEFAULT_COPIABLE(Class)
 
 #define XI_CLASS_DEFAULTS(Class, ...)                                          \
-  BOOST_PP_SEQ_FOR_EACH(__XI_CLASS_SEMANTIC, Class,                            \
-                        BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__));
+  BOOST_PP_SEQ_FOR_EACH(                                                       \
+      __XI_CLASS_SEMANTIC, Class, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__));

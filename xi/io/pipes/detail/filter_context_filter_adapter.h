@@ -1,9 +1,9 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipes/modifiers.h"
 #include "xi/io/pipes/detail/filter_context_impl.h"
 #include "xi/io/pipes/detail/filter_impl.h"
+#include "xi/io/pipes/modifiers.h"
 
 namespace xi {
 namespace io {
@@ -18,7 +18,7 @@ namespace io {
           : filter_context_impl< C, M0 >,
             filter_context_filter_adapter< C, H, messages... > {
         using super = filter_context_filter_adapter< C, H, messages... >;
-        using impl = filter_context_impl< C, M0 >;
+        using impl  = filter_context_impl< C, M0 >;
 
       public:
         using super::filter_context_filter_adapter;
@@ -63,7 +63,7 @@ namespace io {
           : filter_context_impl< C, read_only< M0 > >,
             filter_context_filter_adapter< C, H, messages... > {
         using super = filter_context_filter_adapter< C, H, messages... >;
-        using impl = filter_context_impl< C, read_only< M0 > >;
+        using impl  = filter_context_impl< C, read_only< M0 > >;
 
       public:
         using super::filter_context_filter_adapter;
@@ -73,7 +73,8 @@ namespace io {
 
         void read(M0 m) override {
           static_cast< mut< filter_impl< C, read_only< M0 > > > >(
-              this->handler())->read(this->context(), move(m));
+              this->handler())
+              ->read(this->context(), move(m));
         }
 
         void add_read_if_null(mut< generic_filter_context > cx) override {
@@ -96,12 +97,14 @@ namespace io {
       };
 
       template < class C, class H, class M0, class... messages >
-      struct filter_context_filter_adapter< C, H, write_only< M0 >,
+      struct filter_context_filter_adapter< C,
+                                            H,
+                                            write_only< M0 >,
                                             messages... >
           : filter_context_impl< C, write_only< M0 > >,
             filter_context_filter_adapter< C, H, messages... > {
         using super = filter_context_filter_adapter< C, H, messages... >;
-        using impl = filter_context_impl< C, write_only< M0 > >;
+        using impl  = filter_context_impl< C, write_only< M0 > >;
 
       public:
         using super::filter_context_filter_adapter;
@@ -111,7 +114,8 @@ namespace io {
 
         void write(M0 m) override {
           static_cast< mut< filter_impl< C, write_only< M0 > > > >(
-              this->handler())->write(this->context(), move(m));
+              this->handler())
+              ->write(this->context(), move(m));
         }
 
         void add_read_if_null(mut< generic_filter_context > cx) override {

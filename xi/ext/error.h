@@ -40,7 +40,8 @@ inline namespace ext {
 
 #define XI_DECLARE_ERROR_ENUM(E)                                               \
   namespace std {                                                              \
-    template <> struct is_error_code_enum< E > : true_type {};                 \
+    template <>                                                                \
+    struct is_error_code_enum< E > : true_type {};                             \
   }
 
 #define XI_DECLARE_ERROR_CATEGORY(C, Name)                                     \

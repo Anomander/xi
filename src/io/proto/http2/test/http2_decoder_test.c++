@@ -1,5 +1,5 @@
-#include "xi/io/proto/http2/all.h"
 #include "src/test/buffer_base.h"
+#include "xi/io/proto/http2/all.h"
 
 using namespace xi;
 using namespace xi::io;
@@ -8,7 +8,7 @@ using namespace xi::io::proto::http2;
 struct mock_http2_delegate : public delegate {
   vector< pair< u16, u32 > > settings;
   bool settings_finished = false;
-  bool settings_acked = false;
+  bool settings_acked    = false;
   error connection_error = error::NO_ERROR;
 
   auto& last_setting() const {
@@ -55,7 +55,7 @@ public:
 
   void reset() {
     delegate = make_unique< mock_http2_delegate >();
-    dec = make_unique< decoder >(edit(delegate));
+    dec      = make_unique< decoder >(edit(delegate));
   }
 
   template < class T >
@@ -113,9 +113,13 @@ public:
   }
 
   auto make_advanced_settings_frame(
-      u32 stream, bool ack, vector< pair< setting, u32 > > settings = {},
+      u32 stream,
+      bool ack,
+      vector< pair< setting, u32 > > settings = {},
       u32 length_override = 0) {
-    auto f = construct_frame(stream, frame::SETTINGS_FRAME, ack ? 1 : 0,
+    auto f = construct_frame(stream,
+                             frame::SETTINGS_FRAME,
+                             ack ? 1 : 0,
                              length_override ? length_override
                                              : settings.size() * 6);
     for (auto& s : settings) {

@@ -4,9 +4,11 @@
 
 namespace xi {
 namespace core {
-  template < class I > class service {
+  template < class I >
+  class service {
   public:
-    service(own< executor_pool > pool) : _pool(move(pool)) {}
+    service(own< executor_pool > pool) : _pool(move(pool)) {
+    }
 
   public:
     own< executor_pool > _pool;

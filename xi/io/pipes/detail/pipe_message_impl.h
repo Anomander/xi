@@ -1,8 +1,8 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipes/detail/pipe_link.h"
 #include "xi/io/pipes/detail/generic_filter_context.h"
+#include "xi/io/pipes/detail/pipe_link.h"
 
 namespace xi {
 namespace io {
@@ -63,7 +63,7 @@ namespace io {
         }
         void maybe_update_tail(mut< generic_filter_context > ctx) override {
         }
-        void read() = delete;
+        void read()  = delete;
         void write() = delete;
       };
     }

@@ -19,7 +19,8 @@ namespace async {
       void dispatch_events(bool blocking);
 
     public:
-      struct ::event *prepare_event(struct ::event *e, event_state state,
+      struct ::event *prepare_event(struct ::event *e,
+                                    event_state state,
                                     xi::async::event_handler *arg) noexcept;
 
     private:

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "xi/ext/configure.h"
-#include "xi/async/reactor.h"
 #include "xi/async/libevent/event_loop.h"
+#include "xi/async/reactor.h"
+#include "xi/ext/configure.h"
 
 namespace xi {
 namespace async {

@@ -19,7 +19,6 @@ namespace io {
       using impl::read;
       using impl::write;
     };
-
   }
 }
 }

@@ -54,7 +54,6 @@ namespace io {
     return buffer::reader(b, false);
   }
 
-
   inline usize buffer::reader::peek(byte_range r) {
     if (!r.empty() && _buffer->size() >= r.size()) {
       return _buffer->read(r);

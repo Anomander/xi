@@ -32,42 +32,58 @@ inline namespace ext {
   using ::std::make_signed_t;
   using ::std::make_unsigned_t;
 
-  template < class T, class Signature > struct is_callable;
+  template < class T, class Signature >
+  struct is_callable;
   template < class T, class Ret, class... Args >
   struct is_callable< T, Ret(Args...) > {
     enum { value = is_same< Ret, result_of_t< T(Args...) > >::value };
   };
 
-  template < class src, class dst > struct copy_const {
+  template < class src, class dst >
+  struct copy_const {
     using type = remove_const_t< dst >;
   };
-  template < class src, class dst > struct copy_const< const src, dst > {
+  template < class src, class dst >
+  struct copy_const< const src, dst > {
     using type = add_const_t< dst >;
   };
   template < class src, class dst >
   using copy_const_t = typename copy_const< const src, dst >::type;
 
   namespace detail {
-    template < class T > struct address_of {
+    template < class T >
+    struct address_of {
       using type = decltype(::std::addressof(*((const T *)0)));
-      static type value(T const &t) { return ::std::addressof(t); }
+      static type value(T const &t) {
+        return ::std::addressof(t);
+      }
     };
-    template < class T > struct address_of< T * > {
+    template < class T >
+    struct address_of< T * > {
       using type = T *;
-      static type value(T *const &t) { return t; }
+      static type value(T *const &t) {
+        return t;
+      }
     };
-    template < class T > struct address_of< shared_ptr< T > > {
+    template < class T >
+    struct address_of< shared_ptr< T > > {
       using type = T *;
-      static type value(shared_ptr< T > const &t) { return t.get(); }
+      static type value(shared_ptr< T > const &t) {
+        return t.get();
+      }
     };
-    template < class T > struct address_of< unique_ptr< T > > {
+    template < class T >
+    struct address_of< unique_ptr< T > > {
       using type = T *;
-      static type value(unique_ptr< T > const &t) { return t.get(); }
+      static type value(unique_ptr< T > const &t) {
+        return t.get();
+      }
     };
   }
   template < class T >
   using address_of_t = typename detail::address_of< T >::type;
-  template < class T > auto address_of(T const &t) {
+  template < class T >
+  auto address_of(T const &t) {
     return detail::address_of< T >::value(t);
   }
 

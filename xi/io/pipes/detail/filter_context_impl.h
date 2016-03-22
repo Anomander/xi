@@ -1,9 +1,9 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/io/pipes/modifiers.h"
-#include "xi/io/pipes/detail/links_impl.h"
 #include "xi/io/pipes/detail/filter_context.h"
+#include "xi/io/pipes/detail/links_impl.h"
+#include "xi/io/pipes/modifiers.h"
 
 namespace xi {
 namespace io {
@@ -17,13 +17,17 @@ namespace io {
 
         void forward_read(M0 m) final override {
           auto next_read =
-              static_cast< read_link_impl< M0 > * >(this)->next_read();
-          if (next_read) { next_read->read(move(m)); }
+              static_cast< read_link_impl< M0 >* >(this)->next_read();
+          if (next_read) {
+            next_read->read(move(m));
+          }
         }
         void forward_write(M0 m) final override {
           auto next_write =
-              static_cast< write_link_impl< M0 > * >(this)->next_write();
-          if (next_write) { next_write->write(move(m)); }
+              static_cast< write_link_impl< M0 >* >(this)->next_write();
+          if (next_write) {
+            next_write->write(move(m));
+          }
         }
       };
 
@@ -33,8 +37,10 @@ namespace io {
 
         void forward_read(M0 m) final override {
           auto next_read =
-              static_cast< read_link_impl< M0 > * >(this)->next_read();
-          if (next_read) { next_read->read(move(m)); }
+              static_cast< read_link_impl< M0 >* >(this)->next_read();
+          if (next_read) {
+            next_read->read(move(m));
+          }
         }
       };
 
@@ -44,8 +50,10 @@ namespace io {
 
         void forward_write(M0 m) final override {
           auto next_write =
-              static_cast< write_link_impl< M0 > * >(this)->next_write();
-          if (next_write) { next_write->write(move(m)); }
+              static_cast< write_link_impl< M0 >* >(this)->next_write();
+          if (next_write) {
+            next_write->write(move(m));
+          }
         }
       };
     }

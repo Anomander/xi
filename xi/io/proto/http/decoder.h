@@ -1,8 +1,8 @@
 #pragma once
 
 #include "xi/io/buffer.h"
-#include "xi/io/buffer_reader.h"
 #include "xi/io/buffer_allocator.h"
+#include "xi/io/buffer_reader.h"
 
 namespace xi {
 namespace io {
@@ -12,8 +12,8 @@ namespace io {
       enum class state { VERB, URI, VERSION, CRLF, HEADERS, BODY };
 
       class decoder {
-        state _state = state::VERB;
-        verb _verb = verb::INVALID;
+        state _state  = state::VERB;
+        verb _verb    = verb::INVALID;
         usize _length = 0;
         own< buffer_allocator > _alloc;
         string _uri = {};
@@ -123,7 +123,7 @@ namespace io {
           auto r = make_consuming_reader(in);
           if ('H' == r.read< char >().unwrap()) {
             if (compare_bytes("TTP/1.", in)) {
-              _version = r.read<u8>().unwrap() - '0';
+              _version = r.read< u8 >().unwrap() - '0';
               std::cout << "VERSION is HTTP/1." << (u32)_version << std::endl;
               _state = state::CRLF;
             }
@@ -141,8 +141,8 @@ namespace io {
         }
 
         template < u32 N >
-        bool compare_bytes(const char(&pattern)[N], mut< buffer > in) {
-          u32 i = 0;
+        bool compare_bytes(const char (&pattern)[N], mut< buffer > in) {
+          u32 i  = 0;
           auto r = make_consuming_reader(in);
           while (auto b = r.peek< char >()) {
             if (b.unwrap() != pattern[i++]) {

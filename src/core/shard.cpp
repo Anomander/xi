@@ -22,10 +22,13 @@ namespace core {
 
   void shard::deregister_poller(usize poller_id) {
     dispatch([poller_id, this] {
-      _pollers.erase(
-          remove_if(begin(_pollers), end(_pollers), [&](auto const &poller) {
-            return reinterpret_cast< usize >(address_of(poller)) == poller_id;
-          }), end(_pollers));
+      _pollers.erase(remove_if(begin(_pollers),
+                               end(_pollers),
+                               [&](auto const &poller) {
+                                 return reinterpret_cast< usize >(
+                                            address_of(poller)) == poller_id;
+                               }),
+                     end(_pollers));
     });
   }
 
@@ -40,7 +43,7 @@ namespace core {
       }
 
       if (XI_UNLIKELY(!_inbound.tasks.empty())) {
-        auto lock = make_lock(_inbound.lock);
+        auto lock   = make_lock(_inbound.lock);
         auto &tasks = _inbound.tasks;
         while (!tasks.empty()) {
           auto &next_task = tasks.back();

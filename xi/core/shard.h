@@ -7,7 +7,7 @@ namespace xi {
 namespace core {
 
   struct alignas(64) poller : public virtual ownership::unique {
-    virtual ~poller() = default;
+    virtual ~poller()                = default;
     virtual unsigned poll() noexcept = 0;
   };
 
@@ -115,7 +115,8 @@ namespace core {
 }
 
 template < class F >
-void defer(F &&func) {
+void
+defer(F &&func) {
   assert(nullptr != core::this_shard);
   core::this_shard->post(forward< F >(func));
 }

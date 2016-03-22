@@ -12,8 +12,8 @@
 #include "xi/ext/expected.h"
 #include "xi/ext/fast_cast.h"
 #include "xi/ext/intrusive.h"
-#include "xi/ext/lock.h"
 #include "xi/ext/likely.h"
+#include "xi/ext/lock.h"
 #include "xi/ext/meta.h"
 #include "xi/ext/number.h"
 #include "xi/ext/pointer.h"
@@ -21,10 +21,10 @@
 #include "xi/ext/require.h"
 #include "xi/ext/scope.h"
 #include "xi/ext/string.h"
-#include "xi/ext/types.h"
-#include "xi/ext/type_traits.h"
 #include "xi/ext/tuple.h"
+#include "xi/ext/type_traits.h"
+#include "xi/ext/types.h"
 
 /// include files that require the declarations above
-#include "xi/util/ownership.h"
 #include "xi/util/optional.h"
+#include "xi/util/ownership.h"

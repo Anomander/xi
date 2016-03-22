@@ -83,8 +83,8 @@ namespace async {
       if (local) {
         return local->set_continuation(forward< func >(f));
       }
-      return ext::get< own< shared_state< T > > >(_state)
-          ->set_continuation(forward< func >(f));
+      return ext::get< own< shared_state< T > > >(_state)->set_continuation(
+          forward< func >(f));
     }
 
     template < class func >
@@ -93,8 +93,8 @@ namespace async {
       if (local) {
         return local->set_continuation(e, forward< func >(f));
       }
-      return ext::get< own< shared_state< T > > >(_state)
-          ->set_continuation(e, forward< func >(f));
+      return ext::get< own< shared_state< T > > >(_state)->set_continuation(
+          e, forward< func >(f));
     }
   };
 

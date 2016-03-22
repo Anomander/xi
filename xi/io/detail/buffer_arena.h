@@ -9,7 +9,7 @@ namespace io {
     struct buffer_arena;
 
     struct buffer_arena_deallocator : public virtual ownership::std_shared {
-      virtual ~buffer_arena_deallocator() = default;
+      virtual ~buffer_arena_deallocator()             = default;
       virtual void deallocate(buffer_arena*) noexcept = 0;
     };
 
@@ -20,7 +20,8 @@ namespace io {
       u8 data[0];
 
       buffer_arena(usize l, own< buffer_arena_deallocator > d)
-          : length(l), deallocator(move(d)) {}
+          : length(l), deallocator(move(d)) {
+      }
 
       void increment_ref_count() noexcept {
         ref_count.fetch_add(1, memory_order_relaxed);

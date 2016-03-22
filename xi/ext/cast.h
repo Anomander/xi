@@ -9,24 +9,31 @@ namespace xi {
 inline namespace ext {
   namespace detail {
 
-    template < class I, class T > struct caster;
+    template < class I, class T >
+    struct caster;
 
-    template < class I, class T > struct caster< I *, T * > {
+    template < class I, class T >
+    struct caster< I *, T * > {
       using type = add_pointer_t< I >;
 
-      static auto cast(I *value) { return _cast(value, select_rank); }
+      static auto cast(I *value) {
+        return _cast(value, select_rank);
+      }
 
     protected:
       static auto _cast(I *value, rank< 1 >) {
         return static_cast< T * >(value);
       }
-      static auto _cast(I *value, rank< 2 >) { return fast_cast< T * >(value); }
+      static auto _cast(I *value, rank< 2 >) {
+        return fast_cast< T * >(value);
+      }
       static auto _cast(I *value, rank< 3 >) {
         return dynamic_cast< T * >(value);
       }
     };
 
-    template < class I, class T > struct caster< I &, T & > {
+    template < class I, class T >
+    struct caster< I &, T & > {
       using type = add_lvalue_reference_t< I >;
 
       static auto cast(I &value) {
@@ -51,7 +58,8 @@ inline namespace ext {
     }
 #endif // XI_CAST_ENABLE_DYNAMIC_CAST_BY_DEFAULT
   }
-  template < class T, class I > auto cast(I obj) {
+  template < class T, class I >
+  auto cast(I obj) {
     return detail::cast< T >(obj, select_rank);
   }
 

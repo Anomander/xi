@@ -18,7 +18,8 @@ inline namespace ext {
     return ::std::shared_lock< mutex >(m, forward< args >(args)...);
   }
 
-  template < class mutex, class... A > auto make_lock(mutex &m, A &&... args) {
+  template < class mutex, class... A >
+  auto make_lock(mutex &m, A &&... args) {
     return make_unique_lock(m, forward< args >(args)...);
   }
 

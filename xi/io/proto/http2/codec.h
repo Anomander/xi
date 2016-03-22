@@ -18,12 +18,12 @@ namespace io {
         decoder _decoder{this};
         own< buffer_allocator > _alloc;
         struct remote_settings {
-          u32 header_table_size = 4096;
-          bool enable_push = true;
+          u32 header_table_size      = 4096;
+          bool enable_push           = true;
           u32 max_concurrent_streams = 100;
-          u32 initial_window_size = (1 << 16) - 1;
-          u32 max_frame_size = 1 << 14;
-          u32 max_header_list_size = -1;
+          u32 initial_window_size    = (1 << 16) - 1;
+          u32 max_frame_size         = 1 << 14;
+          u32 max_header_list_size   = -1;
         } _remote_settings;
 
       public:

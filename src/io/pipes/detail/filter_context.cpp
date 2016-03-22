@@ -1,5 +1,5 @@
-#include "xi/ext/configure.h"
 #include "xi/io/pipes/detail/filter_context.h"
+#include "xi/ext/configure.h"
 #include "xi/io/pipes/detail/pipe_control_interface.h"
 
 namespace xi {

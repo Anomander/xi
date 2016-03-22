@@ -14,18 +14,18 @@ namespace io {
       struct delegate {
         virtual ~delegate() = default;
         virtual void setting_received(u16 id, u32 value) = 0;
-        virtual void settings_end() = 0;
-        virtual void settings_ack() = 0;
+        virtual void settings_end()                        = 0;
+        virtual void settings_ack()                        = 0;
         virtual void send_connection_error(http2::error e) = 0;
       };
 
       class decoder {
-        u32 _length = 0;
-        frame _type = frame::INVALID_FRAME_TYPE;
-        state _state = state::READ_CONNECTION_PREFACE;
-        u8 _flags = 0;
-        u8 _padding = 0;
-        u32 _stream_id = 0;
+        u32 _length               = 0;
+        frame _type               = frame::INVALID_FRAME_TYPE;
+        state _state              = state::READ_CONNECTION_PREFACE;
+        u8 _flags                 = 0;
+        u8 _padding               = 0;
+        u32 _stream_id            = 0;
         mut< delegate > _delegate = nullptr;
 
       public:
@@ -54,54 +54,54 @@ namespace io {
               case http2::state::READ_HEADERS_FRAME:
                 std::cout << "Reading HEADERS" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_PRIORITY_FRAME:
                 std::cout << "Reading PRIORITY" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_RST_STREAM_FRAME:
                 std::cout << "Reading RST_STREAM" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_SETTINGS_FRAME:
                 std::cout << "Reading SETTINGS" << std::endl;
-                loop = read_settings_frame(in);
+                loop   = read_settings_frame(in);
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_PUSH_PROMISE_FRAME:
                 std::cout << "Reading PUSH_PROMISE" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_PING_FRAME:
                 std::cout << "Reading PING" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_GOAWAY_FRAME:
                 std::cout << "Reading GOAWAY" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_WINDOW_UPDATE_FRAME:
                 std::cout << "Reading WINDOW_UPDATE" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::READ_CONTINUATION_FRAME:
                 std::cout << "Reading CONTINUATION" << std::endl;
                 in->skip_bytes(_length);
-                loop = in->size() > _length;
+                loop   = in->size() > _length;
                 _state = http2::state::READ_FRAME_HEADER;
                 break;
               case http2::state::CONNECTION_ERROR:
@@ -133,7 +133,7 @@ namespace io {
           auto r = make_consuming_reader(in);
           if (auto p = r.read< u8 >()) {
             _padding = p.unwrap();
-            _state = get_state_from_type();
+            _state   = get_state_from_type();
             --_length;
           }
           return true;
@@ -161,7 +161,7 @@ namespace io {
             return false;
           }
           while (_length && in->size() >= 6) {
-            auto id = read_u16(in);
+            auto id    = read_u16(in);
             auto value = read_u32(in);
             std::cout << "id:" << id << " value:" << value << std::endl;
             if (id >= (u16)setting::SETTINGS_MAX) {

@@ -28,9 +28,9 @@ namespace io {
 
       endpoint(u16 p) {
         ::bzero(&_addr, sizeof(sockaddr_in));
-        _addr.sin_family = AF_INET;
+        _addr.sin_family      = AF_INET;
         _addr.sin_addr.s_addr = INADDR_ANY;
-        _addr.sin_port = htons(p);
+        _addr.sin_port        = htons(p);
       }
 
       u16 port() const {
@@ -58,7 +58,7 @@ namespace io {
       endpoint() = default;
 
       template < usize N >
-      endpoint(char const(&path)[N]) {
+      endpoint(char const (&path)[N]) {
         static_assert(N <= sizeof(sockaddr_un::sun_path), "");
         ::bzero(&_addr, sizeof(sockaddr_in));
         _addr.sun_family = AF_UNIX;

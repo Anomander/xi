@@ -6,7 +6,7 @@ namespace async {
 
   void event_handler::attach_reactor(mut< reactor > reactor) {
     _reactor = some(reactor);
-    _event = reactor->create_event(this);
+    _event   = reactor->create_event(this);
     _event->arm();
   }
 
@@ -19,7 +19,9 @@ namespace async {
       _event->cancel();
       defer([this]() mutable {
         release(move(_event));
-        if (_reactor.is_some()) { _reactor.unwrap()->detach_handler(this); }
+        if (_reactor.is_some()) {
+          _reactor.unwrap()->detach_handler(this);
+        }
       });
     }
   }
@@ -29,21 +31,31 @@ namespace async {
   }
 
   void io_handler::handle(event_state state) {
-    if (state & kWrite) { handle_write(); }
+    if (state & kWrite) {
+      handle_write();
+    }
 
-    if (!is_active()) return;
+    if (!is_active()) {
+      return;
+    }
 
-    if (state & kRead) { handle_read(); }
+    if (state & kRead) {
+      handle_read();
+    }
   }
 
   void io_handler::expect_read(bool flag) {
-    if (flag) { _event->add_state(kRead); } else {
+    if (flag) {
+      _event->add_state(kRead);
+    } else {
       _event->remove_state(kRead);
     }
   }
 
   void io_handler::expect_write(bool flag) {
-    if (flag) { _event->add_state(kWrite); } else {
+    if (flag) {
+      _event->add_state(kWrite);
+    } else {
       _event->remove_state(kWrite);
     }
   }

@@ -19,11 +19,11 @@ namespace test {
       void connect(uint16_t port) {
         struct sockaddr_in servaddr;
         ::bzero(&servaddr, sizeof(servaddr));
-        servaddr.sin_family = AF_INET;
+        servaddr.sin_family      = AF_INET;
         servaddr.sin_addr.s_addr = INADDR_ANY;
-        servaddr.sin_port = htons(port);
-        auto ret = ::connect(_descriptor, (struct sockaddr *)&servaddr,
-                             sizeof(sockaddr_in));
+        servaddr.sin_port        = htons(port);
+        auto ret                 = ::connect(
+            _descriptor, (struct sockaddr *)&servaddr, sizeof(sockaddr_in));
         if (-1 == ret) {
           throw system_error(error_from_errno());
         }
@@ -62,12 +62,12 @@ namespace test {
       void bind(uint16_t port) {
         struct sockaddr_in servaddr;
         ::bzero(&servaddr, sizeof(servaddr));
-        servaddr.sin_family = AF_INET;
+        servaddr.sin_family      = AF_INET;
         servaddr.sin_addr.s_addr = INADDR_ANY;
-        servaddr.sin_port = htons(port);
-        auto one = 1;
-        if (setsockopt(_descriptor, SOL_SOCKET, SO_REUSEADDR, &one,
-                       sizeof(one)) < 0)
+        servaddr.sin_port        = htons(port);
+        auto one                 = 1;
+        if (setsockopt(
+                _descriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0)
           throw system_error(error_from_errno());
         int ret =
             ::bind(_descriptor, (struct sockaddr *)&servaddr, sizeof(servaddr));
@@ -77,8 +77,9 @@ namespace test {
       }
 
       void close() {
-        if (-1 == _descriptor)
+        if (-1 == _descriptor) {
           return;
+        }
         auto ret = ::close(_descriptor);
         if (-1 == ret) {
           throw system_error(error_from_errno());

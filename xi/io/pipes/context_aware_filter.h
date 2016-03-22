@@ -8,20 +8,26 @@ namespace io {
   namespace pipes {
 
     struct context_aware; // intentionally incomplete
-    template < class T > struct filter_tag {};
+    template < class T >
+    struct filter_tag {};
 
     template < class... Ms >
     struct context_aware_filter : public filter< Ms... >,
                                   public filter_tag< context_aware > {
-      using context = typename filter< Ms... >::context;
+      using context           = typename filter< Ms... >::context;
       mut< context > _context = nullptr;
 
-      template < class... > friend class pipe;
+      template < class... >
+      friend class pipe;
 
-      virtual void context_added(mut< context > cx) { _context = cx; }
+      virtual void context_added(mut< context > cx) {
+        _context = cx;
+      }
 
     protected:
-      mut<context> my_context() { return _context; }
+      mut< context > my_context() {
+        return _context;
+      }
     };
   }
 }

@@ -13,7 +13,7 @@ TEST(interface, get_returns_correct_ptr) {
 
 TEST(interface, object_fields_are_accessible) {
   struct foo {
-    int i = 42;
+    int i    = 42;
     double d = 42.42;
   } *b = new foo;
   tagged_ptr< foo, unsigned > p{b};

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <cstring>
+#include <string>
 
 #include <boost/utility/string_ref.hpp>
 
@@ -16,22 +16,25 @@ inline namespace ext {
     using base = ::boost::basic_string_ref< char_t, traits >;
 
   public:
-    constexpr basic_string_ref() : base() {}
+    constexpr basic_string_ref() : base() {
+    }
 
-    constexpr basic_string_ref(basic_string_ref const &rhs) : base(rhs) {}
+    constexpr basic_string_ref(basic_string_ref const &rhs) : base(rhs) {
+    }
 
     using base::operator=;
 
     template < size_t N >
-    basic_string_ref(const char_t (&str)[N])
-        : basic_string_ref(str, N - 1) {}
+    basic_string_ref(const char_t (&str)[N]) : basic_string_ref(str, N - 1) {
+    }
 
-    constexpr basic_string_ref(const char_t *str, size_t len)
-        : base(str, len) {}
+    constexpr basic_string_ref(const char_t *str, size_t len) : base(str, len) {
+    }
 
     template < typename allocator >
     basic_string_ref(const std::basic_string< char_t, traits, allocator > &str)
-        : base(str) {}
+        : base(str) {
+    }
 
     /// explicitly disallow construction from expiring string
     template < typename allocator >

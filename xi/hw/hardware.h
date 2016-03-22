@@ -17,7 +17,9 @@ namespace hw {
   public:
     cpu(hwloc_obj_t cpu);
 
-    auto id() const noexcept { return _id; }
+    auto id() const noexcept {
+      return _id;
+    }
   };
 
   class machine {
@@ -26,8 +28,12 @@ namespace hw {
   public:
     machine(hwloc_topology_t topology);
 
-    decltype(auto) cpus() const { return _cpus; }
-    cpu const &core(unsigned c) const { return _cpus.at(c); }
+    decltype(auto) cpus() const {
+      return _cpus;
+    }
+    cpu const &core(unsigned c) const {
+      return _cpus.at(c);
+    }
   };
 
   extern machine enumerate();
@@ -48,7 +54,9 @@ namespace hw {
   public:
     cpu(unsigned);
 
-    auto id() const noexcept { return _id; }
+    auto id() const noexcept {
+      return _id;
+    }
   };
 
   class machine {
@@ -57,8 +65,12 @@ namespace hw {
   public:
     machine();
 
-    decltype(auto) cpus() const { return _cpus; }
-    cpu const &core(unsigned core) const { return _cpus.at(core); }
+    decltype(auto) cpus() const {
+      return _cpus;
+    }
+    cpu const &core(unsigned core) const {
+      return _cpus.at(core);
+    }
   };
 
   extern machine enumerate();

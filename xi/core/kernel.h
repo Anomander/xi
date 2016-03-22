@@ -1,10 +1,10 @@
 #pragma once
 
-#include "xi/core/task_queue.h"
-#include "xi/core/shard.h"
-#include "xi/util/spin_lock.h"
-#include "xi/hw/hardware.h"
 #include "xi/async/future.h"
+#include "xi/core/shard.h"
+#include "xi/core/task_queue.h"
+#include "xi/hw/hardware.h"
+#include "xi/util/spin_lock.h"
 
 namespace xi {
 namespace core {
@@ -50,7 +50,7 @@ namespace core {
 
     unsigned core_count();
 
-    mut<shard> mut_shard(u16 core);
+    mut< shard > mut_shard(u16 core);
 
   protected:
     virtual void run_on_core(unsigned id);
@@ -63,7 +63,7 @@ namespace core {
     }
   };
 
-  inline mut<shard> kernel::mut_shard(u16 core) {
+  inline mut< shard > kernel::mut_shard(u16 core) {
     if (core >= _shards.size()) {
       throw std::invalid_argument("Target core not registered");
     }
@@ -85,6 +85,5 @@ namespace core {
     }
     _shards[core]->post(forward< func >(f));
   }
-
 }
 }

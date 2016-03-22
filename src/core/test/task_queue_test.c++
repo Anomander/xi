@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "xi/core/task_queue.h"
 #include "src/test/util.h"
+#include "xi/core/task_queue.h"
 
 using namespace xi;
 using xi::core::task_queue;
@@ -26,7 +26,9 @@ TEST(simple, add_task_and_process_f_i_f_o) {
 struct destructor_tracker_task : public test::object_tracker,
                                  public xi::core::task {
   static size_t RUN;
-  void run() override { RUN++; }
+  void run() override {
+    RUN++;
+  }
 };
 
 size_t destructor_tracker_task::RUN = 0;
@@ -46,7 +48,9 @@ TEST(simple, tasks_destroyed_after_run) {
 
 struct big_task : public xi::core::task {
   static size_t RUN;
-  void run() override { RUN++; }
+  void run() override {
+    RUN++;
+  }
 
   char payload[1024];
 };

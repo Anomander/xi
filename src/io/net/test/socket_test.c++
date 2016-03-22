@@ -1,8 +1,8 @@
-#include "xi/io/net/socket.h"
-#include "xi/io/channel_options.h"
-#include "xi/io/basic_buffer_allocator.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 #include "tcp_socket_mock.h"
+#include "xi/io/basic_buffer_allocator.h"
+#include "xi/io/channel_options.h"
+#include "xi/io/detail/heap_buffer_storage_allocator.h"
+#include "xi/io/net/socket.h"
 
 #include <gtest/gtest.h>
 
@@ -32,7 +32,7 @@ protected:
 
   vector< u8 > prepare_data(usize size) {
     auto data = vector< u8 >(size);
-    u16 i = 0;
+    u16 i     = 0;
     std::generate_n(begin(data), size, [&i] { return i++; });
     return move(data);
   }
@@ -52,7 +52,7 @@ TEST_F(client, read_into_empty_buf) {
   auto in = prepare_data(100);
   _remote.send(in.data(), in.size());
 
-  auto b = ALLOC->allocate(0);
+  auto b   = ALLOC->allocate(0);
   auto ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
   ASSERT_EQ(0, ret);
@@ -62,7 +62,7 @@ TEST_F(client, read_into_smaller_buf) {
   auto in = prepare_data(100);
   _remote.send(in.data(), in.size());
 
-  auto b = ALLOC->allocate(50);
+  auto b   = ALLOC->allocate(50);
   auto ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
   ASSERT_EQ(50, ret);
@@ -73,7 +73,7 @@ TEST_F(client, read_into_smaller_buf) {
 TEST_F(client, read_from_closed_conn) {
   _remote.close();
 
-  auto b = ALLOC->allocate(50);
+  auto b   = ALLOC->allocate(50);
   auto ret = read(edit(b));
   ASSERT_TRUE(ret.has_error());
   ASSERT_EQ(error::kEOF, ret.error());
@@ -86,7 +86,7 @@ TEST_F(client, read_some_data_and_close) {
   _remote.send(in.data(), in.size());
   _remote.close();
 
-  auto b = ALLOC->allocate(50);
+  auto b   = ALLOC->allocate(50);
   auto ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
   ASSERT_EQ(10U, b.tailroom());
@@ -111,13 +111,13 @@ TEST_F(client, read_more_data_and_close) {
   ASSERT_EQ(0U, b.tailroom());
   ASSERT_EQ(50U, b.size());
 
-  b = ALLOC->allocate(50);
+  b   = ALLOC->allocate(50);
   ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
   ASSERT_EQ(0U, b.tailroom());
   ASSERT_EQ(50U, b.size());
 
-  b = ALLOC->allocate(50);
+  b   = ALLOC->allocate(50);
   ret = read(edit(b));
   ASSERT_TRUE(ret.has_error());
   ASSERT_EQ(error::kEOF, ret.error());
@@ -125,9 +125,10 @@ TEST_F(client, read_more_data_and_close) {
   ASSERT_EQ(0U, b.size());
 }
 
-void client::test_big_writes(int how_big) {
+void
+client::test_big_writes(int how_big) {
   buffer b = ALLOC->allocate(100 * how_big);
-  auto in = prepare_data(100 * how_big);
+  auto in  = prepare_data(100 * how_big);
   b.write(byte_range{in});
   EXPECT_EQ(100u * how_big, b.size());
   EXPECT_EQ(1u, b.length());

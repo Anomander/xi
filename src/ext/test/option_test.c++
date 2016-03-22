@@ -5,23 +5,26 @@
 using namespace xi;
 
 struct test_shared : public virtual ownership::std_shared {
-  int value = 42;
+  int value     = 42;
   test_shared() = default;
-  test_shared(int v) : value(v) {}
+  test_shared(int v) : value(v) {
+  }
   test_shared(test_shared const &) = delete;
 };
 struct test_unique : public virtual ownership::unique {
-  int value = 42;
+  int value     = 42;
   test_unique() = default;
-  test_unique(int v) : value(v) {}
+  test_unique(int v) : value(v) {
+  }
   test_unique(test_unique const &) = delete;
 };
 
-template < class > class P;
+template < class >
+class P;
 
 TEST(simple, is_none) {
   optional< int > surely_int = some(42);
-  optional< int > not_int = none;
+  optional< int > not_int    = none;
 
   ASSERT_TRUE(surely_int.is_some());
   ASSERT_FALSE(surely_int.is_none());
@@ -31,39 +34,40 @@ TEST(simple, is_none) {
 }
 
 TEST(simple, as_mut) {
-  optional< int > maybe_int = some(42);
+  optional< int > maybe_int                   = some(42);
   optional< own< test_shared > > maybe_shared = some(make< test_shared >());
   optional< own< test_unique > > maybe_unique = some(make< test_unique >());
 
-  STATIC_ASSERT_TEST(is_same< optional< int * >, decltype(maybe_int.as_mut()) >);
   STATIC_ASSERT_TEST(
-      is_same< optional< mut< test_shared > >, decltype(maybe_shared.as_mut()) >);
-  STATIC_ASSERT_TEST(
-      is_same< optional< mut< test_unique > >, decltype(maybe_unique.as_mut()) >);
+      is_same< optional< int * >, decltype(maybe_int.as_mut()) >);
+  STATIC_ASSERT_TEST(is_same< optional< mut< test_shared > >,
+                              decltype(maybe_shared.as_mut()) >);
+  STATIC_ASSERT_TEST(is_same< optional< mut< test_unique > >,
+                              decltype(maybe_unique.as_mut()) >);
 
   *(maybe_int.as_mut().unwrap()) = 0;
   ASSERT_EQ(*maybe_int.as_mut().unwrap(), 0);
 
-  auto mut_shared = maybe_shared.as_mut().unwrap();
+  auto mut_shared   = maybe_shared.as_mut().unwrap();
   mut_shared->value = 0;
   ASSERT_EQ(address_of(maybe_shared.as_mut().unwrap()), address_of(mut_shared));
 
-  auto mut_unique = maybe_unique.as_mut().unwrap();
+  auto mut_unique   = maybe_unique.as_mut().unwrap();
   mut_unique->value = 0;
   ASSERT_EQ(address_of(maybe_unique.as_mut().unwrap()), address_of(mut_unique));
 }
 
 TEST(simple, as_ref) {
-  optional< int > maybe_int = some(42);
+  optional< int > maybe_int                   = some(42);
   optional< own< test_shared > > maybe_shared = some(make< test_shared >());
   optional< own< test_unique > > maybe_unique = some(make< test_unique >());
 
   STATIC_ASSERT_TEST(
       is_same< optional< int const & >, decltype(maybe_int.as_ref()) >);
-  STATIC_ASSERT_TEST(
-      is_same< optional< ref< test_shared > >, decltype(maybe_shared.as_ref()) >);
-  STATIC_ASSERT_TEST(
-      is_same< optional< ref< test_unique > >, decltype(maybe_unique.as_ref()) >);
+  STATIC_ASSERT_TEST(is_same< optional< ref< test_shared > >,
+                              decltype(maybe_shared.as_ref()) >);
+  STATIC_ASSERT_TEST(is_same< optional< ref< test_unique > >,
+                              decltype(maybe_unique.as_ref()) >);
 
   auto &ref_shared = maybe_shared.as_ref().unwrap();
   ASSERT_EQ(address_of(maybe_shared.as_ref().unwrap()), address_of(ref_shared));
@@ -73,7 +77,7 @@ TEST(simple, as_ref) {
 }
 
 TEST(simple, unwrap) {
-  optional< int > maybe_int = some(42);
+  optional< int > maybe_int                   = some(42);
   optional< own< test_shared > > maybe_shared = some(make< test_shared >());
   optional< own< test_unique > > maybe_unique = some(make< test_unique >());
 
@@ -94,7 +98,7 @@ TEST(simple, unwrap) {
 }
 
 TEST(simple, unwrap_or) {
-  optional< int > maybe_int = none;
+  optional< int > maybe_int                   = none;
   optional< own< test_shared > > maybe_shared = none;
   optional< own< test_unique > > maybe_unique = none;
 
@@ -119,7 +123,7 @@ TEST(simple, unwrap_or) {
 }
 
 TEST(simple, unwrap_or_func) {
-  optional< int > maybe_int = none;
+  optional< int > maybe_int                   = none;
   optional< own< test_shared > > maybe_shared = none;
   optional< own< test_unique > > maybe_unique = none;
 
@@ -138,7 +142,7 @@ TEST(simple, unwrap_or_func) {
 }
 
 TEST(simple, map_value) {
-  optional< int > surely_int = some(42);
+  optional< int > surely_int                   = some(42);
   optional< own< test_shared > > surely_shared = some(make< test_shared >());
   optional< own< test_unique > > surely_unique = some(make< test_unique >());
 
@@ -159,7 +163,7 @@ TEST(simple, map_value) {
 }
 
 TEST(simple, map_none) {
-  optional< int > not_int = none;
+  optional< int > not_int                   = none;
   optional< own< test_shared > > not_shared = none;
   optional< own< test_unique > > not_unique = none;
 
@@ -180,7 +184,7 @@ TEST(simple, map_none) {
 }
 
 TEST(simple, map_or_value) {
-  optional< int > not_int = none;
+  optional< int > not_int                   = none;
   optional< own< test_shared > > not_shared = none;
   optional< own< test_unique > > not_unique = none;
 
@@ -201,7 +205,7 @@ TEST(simple, map_or_value) {
 }
 
 TEST(simple, map_or_func) {
-  optional< int > not_int = none;
+  optional< int > not_int                   = none;
   optional< own< test_shared > > not_shared = none;
   optional< own< test_unique > > not_unique = none;
 
@@ -225,7 +229,7 @@ TEST(simple, map_or_func) {
 }
 
 TEST(simple, and_positive) {
-  optional< int > surely_int = some(42);
+  optional< int > surely_int                   = some(42);
   optional< own< test_shared > > surely_shared = some(make< test_shared >());
   optional< own< test_unique > > surely_unique = some(make< test_unique >());
 
@@ -246,7 +250,7 @@ TEST(simple, and_positive) {
 }
 
 TEST(simple, and_negative) {
-  optional< int > surely_int = none;
+  optional< int > surely_int                   = none;
   optional< own< test_shared > > surely_shared = none;
   optional< own< test_unique > > surely_unique = none;
 
@@ -264,7 +268,7 @@ TEST(simple, and_negative) {
 }
 
 TEST(simple, comparison) {
-  auto surely_int = some(42);
+  auto surely_int         = some(42);
   optional< int > not_int = none;
 
   ASSERT_FALSE(not_int == surely_int);

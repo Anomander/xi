@@ -40,9 +40,9 @@ namespace io {
             cx->unlink_read(ctx);
             cx->unlink_write(ctx);
           }
-          auto it = remove_if(begin(_contexts), end(_contexts), [ctx](auto &cx) {
-            return cx.get() == ctx;
-          });
+          auto it = remove_if(begin(_contexts),
+                              end(_contexts),
+                              [ctx](auto &cx) { return cx.get() == ctx; });
           _contexts.erase(it, end(_contexts));
         }
       };

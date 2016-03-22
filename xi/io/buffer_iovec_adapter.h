@@ -1,8 +1,8 @@
 #pragma once
 
 #include "xi/io/buffer.h"
-#include <netinet/in.h>
 #include <limits.h>
+#include <netinet/in.h>
 
 namespace xi {
 namespace io {
@@ -21,7 +21,7 @@ namespace io {
           continue;
         }
         iov[i].iov_base = range.data();
-        iov[i].iov_len = range.size();
+        iov[i].iov_len  = range.size();
         ++i;
         if (max == i) {
           break;
@@ -38,7 +38,7 @@ namespace io {
         return 0;
       }
       iov[0].iov_base = range.data();
-      iov[0].iov_len = range.size();
+      iov[0].iov_len  = range.size();
       return 1;
     }
     static void report_written(mut< buffer > b, usize sz) {

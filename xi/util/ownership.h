@@ -3,9 +3,9 @@
 #include "xi/ext/common.h"
 #include "xi/ext/meta.h"
 #include "xi/ext/pointer.h"
+#include "xi/ext/require.h"
 #include "xi/ext/test.h"
 #include "xi/ext/type_traits.h"
-#include "xi/ext/require.h"
 
 namespace xi {
 inline namespace util {
@@ -22,7 +22,8 @@ inline namespace util {
     /// different ownership mode somewhere in its
     /// superclasses, but for now this should
     /// suffice
-    template < shared_policy > struct shared;
+    template < shared_policy >
+    struct shared;
     template <>
     struct shared< shared_policy::kSTD >
         : public enable_shared_from_this< shared< shared_policy::kSTD > > {
@@ -41,12 +42,13 @@ inline namespace util {
     struct unique {};
 
     using std_shared = shared< shared_policy::kSTD >;
-    using rc_shared = shared< shared_policy::kRC >;
+    using rc_shared  = shared< shared_policy::kRC >;
     using arc_shared = shared< shared_policy::kARC >;
   } // namespace ownership
 
   namespace detail {
-    template < class, ownership::shared_policy > struct is_shared_with_policy;
+    template < class, ownership::shared_policy >
+    struct is_shared_with_policy;
 
     template < class T >
     struct is_shared_with_policy< T, ownership::shared_policy::kSTD >
@@ -67,21 +69,25 @@ inline namespace util {
     using enable_if_unique =
         meta::enable_if< is_base_of< ownership::unique, T > >;
 
-    template < class T > struct ensure_not_const {
+    template < class T >
+    struct ensure_not_const {
       using type = remove_reference_t< remove_pointer_t< T > >;
       static_assert(!is_const< type >::value, "T must not be const");
     };
     template < class T >
     using ensure_not_const_t = typename ensure_not_const< T >::type;
 
-    template < class T, class... > struct own {
+    template < class T, class... >
+    struct own {
       using type = remove_pointer_t< remove_reference_t< T > >;
     };
-    template < class T, class... > struct ref {
+    template < class T, class... >
+    struct ref {
       using type =
           add_lvalue_reference_t< add_const_t< remove_reference_t< T > > >;
     };
-    template < class T, class... > struct mut {
+    template < class T, class... >
+    struct mut {
       using type = add_pointer_t< ensure_not_const_t< T > >;
     };
 
@@ -113,95 +119,115 @@ inline namespace util {
     struct own< T, enable_if_shared< T, ownership::shared_policy::kARC > > {
       using type = intrusive_ptr< T >;
     };
-    template < class T > struct own< T, enable_if_unique< T > > {
+    template < class T >
+    struct own< T, enable_if_unique< T > > {
       using type = unique_ptr< T >;
     };
 
-    template < class T, class... > struct maker {
-      template < class... A > static auto make(A &&... args) {
+    template < class T, class... >
+    struct maker {
+      template < class... A >
+      static auto make(A &&... args) {
         return T{forward< A >(args)...};
       }
     };
     template < class T >
     struct maker< T, enable_if_shared< T, ownership::shared_policy::kSTD > > {
-      template < class... A > static auto make(A &&... args) {
+      template < class... A >
+      static auto make(A &&... args) {
         return make_shared< T >(forward< A >(args)...);
       }
     };
     template < class T >
     struct maker< T, enable_if_shared< T, ownership::shared_policy::kRC > > {
-      template < class... A > static auto make(A &&... args) {
+      template < class... A >
+      static auto make(A &&... args) {
         return intrusive_ptr< T >(new T(forward< A >(args)...));
       }
     };
     template < class T >
     struct maker< T, enable_if_shared< T, ownership::shared_policy::kARC > > {
-      template < class... A > static auto make(A &&... args) {
+      template < class... A >
+      static auto make(A &&... args) {
         return intrusive_ptr< T >(new T(forward< A >(args)...));
       }
     };
-    template < class T > struct maker< T, enable_if_unique< T > > {
-      template < class... A > static auto make(A &&... args) {
+    template < class T >
+    struct maker< T, enable_if_unique< T > > {
+      template < class... A >
+      static auto make(A &&... args) {
         return make_unique< T >(forward< A >(args)...);
       }
     };
 
-    template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                            T, ownership::shared_policy::kSTD >)>
+    template < class T,
+               XI_REQUIRE_DECL(
+                   is_shared_with_policy< T, ownership::shared_policy::kSTD >) >
     auto share(T *obj) {
       return shared_ptr< T >(obj->shared_from_this(),
                              reinterpret_cast< T * >(obj));
     }
-    template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                            T, ownership::shared_policy::kSTD >)>
+    template < class T,
+               XI_REQUIRE_DECL(
+                   is_shared_with_policy< T, ownership::shared_policy::kSTD >) >
     auto is_shared(T *obj) {
       return obj->shared_from_this().use_count() > 1;
     }
 
-    template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                            T, ownership::shared_policy::kRC >)>
+    template < class T,
+               XI_REQUIRE_DECL(
+                   is_shared_with_policy< T, ownership::shared_policy::kRC >) >
     auto share(T *obj) {
       return intrusive_ptr< T >(obj);
     }
-    template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                            T, ownership::shared_policy::kRC >)>
+    template < class T,
+               XI_REQUIRE_DECL(
+                   is_shared_with_policy< T, ownership::shared_policy::kRC >) >
     auto is_shared(T *obj) {
       return obj->use_count() > 1;
     }
 
-    template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                            T, ownership::shared_policy::kARC >)>
+    template < class T,
+               XI_REQUIRE_DECL(
+                   is_shared_with_policy< T, ownership::shared_policy::kARC >) >
     auto share(T *obj) {
       return intrusive_ptr< T >(obj);
     }
-    template < class T, XI_REQUIRE_DECL(is_shared_with_policy<
-                            T, ownership::shared_policy::kARC >)>
+    template < class T,
+               XI_REQUIRE_DECL(
+                   is_shared_with_policy< T, ownership::shared_policy::kARC >) >
     auto is_shared(T *obj) {
       return obj->use_count() > 1;
     }
   } // namespace detail
 
-  template < class T > auto share(T *t) {
+  template < class T >
+  auto share(T *t) {
     return detail::share(t);
   }
 
-  template < class T > shared_ptr< T > share(shared_ptr< T > const &t) {
+  template < class T >
+  shared_ptr< T > share(shared_ptr< T > const &t) {
     return t;
   }
 
-  template < class T > intrusive_ptr< T > share(intrusive_ptr< T > const &t) {
+  template < class T >
+  intrusive_ptr< T > share(intrusive_ptr< T > const &t) {
     return t;
   }
 
-  template < class T > bool is_shared(T *t) {
+  template < class T >
+  bool is_shared(T *t) {
     return detail::is_shared(t);
   }
 
-  template < class T > bool is_shared(shared_ptr< T > const &t) {
+  template < class T >
+  bool is_shared(shared_ptr< T > const &t) {
     return t.use_count() > 1;
   }
 
-  template < class T > bool is_shared(intrusive_ptr< T > const &t) {
+  template < class T >
+  bool is_shared(intrusive_ptr< T > const &t) {
     return t.use_count() > 1;
   }
 
@@ -210,19 +236,23 @@ inline namespace util {
     return false;
   }
 
-  template < class T > bool is_valid(T *t) {
+  template < class T >
+  bool is_valid(T *t) {
     return t != nullptr;
   }
 
-  template < class T > bool is_valid(T const &t) {
+  template < class T >
+  bool is_valid(T const &t) {
     return true;
   }
 
-  template < class T > bool is_valid(shared_ptr< T > const &t) {
+  template < class T >
+  bool is_valid(shared_ptr< T > const &t) {
     return is_valid(t.get());
   }
 
-  template < class T > bool is_valid(intrusive_ptr< T > const &t) {
+  template < class T >
+  bool is_valid(intrusive_ptr< T > const &t) {
     return is_valid(t.get());
   }
 
@@ -238,48 +268,64 @@ inline namespace util {
   template < class T >
   using mut = typename detail::mut< T, meta::enabled >::type;
 
-  template < class T, class... A > own< T > make(A &&... args) {
+  template < class T, class... A >
+  own< T > make(A &&... args) {
     return detail::maker< T, meta::enabled >::make(forward< A >(args)...);
   }
 
-  template < class T > inline mut< T > edit(T &t) {
+  template < class T >
+  inline mut< T > edit(T &t) {
     return &(t);
   }
-  template < class T > inline mut< T > edit(shared_ptr< T > t) {
+  template < class T >
+  inline mut< T > edit(shared_ptr< T > t) {
     return mut< T >(t.get());
   }
-  template < class T > inline mut< T > edit(intrusive_ptr< T > t) {
+  template < class T >
+  inline mut< T > edit(intrusive_ptr< T > t) {
     return mut< T >(t.get());
   }
-  template < class T > inline mut< T > edit(unique_ptr< T > &t) {
+  template < class T >
+  inline mut< T > edit(unique_ptr< T > &t) {
     return mut< T >(t.get());
   }
-  template < class T > inline mut< T > edit(T const &t) = delete;
-  template < class T > inline mut< T > edit(unique_ptr< T > const &t) = delete;
+  template < class T >
+  inline mut< T > edit(T const &t) = delete;
+  template < class T >
+  inline mut< T > edit(unique_ptr< T > const &t) = delete;
 
-  template < class T > inline void release(unique_ptr< T > t) { /* no-op */
+  template < class T >
+  inline void release(unique_ptr< T > t) { /* no-op */
   }
-  template < class T > inline void release(shared_ptr< T > t) { /* no-op */
+  template < class T >
+  inline void release(shared_ptr< T > t) { /* no-op */
   }
-  template < class T > inline void release(intrusive_ptr< T > t) { /* no-op */
+  template < class T >
+  inline void release(intrusive_ptr< T > t) { /* no-op */
   }
 
-  template < class T > inline decltype(auto) val(T const &t) {
+  template < class T >
+  inline decltype(auto) val(T const &t) {
     return t;
   }
-  template < class T > inline decltype(auto) val(T const *t) {
+  template < class T >
+  inline decltype(auto) val(T const *t) {
     return *t;
   }
-  template < class T > inline decltype(auto) val(shared_ptr< T > const &t) {
+  template < class T >
+  inline decltype(auto) val(shared_ptr< T > const &t) {
     return *t;
   }
-  template < class T > inline decltype(auto) val(intrusive_ptr< T > const &t) {
+  template < class T >
+  inline decltype(auto) val(intrusive_ptr< T > const &t) {
     return *t;
   }
-  template < class T > inline decltype(auto) val(unique_ptr< T > const &t) {
+  template < class T >
+  inline decltype(auto) val(unique_ptr< T > const &t) {
     return *t;
   }
-  template < class T > inline decltype(auto) val(unique_ptr< T > &t) {
+  template < class T >
+  inline decltype(auto) val(unique_ptr< T > &t) {
     return *t;
   }
 
@@ -299,16 +345,21 @@ inline namespace util {
         is_same< own< rc_counted >, intrusive_ptr< rc_counted > >);
     STATIC_ASSERT_TEST(
         is_same< own< arc_counted >, intrusive_ptr< arc_counted > >);
-    STATIC_ASSERT_TEST(detail::is_shared_with_policy<
-        std_shared, ownership::shared_policy::kSTD >);
-    STATIC_ASSERT_TEST(detail::is_shared_with_policy<
-        rc_shared, ownership::shared_policy::kRC >);
-    STATIC_ASSERT_TEST(detail::is_shared_with_policy<
-        rc_counted, ownership::shared_policy::kRC >);
-    STATIC_ASSERT_TEST(detail::is_shared_with_policy<
-        arc_shared, ownership::shared_policy::kARC >);
-    STATIC_ASSERT_TEST(detail::is_shared_with_policy<
-        arc_counted, ownership::shared_policy::kARC >);
+    STATIC_ASSERT_TEST(
+        detail::is_shared_with_policy< std_shared,
+                                       ownership::shared_policy::kSTD >);
+    STATIC_ASSERT_TEST(
+        detail::is_shared_with_policy< rc_shared,
+                                       ownership::shared_policy::kRC >);
+    STATIC_ASSERT_TEST(
+        detail::is_shared_with_policy< rc_counted,
+                                       ownership::shared_policy::kRC >);
+    STATIC_ASSERT_TEST(
+        detail::is_shared_with_policy< arc_shared,
+                                       ownership::shared_policy::kARC >);
+    STATIC_ASSERT_TEST(
+        detail::is_shared_with_policy< arc_counted,
+                                       ownership::shared_policy::kARC >);
 
     STATIC_ASSERT_TEST(
         is_same< own< arc_shared >, intrusive_ptr< arc_shared > >);
@@ -369,8 +420,9 @@ inline namespace util {
         is_same< decltype(edit(make< rc_shared >())), rc_shared * >);
     STATIC_ASSERT_TEST(
         is_same< decltype(edit(make< arc_shared >())), arc_shared * >);
-    STATIC_ASSERT_TEST(is_same<
-        decltype(edit(declval< unique_ptr< unique > & >())), unique * >);
+    STATIC_ASSERT_TEST(
+        is_same< decltype(edit(declval< unique_ptr< unique > & >())),
+                 unique * >);
 
     STATIC_ASSERT_TEST(is_same< decltype(share(make< std_shared >())),
                                 shared_ptr< std_shared > >);

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "xi/ext/configure.h"
-#include "xi/async/event_handler.h"
 #include "xi/async/async.h"
+#include "xi/async/event_handler.h"
+#include "xi/ext/configure.h"
 
 namespace xi {
 namespace async {
@@ -10,8 +10,8 @@ namespace async {
   class reactor : public async< reactor >,
                   public virtual ownership::std_shared {
   public:
-    virtual ~reactor() = default;
-    virtual void poll() = 0;
+    virtual ~reactor()                                      = default;
+    virtual void poll()                                     = 0;
     virtual own< event > create_event(mut< event_handler >) = 0;
 
     virtual void handler_cancelled(mut< event_handler > handler) {
@@ -19,9 +19,11 @@ namespace async {
     }
 
     void attach_handler(own< event_handler > handler) {
-      auto mut_handler = edit(handler);
+      auto mut_handler               = edit(handler);
       _handlers[address_of(handler)] = move(handler);
-      XI_SCOPE(failure) { _handlers.erase(address_of(mut_handler)); };
+      XI_SCOPE(failure) {
+        _handlers.erase(address_of(mut_handler));
+      };
       mut_handler->attach_shard(shard());
       mut_handler->attach_reactor(this);
     }

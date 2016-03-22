@@ -9,7 +9,7 @@ namespace test {
     bool _shutdown_initiated = false;
 
   public:
-  mock_kernel() : kernel() {
+    mock_kernel() : kernel() {
       start(2, 1000);
       core::this_shard = nullptr;
       startup(kOtherThread);
@@ -33,7 +33,9 @@ namespace test {
       poll_core(id);
     }
 
-    bool is_shut_down() const { return _shutdown_initiated; }
+    bool is_shut_down() const {
+      return _shutdown_initiated;
+    }
 
   private:
     void initiate_shutdown() override {

@@ -23,8 +23,8 @@ namespace io {
     ~fragment();
 
   private:
-    fragment(internal_t, detail::buffer_arena*, u8*, usize, u8*,
-             usize) noexcept;
+    fragment(
+        internal_t, detail::buffer_arena*, u8*, usize, u8*, usize) noexcept;
 
     XI_CLASS_DEFAULTS(fragment, no_move, no_copy);
 
@@ -88,8 +88,8 @@ namespace io {
     return byte_range{tail(), tailroom()};
   }
   inline usize fragment::record_bytes(usize sz) {
-    assert(make_signed_t<usize>(sz + _size) > 0);
-    auto increment = min (sz, tailroom());
+    assert(make_signed_t< usize >(sz + _size) > 0);
+    auto increment = min(sz, tailroom());
     _size += increment;
     return increment;
   }

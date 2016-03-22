@@ -4,7 +4,8 @@
 
 using namespace xi;
 
-template < class T > using ring_buffer = xi::polymorphic_sp_sc_ring_buffer< T >;
+template < class T >
+using ring_buffer = xi::polymorphic_sp_sc_ring_buffer< T >;
 
 TEST(simple, push_pop) {
   ring_buffer< int > rb(1000);
@@ -134,26 +135,32 @@ TEST(reserve, force_push_ignores_reserve) {
 }
 
 struct base {
-  virtual ~base() = default;
+  virtual ~base()   = default;
   virtual int run() = 0;
 };
 
 struct D1 : public base {
-  int run() override { return 1; }
+  int run() override {
+    return 1;
+  }
 
 private:
   char pad[1];
 };
 
 struct D2 : public D1 {
-  int run() override { return D1::run() + 2; }
+  int run() override {
+    return D1::run() + 2;
+  }
 
 private:
   char pad[5];
 };
 
 struct D3 : public D2 {
-  int run() override { return D2::run() + 3; }
+  int run() override {
+    return D2::run() + 3;
+  }
 
 private:
   char pad[15];
@@ -205,9 +212,15 @@ TEST(polymorphic, D1D2D3) {
 
 struct ctor_throws : public base {
   ctor_throws() = default;
-  ctor_throws(const ctor_throws &) { throw std::exception(); }
-  ctor_throws(ctor_throws &&) { throw std::exception(); }
-  int run() override { return 0; }
+  ctor_throws(const ctor_throws &) {
+    throw std::exception();
+  }
+  ctor_throws(ctor_throws &&) {
+    throw std::exception();
+  }
+  int run() override {
+    return 0;
+  }
 };
 
 TEST(polymorphic, constructor_exception) {
@@ -221,9 +234,15 @@ struct copy_move_distinguisher : public base {
   static int COPY;
   static int MOVE;
   copy_move_distinguisher() = default;
-  copy_move_distinguisher(const copy_move_distinguisher &) { COPY++; }
-  copy_move_distinguisher(copy_move_distinguisher &&) { MOVE++; }
-  int run() override { return 0; }
+  copy_move_distinguisher(const copy_move_distinguisher &) {
+    COPY++;
+  }
+  copy_move_distinguisher(copy_move_distinguisher &&) {
+    MOVE++;
+  }
+  int run() override {
+    return 0;
+  }
 };
 int copy_move_distinguisher::COPY = 0;
 int copy_move_distinguisher::MOVE = 0;
@@ -241,8 +260,12 @@ TEST(polymorphic, prefers_move_when_able) {
 
 struct destrutor_notifier : public base {
   static int DESTROYED;
-  ~destrutor_notifier() { DESTROYED++; }
-  int run() override { return 0; }
+  ~destrutor_notifier() {
+    DESTROYED++;
+  }
+  int run() override {
+    return 0;
+  }
 };
 int destrutor_notifier::DESTROYED = 0;
 

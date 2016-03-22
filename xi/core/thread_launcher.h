@@ -11,8 +11,10 @@ namespace core {
     hw::cpu const &_cpu;
 
   public:
-    thread_launcher(hw::cpu const &cpu) : _cpu(cpu) {}
-    template < class F > void start(F &&f) {
+    thread_launcher(hw::cpu const &cpu) : _cpu(cpu) {
+    }
+    template < class F >
+    void start(F &&f) {
       _thread = thread{forward< F >(f)};
     }
 
@@ -24,7 +26,9 @@ namespace core {
       assert(r == 0);
     }
 
-    void join() { _thread.join(); }
+    void join() {
+      _thread.join();
+    }
   };
 }
 }

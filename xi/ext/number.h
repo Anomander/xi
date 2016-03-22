@@ -33,7 +33,8 @@ inline namespace ext {
     return __builtin_ctzll(x);
   }
 
-  template < class T > class distinct_numeric_type {
+  template < class T >
+  class distinct_numeric_type {
     static_assert(::std::is_arithmetic< T >::value,
                   "Type T must be a numeric type.");
     T _value;
@@ -41,12 +42,15 @@ inline namespace ext {
   public:
     using underlying_type = T;
 
-    explicit constexpr distinct_numeric_type(T v) : _value(v) {}
-    constexpr distinct_numeric_type() = default;
+    explicit constexpr distinct_numeric_type(T v) : _value(v) {
+    }
+    constexpr distinct_numeric_type()                              = default;
     constexpr distinct_numeric_type(distinct_numeric_type const &) = default;
     constexpr distinct_numeric_type &operator=(distinct_numeric_type const &) =
         default;
-    distinct_numeric_type &operator=(T const &v) { _value = v; }
+    distinct_numeric_type &operator=(T const &v) {
+      _value = v;
+    }
 
     constexpr bool operator==(distinct_numeric_type const &other) const {
       return _value == other._value;
@@ -82,7 +86,9 @@ inline namespace ext {
       _value -= other._value;
       return *this;
     }
-    constexpr operator T() const { return _value; }
+    constexpr operator T() const {
+      return _value;
+    }
   };
 } // inline namespace ext
 } // namespace xi

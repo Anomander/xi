@@ -2,9 +2,9 @@
 
 #include "xi/ext/common.h"
 
-#include <memory>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
+#include <memory>
 
 namespace xi {
 inline namespace ext {
@@ -29,15 +29,19 @@ inline namespace ext {
   template < class T, class U >
   auto dynamic_pointer_cast(unique_ptr< U > &&ptr) noexcept {
     auto cast = dynamic_cast< T * >(ptr.get());
-    if (cast) { ptr.release(); }
+    if (cast) {
+      ptr.release();
+    }
     return unique_ptr< T >(cast);
   }
 
-  template < class T > auto make_shared_copy(T &&t) {
+  template < class T >
+  auto make_shared_copy(T &&t) {
     return make_shared< typename ::std::decay< T >::type >(forward< T >(t));
   }
 
-  template < class T > auto make_unique_copy(T t) {
+  template < class T >
+  auto make_unique_copy(T t) {
     return make_unique< typename ::std::decay< T >::type >(move(t));
   }
 

@@ -108,7 +108,7 @@ inline namespace ext {
 
   template < class F, class... A >
   auto posix_to_expected(F f, A &&... args) {
-    auto ret = f(forward< A >(args)...);
+    auto ret       = f(forward< A >(args)...);
     using return_t = expected< decltype(ret) >;
     if (-1 == ret) {
       return return_t{error_from_errno()};

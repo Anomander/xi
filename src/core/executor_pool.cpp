@@ -1,6 +1,6 @@
-#include "xi/ext/configure.h"
-#include "xi/core/kernel.h"
 #include "xi/core/executor_pool.h"
+#include "xi/core/kernel.h"
+#include "xi/ext/configure.h"
 
 namespace xi {
 namespace core {

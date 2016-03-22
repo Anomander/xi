@@ -18,7 +18,6 @@ namespace io {
         ::free(p);
       }
     };
-
   }
 }
 }

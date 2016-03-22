@@ -2,8 +2,8 @@
 
 #include "xi/ext/configure.h"
 
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 namespace xi {
 namespace io {
@@ -28,7 +28,7 @@ namespace io {
         memcpy(&_address, bytes.data(), 4);
         return *this;
       }
-      ip4_address &operator=(ref<in_addr_t> addr) {
+      ip4_address &operator=(ref< in_addr_t > addr) {
         _address = addr;
         return *this;
       }
@@ -41,7 +41,7 @@ namespace io {
       }
 
       string to_string() const {
-        return inet_ntoa(in_addr{ _address });
+        return inet_ntoa(in_addr{_address});
       }
 
     private:

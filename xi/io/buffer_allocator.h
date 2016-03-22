@@ -8,6 +8,5 @@ namespace io {
     virtual ~buffer_allocator() = default;
     virtual buffer allocate(usize, usize headroom = 0, usize tailroom = 0) = 0;
   };
-
 }
 }

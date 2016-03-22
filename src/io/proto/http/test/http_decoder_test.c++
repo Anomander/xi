@@ -1,5 +1,5 @@
-#include "xi/io/proto/http/all.h"
 #include "src/test/buffer_base.h"
+#include "xi/io/proto/http/all.h"
 
 using namespace xi;
 using namespace xi::io;
@@ -23,7 +23,7 @@ public:
     decode(edit(in));
   }
 
-  void decode(mut<buffer> in) {
+  void decode(mut< buffer > in) {
     dec->decode(in);
   }
 

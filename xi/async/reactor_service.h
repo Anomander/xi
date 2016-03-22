@@ -1,7 +1,7 @@
 #pragma once
 
-#include "xi/core/kernel.h"
 #include "xi/core/executor_pool.h"
+#include "xi/core/kernel.h"
 
 namespace xi {
 namespace async {
@@ -31,7 +31,7 @@ namespace async {
   public:
     void start(mut< core::executor_pool > pool) {
       _reactor->attach_shard(core::this_shard);
-      _pool = pool;
+      _pool      = pool;
       _poller_id = core::this_shard->register_poller(
           make< reactor_poller< R > >(edit(_reactor)));
     }

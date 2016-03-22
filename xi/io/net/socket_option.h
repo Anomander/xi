@@ -6,16 +6,18 @@ namespace io {
 
     enum socket_option_access { READ_ONLY, READ_WRITE };
 
-    template < class ValueType, int Level, int Name,
+    template < class ValueType,
+               int Level,
+               int Name,
                socket_option_access Access = READ_WRITE,
-               int Length = sizeof(ValueType) >
+               int Length                  = sizeof(ValueType) >
     class socket_option {
       ValueType _value;
 
     public:
       enum : int {
-        level = Level,
-        name = Name,
+        level  = Level,
+        name   = Name,
         length = Length,
       };
       using value_t = ValueType;

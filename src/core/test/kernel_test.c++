@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "xi/core/kernel.h"
-#include "xi/hw/hardware.h"
 #include "src/test/mock_kernel.h"
 #include "src/test/util.h"
+#include "xi/core/kernel.h"
+#include "xi/hw/hardware.h"
 
 using namespace xi;
 using namespace xi::core;
@@ -11,13 +11,13 @@ using namespace xi::test;
 
 TEST(core_id, core_count_correct) {
   auto machine = xi::hw::enumerate();
-  unsigned i = 1;
+  unsigned i   = 1;
   for (; i <= machine.cpus().size(); ++i) {
     auto k = make< kernel >();
     k->start(i, 1000);
     ASSERT_EQ(i, k->core_count());
   }
-  auto k = make< kernel >();
+  auto k  = make< kernel >();
   auto f1 = k->start(i, 1000);
   ASSERT_TRUE(f1.is_exception());
   auto f2 = k->start(i, 1000);
@@ -30,9 +30,9 @@ struct poller_mock : public test::object_tracker, public poller {
     return 0;
   }
 
-  poller_mock() = default;
+  poller_mock()                    = default;
   poller_mock(poller_mock const &) = delete;
-  poller_mock(poller_mock &&) = delete;
+  poller_mock(poller_mock &&)      = delete;
 
   static void reset() {
     POLLED = 0;

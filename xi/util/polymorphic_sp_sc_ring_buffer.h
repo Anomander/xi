@@ -19,7 +19,8 @@ inline namespace util {
   /// re-reads of the same objects.
   /// TODO: the next optimization will be to allow to read batches of items and
   ///       then pop the entire batch in one go.
-  template < class T > class polymorphic_sp_sc_ring_buffer {
+  template < class T >
+  class polymorphic_sp_sc_ring_buffer {
     // make sure indices are never on the same cache line
     alignas(64) atomic< size_t > _write_idx{0};
     alignas(64) atomic< size_t > _read_idx{0};
@@ -30,22 +31,29 @@ inline namespace util {
 
   public:
     polymorphic_sp_sc_ring_buffer(size_t size, size_t reserved = 0)
-        : _SIZE(size), _RESERVED_SIZE(reserved), _data(size) {}
+        : _SIZE(size), _RESERVED_SIZE(reserved), _data(size) {
+    }
 
   protected:
-    static size_t write_available(size_t writer_idx, size_t reader_idx,
+    static size_t write_available(size_t writer_idx,
+                                  size_t reader_idx,
                                   size_t size) {
       size_t ret = reader_idx - writer_idx - 1;
-      if (XI_UNLIKELY(writer_idx >= reader_idx)) { ret += size; }
+      if (XI_UNLIKELY(writer_idx >= reader_idx)) {
+        ret += size;
+      }
       return ret;
     }
 
     void *next_readable_block() {
-      auto reader_idx = _read_idx.load(
-          memory_order_relaxed); // only modified by reader thread
+      auto reader_idx = _read_idx.load(memory_order_relaxed); // only modified
+                                                              // by reader
+                                                              // thread
       auto writer_idx = _write_idx.load(memory_order_acquire);
       do {
-        if (reader_idx == writer_idx) { return nullptr; }
+        if (reader_idx == writer_idx) {
+          return nullptr;
+        }
         auto size = *reinterpret_cast< size_t * >(&_data[reader_idx]);
         if (XI_UNLIKELY(0xDEADBEEFFACEC0DE == size ||
                         _SIZE - reader_idx <= sizeof(size_t))) {
@@ -63,7 +71,8 @@ inline namespace util {
       return ((size + align - 1) & ~(align - 1));
     }
 
-    template < class U > bool do_push(U &&obj, bool force) {
+    template < class U >
+    bool do_push(U &&obj, bool force) {
       using UType = decay_t< U >;
       static_assert(is_base_of< T, UType >::value || is_same< T, UType >::value,
                     "U must be a subclass of T");
@@ -73,12 +82,14 @@ inline namespace util {
         UType obj;
       };
 
-      auto size = adjust_for_alignment(sizeof(pod));
+      auto size                 = adjust_for_alignment(sizeof(pod));
       size_t current_writer_idx = _write_idx.load(memory_order_relaxed);
-      size_t reader_idx = _read_idx.load(memory_order_acquire);
+      size_t reader_idx         = _read_idx.load(memory_order_acquire);
       size_t adjusted_write_idx = current_writer_idx;
       auto available = write_available(current_writer_idx, reader_idx, _SIZE);
-      if (XI_UNLIKELY(available < size)) { return false; }
+      if (XI_UNLIKELY(available < size)) {
+        return false;
+      }
       if (adjusted_write_idx + size >= _SIZE) {
         // we need to wrap around
         adjusted_write_idx = 0;
@@ -107,11 +118,13 @@ inline namespace util {
     }
 
   public:
-    template < class U > bool push(U &&obj) {
+    template < class U >
+    bool push(U &&obj) {
       return do_push(forward< U >(obj), false);
     }
 
-    template < class U > bool push_forced(U &&obj) {
+    template < class U >
+    bool push_forced(U &&obj) {
       return do_push(forward< U >(obj), true);
     }
 
@@ -121,16 +134,21 @@ inline namespace util {
         char ptr[0];
       };
       auto *p = reinterpret_cast< pod * >(next_readable_block());
-      if (XI_UNLIKELY(!p)) { return nullptr; }
+      if (XI_UNLIKELY(!p)) {
+        return nullptr;
+      }
       return reinterpret_cast< T * >(p->ptr);
     }
 
     void pop() {
-      auto reader_idx = _read_idx.load(
-          memory_order_relaxed); // only modified by reader thread
+      auto reader_idx = _read_idx.load(memory_order_relaxed); // only modified
+                                                              // by reader
+                                                              // thread
       auto writer_idx = _write_idx.load(memory_order_acquire);
       do {
-        if (reader_idx == writer_idx) { return; }
+        if (reader_idx == writer_idx) {
+          return;
+        }
         auto size = *reinterpret_cast< size_t * >(&_data[reader_idx]);
         if (XI_UNLIKELY(0xDEADBEEFFACEC0DE == size)) {
           reader_idx = 0;
