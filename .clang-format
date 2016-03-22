@@ -5,6 +5,8 @@ AccessModifierOffset: -2
 ConstructorInitializerIndentWidth: 4
 AlignEscapedNewlinesLeft: false
 AlignTrailingComments: true
+AlignOperands: true
+AlignConsecutiveAssignments: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortBlocksOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
@@ -12,10 +14,12 @@ AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: true
 AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakAfterReturnType: TopLevel
 BreakBeforeBinaryOperators: false
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: true
-BinPackParameters: true
+BinPackParameters: false
+BinPackArguments: false
 ColumnLimit:     80
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 DerivePointerAlignment: true

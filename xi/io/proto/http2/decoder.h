@@ -2,6 +2,7 @@
 
 #include "xi/ext/configure.h"
 #include "xi/io/buffer.h"
+#include "xi/io/buffer_reader.h"
 #include "xi/io/proto/http2/constants.h"
 
 namespace xi {
@@ -112,7 +113,8 @@ namespace io {
 
       private:
         bool read_connection_preface(mut< buffer > in) {
-          while (auto b = in->read< char >()) {
+          auto r = make_consuming_reader(in);
+          while (auto b = r.read< char >()) {
             if (b.unwrap() != INITIATION_STRING[_length++]) {
               _state = http2::state::CONNECTION_ERROR;
               _delegate->send_connection_error(http2::error::PROTOCOL_ERROR);
@@ -128,7 +130,8 @@ namespace io {
         }
 
         bool read_frame_padding(mut< buffer > in) {
-          if (auto p = in->read< u8 >()) {
+          auto r = make_consuming_reader(in);
+          if (auto p = r.read< u8 >()) {
             _padding = p.unwrap();
             _state = get_state_from_type();
             --_length;
@@ -204,25 +207,28 @@ namespace io {
         }
 
         u16 read_u16(mut< buffer > in) {
+          auto r = make_consuming_reader(in);
           struct _u16 {
             u8 bytes[2];
-          } val = in->read< _u16 >().unwrap();
+          } val = r.read< _u16 >().unwrap();
 
           return val.bytes[0] << 8 | val.bytes[1];
         }
 
         u32 read_u24(mut< buffer > in) {
+          auto r = make_consuming_reader(in);
           struct _u24 {
             u8 bytes[3];
-          } val = in->read< _u24 >().unwrap();
+          } val = r.read< _u24 >().unwrap();
 
           return val.bytes[0] << 16 | val.bytes[1] << 8 | val.bytes[2];
         }
 
         u32 read_u32(mut< buffer > in) {
+          auto r = make_consuming_reader(in);
           struct _u32 {
             u8 bytes[4];
-          } val = in->read< _u32 >().unwrap();
+          } val = r.read< _u32 >().unwrap();
 
           return val.bytes[0] << 24 | val.bytes[1] << 16 | val.bytes[2] << 8 |
                  val.bytes[3];
@@ -233,11 +239,13 @@ namespace io {
             return false;
           }
 
+          auto r = make_consuming_reader(in);
+
           _length = read_u24(in);
           std::cout << "Length: " << _length << std::endl;
-          _type = in->read< frame >().unwrap();
+          _type = r.read< frame >().unwrap();
           std::cout << "Type: " << (int)_type << std::endl;
-          _flags = in->read< u8 >().unwrap();
+          _flags = r.read< u8 >().unwrap();
           std::cout << "Flags: " << (int)_flags << std::endl;
           _stream_id = read_u32(in);
           std::cout << "Stream: " << _stream_id << std::endl;

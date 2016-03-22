@@ -20,6 +20,7 @@ namespace io {
 
   public:
     struct iovec_adapter;
+    class reader;
 
     buffer() = default;
     buffer(own< fragment >);
@@ -36,9 +37,11 @@ namespace io {
     usize size() const;
 
     buffer split(usize = -1);
-    usize coalesce(mut< buffer_allocator > alloc, usize offset = 0,
+    usize coalesce(mut< buffer_allocator > alloc,
+                   usize offset = 0,
                    usize length = -1);
-    byte_range range(mut< buffer_allocator > alloc, usize offset = 0,
+    byte_range range(mut< buffer_allocator > alloc,
+                     usize offset = 0,
                      usize length = -1);
 
     void skip_bytes(usize, bool free = true);
@@ -46,27 +49,6 @@ namespace io {
 
     usize read(byte_range);
     usize write(const byte_range);
-
-    opt< usize > find_byte(u8 target, usize offset = 0) const;
-
-    // TODO: This belongs outside the class
-    template < class T >
-    opt< T > read() {
-      return peek< T >().map([this](auto t) mutable {
-        this->skip_bytes(sizeof(T));
-        return move(t);
-      });
-    }
-    template < class T >
-    opt< T > peek() {
-      if (size() >= sizeof(T)) {
-        T value;
-        read(byte_range_for_object(value));
-        return some(value);
-      }
-      return none;
-    }
-    usize read_string(mut< string > s, usize = -1);
   };
 
   inline usize buffer::length() const {

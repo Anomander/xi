@@ -1,4 +1,5 @@
 #include "xi/io/buffer.h"
+#include "xi/io/buffer_reader.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/detail/heap_buffer_storage_allocator.h"
 
@@ -490,71 +491,76 @@ TEST(interface, split_multiple_full_buffers_completely) {
   EXPECT_EQ(150u, d.size());
 }
 
-TEST(interface, find_byte_empty_buffer) {
+TEST(reader, find_byte_empty_buffer) {
   buffer b;
+  auto r = make_reader(edit(b));
 
-  EXPECT_EQ(none, b.find_byte(1));
-  EXPECT_EQ(none, b.find_byte(1, 100));
+  EXPECT_EQ(none, r.find_byte(1));
+  EXPECT_EQ(none, r.find_byte(1, 100));
 }
 
-TEST(interface, find_byte_single_buffer) {
+TEST(reader, find_byte_single_buffer) {
   buffer b;
   b.push_back(make_buffer(0, 50, 50));
+  auto r = make_reader(edit(b));
 
   for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
+    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
   }
   for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(none, b.find_byte(i, i));
-  }
-}
-
-TEST(interface, find_byte_multiple_buffers) {
-  buffer b;
-  b.push_back(make_buffer(0, 50, 50));
-  b.push_back(make_buffer(0, 50, 50));
-
-  for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
-  }
-
-  for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(49u, b.find_byte(i, i).unwrap());
+    EXPECT_EQ(none, r.find_byte(i, i));
   }
 }
 
-TEST(interface, find_byte_single_buffer_boundaries) {
+TEST(reader, find_byte_multiple_buffers) {
+  buffer b;
+  b.push_back(make_buffer(0, 50, 50));
+  b.push_back(make_buffer(0, 50, 50));
+  auto r = make_reader(edit(b));
+
+  for (u8 i = 1; i <= 50; ++i) {
+    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
+  }
+
+  for (u8 i = 1; i <= 50; ++i) {
+    EXPECT_EQ(49u, r.find_byte(i, i).unwrap());
+  }
+}
+
+TEST(reader, find_byte_single_buffer_boundaries) {
   buffer b;
   b.push_back(make_buffer(0, 50, 50));
   b.ignore_bytes_at_end(10);
   EXPECT_EQ(40u, b.size());
+  auto r = make_reader(edit(b));
 
   for (u8 i = 1; i <= 40; ++i) {
-    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
+    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
   }
 
   for (u8 i = 41; i <= 50; ++i) {
-    EXPECT_EQ(none, b.find_byte(i));
+    EXPECT_EQ(none, r.find_byte(i));
   }
 }
 
-TEST(interface, find_byte_multiple_buffers_boundaries) {
+TEST(reader, find_byte_multiple_buffers_boundaries) {
   buffer b;
   b.push_back(make_buffer(0, 50, 50));
   b.push_back(make_buffer(0, 50, 50));
 
   b.ignore_bytes_at_end(10);
   EXPECT_EQ(90u, b.size());
+  auto r = make_reader(edit(b));
 
   for (u8 i = 1; i <= 50; ++i) {
-    EXPECT_EQ(i-1u, b.find_byte(i).unwrap());
+    EXPECT_EQ(i-1u, r.find_byte(i).unwrap());
   }
 
   for (u8 i = 1; i <= 40; ++i) {
-    EXPECT_EQ(49u, b.find_byte(i,i).unwrap());
+    EXPECT_EQ(49u, r.find_byte(i,i).unwrap());
   }
 
   for (u8 i = 41; i <= 50; ++i) {
-    EXPECT_EQ(none, b.find_byte(i, i));
+    EXPECT_EQ(none, r.find_byte(i, i));
   }
 }

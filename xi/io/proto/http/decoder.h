@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xi/io/buffer.h"
+#include "xi/io/buffer_reader.h"
 #include "xi/io/buffer_allocator.h"
 
 namespace xi {
@@ -62,7 +63,8 @@ namespace io {
           if (in->size() < 6) {
             return false;
           }
-          switch (in->read< u8 >().unwrap()) {
+          auto r = make_consuming_reader(in);
+          switch (r.read< u8 >().unwrap()) {
             case 'D':
               if (compare_bytes("ELETE", in)) {
                 _verb = verb::DELETE;
@@ -99,15 +101,16 @@ namespace io {
         }
 
         bool read_uri(mut< buffer > in) {
-          if (auto space_pos = in->find_byte(' ', _length)) {
+          auto r = make_consuming_reader(in);
+          if (auto space_pos = r.find_byte(' ', _length)) {
             _length = space_pos.unwrap();
-            in->read_string(edit(_uri), _length);
+            r.read_string(edit(_uri), _length);
             std::cout << "uri length " << _length << std::endl;
             std::cout << "uri [" << _uri << "]" << std::endl;
             in->skip_bytes(1); // skip space
             _state = state::VERSION;
           } else {
-            in->read_string(edit(_uri));
+            r.read_string(edit(_uri));
             return false;
           }
           return in->size() > 0;
@@ -117,9 +120,10 @@ namespace io {
           if (in->size() < 8) {
             return false;
           }
-          if ('H' == in->read< char >().unwrap()) {
+          auto r = make_consuming_reader(in);
+          if ('H' == r.read< char >().unwrap()) {
             if (compare_bytes("TTP/1.", in)) {
-              _version = in->read<u8>().unwrap() - '0';
+              _version = r.read<u8>().unwrap() - '0';
               std::cout << "VERSION is HTTP/1." << (u32)_version << std::endl;
               _state = state::CRLF;
             }
@@ -139,7 +143,8 @@ namespace io {
         template < u32 N >
         bool compare_bytes(const char(&pattern)[N], mut< buffer > in) {
           u32 i = 0;
-          while (auto b = in->peek< char >()) {
+          auto r = make_consuming_reader(in);
+          while (auto b = r.peek< char >()) {
             if (b.unwrap() != pattern[i++]) {
               return false;
             }

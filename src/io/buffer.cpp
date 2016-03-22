@@ -1,22 +1,9 @@
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
+#include "xi/io/detail/buffer_utils.h"
 
 namespace xi {
 namespace io {
-  namespace {
-
-    void fragment_deleter(fragment* f) {
-      delete f;
-    };
-
-    template < class I >
-    static auto find_fragment_by_size(I beg, I end, mut< usize > sz) {
-      for (; beg != end && *sz > beg->size(); ++beg) {
-        *sz -= beg->size();
-      }
-      return beg;
-    }
-  }
 
   buffer::buffer(own< fragment > b) {
     if (!b->size() && !b->headroom() && !b->tailroom()) {
@@ -27,7 +14,7 @@ namespace io {
     _fragments.push_back(*b.release());
   }
 
-  buffer::buffer(list_t&& fragments, usize sz)
+  buffer::buffer(list_t &&fragments, usize sz)
       : _fragments(move(fragments)), _size(sz) {
   }
 
@@ -36,12 +23,12 @@ namespace io {
     _fragments.clear_and_dispose(fragment_deleter);
   }
 
-  void buffer::push_front(buffer&& p, bool pack) {
+  void buffer::push_front(buffer &&p, bool pack) {
     _size += p.size();
     _fragments.splice(begin(_fragments), p._fragments);
   }
 
-  void buffer::push_back(buffer&& p, bool pack) {
+  void buffer::push_back(buffer &&p, bool pack) {
     _size += p.size();
     _fragments.splice(end(_fragments), p._fragments);
   }
@@ -67,11 +54,11 @@ namespace io {
       return {};
     if (XI_UNLIKELY(size() < sz)) {
       auto old_size = _size;
-      _size = 0;
+      _size         = 0;
       return {move(_fragments), old_size};
     }
 
-    auto it = _fragments.begin();
+    auto it  = _fragments.begin();
     auto end = _fragments.end();
 
     auto remainder = sz;
@@ -81,7 +68,7 @@ namespace io {
 
     if (XI_LIKELY(remainder > 0)) {
       auto new_node = it->split(remainder);
-      it = _fragments.insert(++it, *new_node.release());
+      it            = _fragments.insert(++it, *new_node.release());
     }
     list_t new_list;
     for (auto i = _fragments.begin(); i != it;) {
@@ -92,7 +79,8 @@ namespace io {
     return {move(new_list), sz};
   }
 
-  usize buffer::coalesce(mut< buffer_allocator > alloc, usize offset,
+  usize buffer::coalesce(mut< buffer_allocator > alloc,
+                         usize offset,
                          usize length) {
     if (XI_UNLIKELY(empty() || 0 == length || offset >= size()))
       return 0;
@@ -101,7 +89,7 @@ namespace io {
       length = _size - offset;
     }
 
-    auto it = _fragments.begin();
+    auto it  = _fragments.begin();
     auto end = _fragments.end();
 
     for (; it != end && offset >= it->size(); ++it) {
@@ -141,14 +129,15 @@ namespace io {
     return write_fragment_it->size();
   }
 
-  byte_range buffer::range(mut< buffer_allocator > alloc, usize offset,
+  byte_range buffer::range(mut< buffer_allocator > alloc,
+                           usize offset,
                            usize length) {
     if (offset >= _size) {
       return byte_range::null();
     }
     coalesce(alloc, offset, length);
 
-    auto it = _fragments.begin();
+    auto it  = _fragments.begin();
     auto end = _fragments.end();
 
     for (; it != end && offset >= it->size(); ++it) {
@@ -165,7 +154,7 @@ namespace io {
     }
 
     auto sz = r.size();
-    for (auto& c : _fragments) {
+    for (auto &c : _fragments) {
       c.read(r);
       r = r.subrange(c.size());
       if (r.empty()) {
@@ -185,43 +174,15 @@ namespace io {
     return ret;
   }
 
-  opt< usize > buffer::find_byte(u8 target, usize offset) const {
-    if (offset >= _size) {
-      return none;
-    }
-
-    auto it = _fragments.begin();
-    auto end = _fragments.end();
-
-    for (; it != end && offset >= it->size(); ++it) {
-      // find the first buffer past offset
-      offset -= it->size();
-    }
-
-    void* found = nullptr;
-    usize size = 0u;
-    do {
-      found = ::memchr(it->data() + offset, target, it->size() - offset);
-      if (found) {
-        size += ((u8*)found - it->data()) - offset;
-      } else {
-        size += it->size() - offset;
-        offset = 0;
-      }
-      ++it;
-    } while (nullptr == found && end != it);
-    return found ? some(size) : none;
-  }
-
   void buffer::skip_bytes(usize sz, bool free) {
     if (XI_UNLIKELY(empty())) {
       return;
     }
 
     auto remainder = sz;
-    auto beg = _fragments.begin();
-    auto end = _fragments.end();
-    auto it = find_fragment_by_size(beg, end, edit(remainder));
+    auto beg       = _fragments.begin();
+    auto end       = _fragments.end();
+    auto it        = find_fragment_by_size(beg, end, edit(remainder));
 
     if (XI_UNLIKELY(it == end)) {
       _size = 0;
@@ -233,7 +194,7 @@ namespace io {
     if (free) {
       _fragments.erase_and_dispose(beg, it, fragment_deleter);
     } else {
-      for_each(beg, it, [](auto& i) { i.skip_bytes(i.size()); });
+      for_each(beg, it, [](auto &i) { i.skip_bytes(i.size()); });
     }
   }
 
@@ -243,9 +204,9 @@ namespace io {
     }
 
     auto remainder = sz;
-    auto beg = _fragments.rbegin();
-    auto end = _fragments.rend();
-    auto it = find_fragment_by_size(beg, end, edit(remainder));
+    auto beg       = _fragments.rbegin();
+    auto end       = _fragments.rend();
+    auto it        = find_fragment_by_size(beg, end, edit(remainder));
 
     if (XI_UNLIKELY(it == end)) {
       _size = 0;
@@ -254,42 +215,11 @@ namespace io {
       _size -= sz;
     }
     if (free) {
-      _fragments.erase_and_dispose(it.base(), _fragments.end(),
-                                   fragment_deleter);
+      _fragments.erase_and_dispose(
+          it.base(), _fragments.end(), fragment_deleter);
     } else {
-      for_each(beg, it, [](auto& i) { i.ignore_bytes_at_end(i.size()); });
+      for_each(beg, it, [](auto &i) { i.ignore_bytes_at_end(i.size()); });
     }
-  }
-  usize buffer::read_string(mut< string > s, usize len) {
-    if (0 == size()) {
-      return 0;
-    }
-    auto it = _fragments.begin();
-    auto end = _fragments.end();
-    auto size = len;
-
-    while (!it->size()) {
-      ++it;
-    }
-    auto consume_begin = it;
-    while (len && it != end) {
-      auto r = it->data_range();
-      if (XI_UNLIKELY(len >= r.size())) {
-        s->append((char*)r.data(), r.size());
-        len -= r.size();
-        ++it;
-      } else {
-        s->append((char*)r.data(), len);
-        it->skip_bytes(len);
-        len = 0;
-        break;
-      }
-    }
-    if (consume_begin != it) {
-      _fragments.erase_and_dispose(consume_begin, it, fragment_deleter);
-    }
-    _size -= (size - len);
-    return size - len;
   }
 }
 }
