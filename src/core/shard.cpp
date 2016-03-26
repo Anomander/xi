@@ -54,14 +54,21 @@ namespace core {
   }
 
   void shard::poll() {
+    auto start = high_resolution_clock::now();
+    ++_stats.iterations;
     try {
       for (auto &&q : _queues[_core_id]) {
         q->process_tasks();
       }
-
+      auto point = high_resolution_clock::now();
+      _stats.total_queues += point - start;
+      start = point;
       for (auto &&p : _pollers) {
         p->poll();
       }
+      point = high_resolution_clock::now();
+      _stats.total_pollers += point - start;
+      start = point;
 
       if (XI_UNLIKELY(!_inbound.tasks.empty())) {
         auto lock   = make_lock(_inbound.lock);
@@ -74,6 +81,9 @@ namespace core {
           next_task->run();
         }
       }
+      point = high_resolution_clock::now();
+      _stats.total_inbound += point - start;
+      start = point;
     } catch (...) {
       _handle_exception();
     }

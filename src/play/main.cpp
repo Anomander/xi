@@ -1,6 +1,6 @@
-#include "xi/core/libevent/reactor.h"
 #include "xi/core/kernel_utils.h"
 #include "xi/core/launchable_kernel.h"
+#include "xi/core/libevent/reactor.h"
 #include "xi/core/thread_launcher.h"
 #include "xi/hw/hardware.h"
 #include "xi/io/buffer.h"
@@ -126,8 +126,8 @@ public:
   }
 };
 
-auto k = make<
-  core::launchable_kernel< core::thread_launcher, core::libevent::reactor > >();
+auto k = make< core::launchable_kernel< core::thread_launcher,
+                                        core::libevent::reactor > >();
 
 int
 main(int argc, char* argv[]) {
@@ -159,6 +159,7 @@ main(int argc, char* argv[]) {
     acc->set_pipe_factory(make< http2_pipe_factory >());
     acc->push_back(make< http2_handler >(edit(pool)));
     acc->set_child_options(net::option::tcp::no_delay::yes);
+    acc->set_child_options(net::option::socket::receive_buffer::val(1 << 20));
 
     pool->post([ acc = move(acc), dgram = move(dgram) ] {
       shard()->reactor()->attach_handler(move(acc));
@@ -173,6 +174,12 @@ main(int argc, char* argv[]) {
                   << "\nr_bytes : " << stats.r_bytes
                   << "\nwrites : " << stats.writes
                   << "\nw_bytes : " << stats.w_bytes << std::endl;
+        auto i = shard()->stats().iterations;
+        std::cout << std::dec
+                  << "\nQ : " << shard()->stats().total_queues.count() / i
+                  << "\nP : " << shard()->stats().total_pollers.count() / i
+                  << "\nI : " << shard()->stats().total_inbound.count() / i
+                  << std::endl;
       });
     });
   });

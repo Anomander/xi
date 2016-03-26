@@ -114,16 +114,9 @@ namespace core {
       cleanup(id);
       shutdown_signal.received = false;
     };
-    std::chrono::nanoseconds time = 0ns;
-    usize iter = 0;
     while (!shutdown_signal.received) {
-      auto start = std::chrono::high_resolution_clock::now();
       poll_core(id);
-      time += std::chrono::high_resolution_clock::now() - start;
-      ++iter;
     }
-    std::cout << "running time: " << time.count() << std::endl;
-    std::cout << "average time: " << time.count()/iter << std::endl;
   }
 
   void kernel::poll_core(unsigned id) {

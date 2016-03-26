@@ -41,7 +41,7 @@ namespace io {
       }
 
       virtual ~socket_base() noexcept {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
+        // std::cout << __PRETTY_FUNCTION__ << std::endl;
       }
 
       void close() override {
@@ -200,17 +200,26 @@ namespace io {
         switch (e) {
           case socket_event::kReadable: {
             // auto b   = _pipe->alloc()->allocate(1 << 12);
-            auto b   = _alloc.allocate();
-            auto ret = _pipe->read_buffer(edit(b));
-            if (ret.has_error()) {
-              if (ret.error() == error::kEOF) {
-                _pipe->close();
+            auto loop = true;
+            buffer _b;
+            while (loop) {
+              auto b   = _alloc.allocate();
+              auto ret = _pipe->read_buffer(edit(b));
+              if (ret.has_error()) {
+                if (ret.error() == error::kEOF) {
+                  _pipe->close();
+                } else {
+                  cx->forward_read(ret.error());
+                }
+                loop = false;
               } else {
-                cx->forward_read(ret.error());
+                loop = b.tailroom() == 0;
+                _alloc.report_size(b.size());
+                _b.push_back(move(b));
               }
-            } else {
-              _alloc.report_size(b.size());
-              cx->forward_read(move(b));
+            }
+            if (!_b.empty()) {
+              cx->forward_read(move(_b));
             }
           } break;
           case socket_event::kWritable: {

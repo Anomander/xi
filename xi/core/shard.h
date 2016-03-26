@@ -7,6 +7,14 @@
 namespace xi {
 namespace core {
 
+  struct shard_stats {
+    usize iterations = 0;
+    nanoseconds total_spent = 0ns;
+    nanoseconds total_queues = 0ns;
+    nanoseconds total_pollers = 0ns;
+    nanoseconds total_inbound = 0ns;
+  };
+
   struct alignas(64) poller : public virtual ownership::unique {
     virtual ~poller()                = default;
     virtual unsigned poll() noexcept = 0;
@@ -27,6 +35,7 @@ namespace core {
     vector< own< poller > > _pollers;
     mut< kernel > _kernel;
     mut< core::reactor > _reactor;
+    shard_stats _stats;
 
   public:
     shard(mut< kernel > k, u16 core, queues_t &qs);
@@ -50,6 +59,7 @@ namespace core {
     void poll();
 
     mut< core::reactor > reactor();
+    ref< shard_stats> stats();
 
   private:
     template < class F >
@@ -66,6 +76,10 @@ namespace core {
 
   inline mut< core::reactor > shard::reactor() {
     return _reactor;
+  }
+
+  inline ref< shard_stats > shard::stats() {
+    return _stats;
   }
 
   template < class F >
