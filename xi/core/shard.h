@@ -1,6 +1,6 @@
 #pragma once
 
-#include "xi/async/reactor.h"
+#include "xi/core/reactor.h"
 #include "xi/core/task_queue.h"
 #include "xi/util/spin_lock.h"
 
@@ -26,11 +26,11 @@ namespace core {
     queues_t &_queues;
     vector< own< poller > > _pollers;
     mut< kernel > _kernel;
-    mut< async::reactor > _reactor;
+    mut< core::reactor > _reactor;
 
   public:
     shard(mut< kernel > k, u16 core, queues_t &qs);
-    void attach_reactor(own< async::reactor >);
+    void attach_reactor(own< core::reactor >);
 
   public:
     template < class F >
@@ -49,7 +49,7 @@ namespace core {
 
     void poll();
 
-    mut< async::reactor > reactor();
+    mut< core::reactor > reactor();
 
   private:
     template < class F >
@@ -64,7 +64,7 @@ namespace core {
 
   extern thread_local mut< shard > this_shard;
 
-  inline mut< async::reactor > shard::reactor() {
+  inline mut< core::reactor > shard::reactor() {
     return _reactor;
   }
 

@@ -23,13 +23,13 @@ namespace core {
     }
   }
 
-  async::future<> kernel::start(unsigned count, unsigned per_core_queue_size) {
+  core::future<> kernel::start(unsigned count, unsigned per_core_queue_size) {
     if (count < 1) {
-      return async::make_ready_future(
+      return core::make_ready_future(
           make_exception_ptr(std::invalid_argument("Invalid core count.")));
     }
     if (_machine.cpus().size() < count) {
-      return async::make_ready_future(make_exception_ptr(
+      return core::make_ready_future(make_exception_ptr(
           std::invalid_argument("Not enough cores available.")));
     }
     _queues.resize(count);
@@ -44,7 +44,7 @@ namespace core {
       }
     }
 
-    return async::make_ready_future();
+    return core::make_ready_future();
   }
 
   void kernel::startup(u16 id) {

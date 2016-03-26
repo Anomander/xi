@@ -1,6 +1,6 @@
 #pragma once
 
-#include "xi/async/future.h"
+#include "xi/core/future.h"
 #include "xi/core/shard.h"
 #include "xi/core/task_queue.h"
 #include "xi/hw/hardware.h"
@@ -34,7 +34,7 @@ namespace core {
 
     virtual ~kernel();
 
-    virtual async::future<> start(unsigned count, unsigned per_core_queue_size);
+    virtual core::future<> start(unsigned count, unsigned per_core_queue_size);
     virtual void initiate_shutdown();
     virtual void await_shutdown();
     virtual void exception_filter(exception_filter_type);

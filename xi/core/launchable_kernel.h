@@ -1,6 +1,6 @@
 #pragma once
 
-#include "xi/async/latch.h"
+#include "xi/core/latch.h"
 #include "xi/core/kernel.h"
 
 namespace xi {
@@ -9,14 +9,14 @@ namespace core {
   template < class L, class R >
   class launchable_kernel : public kernel {
     vector< L > _threads;
-    shared_ptr< async::promise<> > _shutdown_promise;
-    shared_ptr< async::latch > _start_latch;
+    shared_ptr< core::promise<> > _shutdown_promise;
+    shared_ptr< core::latch > _start_latch;
 
   public:
-    async::future<> start(unsigned count,
+    core::future<> start(unsigned count,
                           unsigned per_core_queue_size) override {
-      _start_latch      = make_shared< async::latch >(count);
-      _shutdown_promise = make_shared< async::promise<> >();
+      _start_latch      = make_shared< core::latch >(count);
+      _shutdown_promise = make_shared< core::promise<> >();
       kernel::start(count, per_core_queue_size).then([this, count]() mutable {
         for (unsigned t = 0; t < count; ++t) {
           _threads.emplace_back(machine().core(t));

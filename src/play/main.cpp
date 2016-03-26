@@ -1,4 +1,4 @@
-#include "xi/async/libevent/reactor.h"
+#include "xi/core/libevent/reactor.h"
 #include "xi/core/kernel_utils.h"
 #include "xi/core/launchable_kernel.h"
 #include "xi/core/thread_launcher.h"
@@ -11,8 +11,6 @@
 #include <signal.h>
 
 using namespace xi;
-using namespace xi::async;
-using namespace xi::async::libevent;
 using namespace xi::io;
 
 alignas(64) static thread_local struct {
@@ -129,7 +127,7 @@ public:
 };
 
 auto k = make<
-    core::launchable_kernel< core::thread_launcher, libevent::reactor > >();
+  core::launchable_kernel< core::thread_launcher, core::libevent::reactor > >();
 
 int
 main(int argc, char* argv[]) {

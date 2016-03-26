@@ -1,7 +1,7 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/async/event_handler.h"
+#include "xi/core/event_handler.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
@@ -13,7 +13,7 @@
 #include "xi/io/net/enumerations.h"
 #include "xi/io/net/socket.h"
 #include "xi/io/pipes/all.h"
-#include "xi/async/async_defer.h"
+#include "xi/core/async_defer.h"
 
 namespace xi {
 namespace io {
@@ -31,7 +31,7 @@ namespace io {
     using socket_pipe_base =
         pipes::pipe< socket_event, pipes::in< error_code > >;
     template < address_family af, socket_type sock, protocol proto = kNone >
-    class socket_base : public xi::async::io_handler,
+    class socket_base : public xi::core::io_handler,
                         public channel_interface,
                         public socket_pipe_base {
       own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
@@ -157,7 +157,7 @@ namespace io {
 
     template < address_family af, protocol proto >
     datagram_pipe< af, proto >::datagram_pipe() : datagram_socket(af, proto) {
-      xi::async::io_handler::descriptor(native_handle());
+      xi::core::io_handler::descriptor(native_handle());
       this->push_back(make< data_sink >(this));
     }
 
@@ -251,7 +251,7 @@ namespace io {
     template < address_family af, protocol proto >
     client_pipe< af, proto >::client_pipe(stream_client_socket s)
         : stream_client_socket(move(s)) {
-      xi::async::io_handler::descriptor(native_handle());
+      xi::core::io_handler::descriptor(native_handle());
       this->push_back(make< data_sink >(this));
     }
 
@@ -271,7 +271,7 @@ namespace io {
                      pipes::in< exception_ptr > >;
 
     template < address_family af, protocol proto = kNone >
-    class acceptor_pipe final : public xi::async::io_handler,
+    class acceptor_pipe final : public xi::core::io_handler,
                                 public stream_server_socket,
                                 public channel_interface,
                                 public pipe_acceptor_base< af, proto > {
@@ -284,7 +284,7 @@ namespace io {
       acceptor_pipe()
           : stream_server_socket(af, proto)
           , pipe_acceptor_base< af, proto >(this) {
-        xi::async::io_handler::descriptor(native_handle());
+        xi::core::io_handler::descriptor(native_handle());
       }
 
       void set_pipe_factory(own< pipe_factory< af, proto > > f) {
@@ -300,7 +300,7 @@ namespace io {
       }
 
       void close() override {
-        xi::async::io_handler::cancel();
+        xi::core::io_handler::cancel();
         stream_server_socket::close();
       }
 

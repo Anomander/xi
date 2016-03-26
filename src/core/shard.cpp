@@ -5,10 +5,10 @@ namespace xi {
 namespace core {
 
   class reactor_poller : public poller {
-    own< async::reactor > _reactor;
+    own< core::reactor > _reactor;
 
   public:
-    reactor_poller(own< async::reactor > reactor) : _reactor(reactor) {
+    reactor_poller(own< core::reactor > reactor) : _reactor(reactor) {
     }
     unsigned poll() noexcept override {
       try {
@@ -27,9 +27,9 @@ namespace core {
               << pthread_self() << std::endl;
   }
 
-  void shard::attach_reactor(own<async::reactor> r) {
+  void shard::attach_reactor(own< core::reactor > r) {
     _reactor = edit(r);
-    register_poller(make<reactor_poller>(move(r)));
+    register_poller(make< reactor_poller >(move(r)));
   }
 
   usize shard::register_poller(own< poller > poller) {

@@ -1,6 +1,6 @@
 // #include "xi/io/async_channel.h"
 // #include "xi/io/data_message.h"
-// #include "xi/async/libevent/reactor.h"
+// #include "xi/core/libevent/reactor.h"
 // #include "xi/io/pipeline/pipeline_handler.h"
 // #include "xi/io/pipeline/util.h"
 // #include "src/test/mock_kernel.h"
@@ -13,7 +13,7 @@
 // using namespace xi;
 // using namespace xi::io;
 // using namespace xi::io::pipeline;
-// using namespace xi::async::libevent;
+// using namespace xi::core::libevent;
 
 // using xi::test::mock_kernel;
 // using xi::test::kCurrentThread;
