@@ -5,7 +5,8 @@ namespace xi {
 namespace async {
   namespace libevent {
 
-    reactor::reactor() : _event_loop(make< event_loop >()) {
+    reactor::reactor(mut< core::shard > s)
+      : xi::async::reactor(s), _event_loop(make< event_loop >()) {
     }
 
     void reactor::poll() {

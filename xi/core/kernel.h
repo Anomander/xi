@@ -56,6 +56,7 @@ namespace core {
     virtual void run_on_core(unsigned id);
     virtual void startup(u16 id);
     virtual void cleanup(u16 id);
+    virtual mut<shard> make_shard(u16 id);
 
     void poll_core(unsigned id);
 

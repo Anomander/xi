@@ -13,6 +13,7 @@
 #include "xi/io/net/enumerations.h"
 #include "xi/io/net/socket.h"
 #include "xi/io/pipes/all.h"
+#include "xi/async/async_defer.h"
 
 namespace xi {
 namespace io {
@@ -44,7 +45,7 @@ namespace io {
       }
 
       void close() override {
-        this->defer([&] { write(socket_event::kClosing); });
+        defer(this, [&] { write(socket_event::kClosing); });
       }
 
     protected:

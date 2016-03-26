@@ -7,9 +7,12 @@
 namespace xi {
 namespace async {
 
-  class reactor : public async< reactor >,
-                  public virtual ownership::std_shared {
+  class reactor : public virtual ownership::std_shared {
+    mut< core::shard > _shard;
+
   public:
+    reactor(mut< core::shard > s) : _shard(s) {
+    }
     virtual ~reactor()                                      = default;
     virtual void poll()                                     = 0;
     virtual own< event > create_event(mut< event_handler >) = 0;
@@ -24,7 +27,7 @@ namespace async {
       XI_SCOPE(failure) {
         _handlers.erase(address_of(mut_handler));
       };
-      mut_handler->attach_shard(shard());
+      mut_handler->attach_shard(_shard);
       mut_handler->attach_reactor(this);
     }
 

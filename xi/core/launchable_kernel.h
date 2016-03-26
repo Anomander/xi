@@ -6,9 +6,9 @@
 namespace xi {
 namespace core {
 
-  template < class launcher >
+  template < class L, class R >
   class launchable_kernel : public kernel {
-    vector< launcher > _threads;
+    vector< L > _threads;
     shared_ptr< async::promise<> > _shutdown_promise;
     shared_ptr< async::latch > _start_latch;
 
@@ -46,6 +46,13 @@ namespace core {
     void startup(u16 id) override {
       kernel::startup(id);
       _start_latch->count_down();
+    }
+
+    mut<shard> make_shard(u16 id) override {
+      auto s = kernel::make_shard(id);
+      auto r = make<R>(s);
+      s->attach_reactor(move(r));
+      return s;
     }
 
     auto before_shutdown() {

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "xi/ext/configure.h"
-#include "xi/core/shard.h"
 
 namespace xi {
+namespace core {
+  class shard;
+}
 namespace async {
 
   template < class T >
@@ -18,16 +20,6 @@ namespace async {
       _shard = e;
     }
 
-    template < class F >
-    void defer(F &&f) {
-      if (!is_valid(_shard)) {
-        throw std::logic_error("Invalid async object state.");
-      }
-      _shard->post(forward< F >(f));
-    }
-
-  private:
-    friend T;
     mut< core::shard > shard() {
       assert(is_valid(_shard));
       return _shard;

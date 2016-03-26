@@ -10,7 +10,7 @@ namespace async {
 
     class reactor : public xi::async::reactor {
     public:
-      reactor();
+      reactor(mut<core::shard>);
       void poll() override;
       own< xi::async::event > create_event(mut< event_handler >) override;
 

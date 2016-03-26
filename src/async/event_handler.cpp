@@ -1,4 +1,5 @@
 #include "xi/async/event_handler.h"
+#include "xi/async/async_defer.h"
 #include "xi/async/reactor.h"
 
 namespace xi {
@@ -17,7 +18,7 @@ namespace async {
   void event_handler::cancel() {
     if (is_active()) {
       _event->cancel();
-      defer([this]() mutable {
+      defer(this, [this]() mutable {
         release(move(_event));
         if (_reactor.is_some()) {
           _reactor.unwrap()->detach_handler(this);

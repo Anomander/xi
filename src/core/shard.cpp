@@ -4,12 +4,32 @@
 namespace xi {
 namespace core {
 
+  class reactor_poller : public poller {
+    own< async::reactor > _reactor;
+
+  public:
+    reactor_poller(own< async::reactor > reactor) : _reactor(reactor) {
+    }
+    unsigned poll() noexcept override {
+      try {
+        _reactor->poll();
+      } catch (...) {
+      }
+      return 0;
+    }
+  };
+
   thread_local mut< shard > this_shard = nullptr;
 
   shard::shard(mut< kernel > k, u16 core, queues_t &qs)
       : _core_id(core), _queues(qs), _kernel(k) {
     std::cout << "Starting shard @" << _core_id << " in thread "
               << pthread_self() << std::endl;
+  }
+
+  void shard::attach_reactor(own<async::reactor> r) {
+    _reactor = edit(r);
+    register_poller(make<reactor_poller>(move(r)));
   }
 
   usize shard::register_poller(own< poller > poller) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "xi/async/reactor.h"
 #include "xi/core/task_queue.h"
 #include "xi/util/spin_lock.h"
 
@@ -16,20 +17,20 @@ namespace core {
   class alignas(64) shard final {
     u16 _core_id = -1;
 
+    using queues_t = vector< vector< own< task_queue > > >;
     struct {
       queue< unique_ptr< task > > tasks;
       spin_lock lock;
     } _inbound;
 
-    using queues_t = vector< vector< own< task_queue > > >;
     queues_t &_queues;
-
     vector< own< poller > > _pollers;
-
     mut< kernel > _kernel;
+    mut< async::reactor > _reactor;
 
   public:
     shard(mut< kernel > k, u16 core, queues_t &qs);
+    void attach_reactor(own< async::reactor >);
 
   public:
     template < class F >
@@ -48,6 +49,8 @@ namespace core {
 
     void poll();
 
+    mut< async::reactor > reactor();
+
   private:
     template < class F >
     void _push_task_to_inbound_queue(F &&);
@@ -60,6 +63,10 @@ namespace core {
   };
 
   extern thread_local mut< shard > this_shard;
+
+  inline mut< async::reactor > shard::reactor() {
+    return _reactor;
+  }
 
   template < class F >
   void shard::post(F &&func) {
@@ -119,5 +126,11 @@ void
 defer(F &&func) {
   assert(nullptr != core::this_shard);
   core::this_shard->post(forward< F >(func));
+}
+
+inline mut< core::shard >
+shard() {
+  assert(core::this_shard);
+  return core::this_shard;
 }
 }
