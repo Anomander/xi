@@ -8,7 +8,7 @@ option(COVERALLS "Generate coveralls data" OFF)
 option(HWLOC "Has hwloc available" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O0 -g -ftemplate-backtrace-limit=0")
+set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -ftemplate-backtrace-limit=0")
 # set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -save-temps=obj -g -fsanitize=undefined -ftemplate-backtrace-limit=0")
 
 # boost
@@ -17,12 +17,15 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
-find_package( Boost 1.55 REQUIRED thread system )
+find_package( Boost 1.55 REQUIRED thread timer chrono system )
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 
 # libevent
+set(EVENT__DISABLE_TESTS ON)
+
 add_subdirectory(third-party/libevent)
+
 INCLUDE_DIRECTORIES( ${libevent_SOURCE_DIR}/include )
 INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR}/third-party/libevent/include )
 

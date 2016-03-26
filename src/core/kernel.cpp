@@ -3,7 +3,7 @@
 namespace xi {
 namespace core {
 
-  thread_local struct { volatile bool received = false; } shutdown_signal;
+  thread_local struct { volatile bool received = false; } volatile shutdown_signal;
 
   struct core_descriptor {
     hw::cpu const &cpu;
@@ -51,8 +51,6 @@ namespace core {
     assert(nullptr == _shards[id]);
     this_shard  = new shard(this, id, _queues);
     _shards[id] = this_shard;
-    std::cout << "s[" << id << "] = " << _shards[id] << std::endl;
-    std::cout << __PRETTY_FUNCTION__ << " " << this_shard << std::endl;
   }
 
   void kernel::cleanup(u16 id) {
@@ -112,9 +110,16 @@ namespace core {
       cleanup(id);
       shutdown_signal.received = false;
     };
+    std::chrono::nanoseconds time = 0ns;
+    usize iter = 0;
     while (!shutdown_signal.received) {
+      auto start = std::chrono::high_resolution_clock::now();
       poll_core(id);
+      time += std::chrono::high_resolution_clock::now() - start;
+      ++iter;
     }
+    std::cout << "running time: " << time.count() << std::endl;
+    std::cout << "average time: " << time.count()/iter << std::endl;
   }
 
   void kernel::poll_core(unsigned id) {

@@ -26,9 +26,6 @@ namespace async {
     sharded_service(own< core::executor_pool > pool)
         : _pool(move(pool)), _start_latch(_pool->size()) {
     }
-    ~sharded_service() {
-      stop();
-    }
 
   public:
     future<> start() override {
@@ -60,7 +57,7 @@ namespace async {
             impl.clear();
             p.set();
           });
-      _pool->post_on_all([ l = move(l), pool = share(_pool) ]() mutable {
+      _pool->post_on_all([ l ]() mutable {
         auto *impl = _local_impl;
         if (impl) {
           impl->stop();

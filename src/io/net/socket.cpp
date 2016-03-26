@@ -41,10 +41,10 @@ namespace io {
     }
 
     expected< void > socket::close() {
-      std::cout << "Closing socket " << _descriptor << std::endl;
       if (-1 == _descriptor) {
         return {};
       }
+      std::cout << "Closing socket " << _descriptor << std::endl;
       auto ret = ::close(_descriptor);
       if (-1 == ret) {
         return error_from_errno();

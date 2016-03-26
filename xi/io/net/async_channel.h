@@ -114,7 +114,7 @@ namespace io {
       void read(mut< context > cx, socket_event e) override {
         switch (e) {
           case socket_event::kReadable: {
-            auto b = _pipe->alloc()->allocate(1 << 20);
+            auto b = _pipe->alloc()->allocate(1 << 16);
             endpoint_t remote;
             auto ret = _pipe->read_buffer_from(edit(b), remote.to_posix());
             // std::cout << "Read " << ret << " bytes from " <<
@@ -160,20 +160,46 @@ namespace io {
       this->push_back(make< data_sink >(this));
     }
 
+    class adaptive_allocator {
+      mut< buffer_allocator > _alloc;
+      usize _block_size;
+      double _ratio;
+
+    public:
+      adaptive_allocator(mut< buffer_allocator > alloc,
+                         usize initial,
+                         double ratio = 1.2)
+          : _alloc(alloc), _block_size(initial), _ratio(ratio) {
+      }
+      auto allocate() {
+        return _alloc->allocate(_block_size * _ratio);
+      }
+      void report_size(usize sz) {
+        if (sz > _block_size) {
+          _block_size *= _ratio;
+        } else if (sz < _block_size / _ratio) {
+          _block_size /= _ratio;
+        }
+      }
+    };
+
     template < address_family af, protocol proto >
     struct client_pipe< af, proto >::data_sink
         : public pipes::
               filter< socket_event, pipes::in< error_code >, buffer > {
       using channel = client_pipe< af, proto >;
       mut< channel > _pipe;
+      adaptive_allocator _alloc;
       buffer _write_buf;
-      data_sink(mut< channel > c) : _pipe(c) {
+      data_sink(mut< channel > c)
+          : _pipe(c), _alloc(edit(_pipe->alloc()), 1 << 12) {
       }
 
       void read(mut< context > cx, socket_event e) override {
         switch (e) {
           case socket_event::kReadable: {
-            auto b   = _pipe->alloc()->allocate(1 << 20);
+            // auto b   = _pipe->alloc()->allocate(1 << 12);
+            auto b   = _alloc.allocate();
             auto ret = _pipe->read_buffer(edit(b));
             if (ret.has_error()) {
               if (ret.error() == error::kEOF) {
@@ -182,13 +208,14 @@ namespace io {
                 cx->forward_read(ret.error());
               }
             } else {
+              _alloc.report_size(b.size());
               cx->forward_read(move(b));
             }
           } break;
           case socket_event::kWritable: {
             if (!_write_buf.empty()) {
               _pipe->write_buffer(edit(_write_buf));
-              std::cout << "write queue: " << _write_buf.size() << std::endl;
+              // std::cout << "write queue: " << _write_buf.size() << std::endl;
             }
           } break;
           default:
@@ -212,7 +239,7 @@ namespace io {
           }
         }
         _write_buf.push_back(b.split(b.size()));
-        std::cout << "write queue: " << _write_buf.size() << std::endl;
+        // std::cout << "write queue: " << _write_buf.size() << std::endl;
         if (_write_buf.size() > 100 << 20) { // 100 MiB
           std::cout << "Closing connection due to slow reader" << std::endl;
           _pipe->close();

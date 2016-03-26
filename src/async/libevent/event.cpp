@@ -12,7 +12,6 @@ namespace async {
                  event_state state,
                  mut< xi::async::event_handler > handler)
         : _loop(loop), _handler(handler), _state(state) {
-      std::cout << "Event()" << std::endl;
       _event = _loop->prepare_event(_event, _state, _handler);
       if (nullptr == _event) {
         throw std::runtime_error("Failed to create event.");
@@ -29,7 +28,6 @@ namespace async {
     }
 
     void event::arm() {
-      std::cout << "Event::arm" << std::endl;
       auto timeout = _handler->expected_timeout();
       if (timeout == none) {
         event_add((::event *)_event, NULL);

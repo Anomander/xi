@@ -54,9 +54,10 @@ namespace core {
 
   protected:
     virtual void run_on_core(unsigned id);
-    virtual void poll_core(unsigned id);
     virtual void startup(u16 id);
     virtual void cleanup(u16 id);
+
+    void poll_core(unsigned id);
 
     hw::machine &machine() {
       return _machine;

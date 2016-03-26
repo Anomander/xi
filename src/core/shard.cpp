@@ -21,6 +21,7 @@ namespace core {
   }
 
   void shard::deregister_poller(usize poller_id) {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
     dispatch([poller_id, this] {
       _pollers.erase(remove_if(begin(_pollers),
                                end(_pollers),

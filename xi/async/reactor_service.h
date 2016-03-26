@@ -8,10 +8,10 @@ namespace async {
 
   template < class R >
   class reactor_poller : public core::poller {
-    mut< R > _reactor;
+    own< R > _reactor;
 
   public:
-    reactor_poller(mut< R > reactor) : _reactor(reactor) {
+    reactor_poller(own< R > reactor) : _reactor(reactor) {
     }
     unsigned poll() noexcept override {
       try {
@@ -33,9 +33,10 @@ namespace async {
       _reactor->attach_shard(core::this_shard);
       _pool      = pool;
       _poller_id = core::this_shard->register_poller(
-          make< reactor_poller< R > >(edit(_reactor)));
+          make< reactor_poller< R > >(share(_reactor)));
     }
     void stop() {
+      std::cout << __PRETTY_FUNCTION__ << std::endl;
       core::this_shard->deregister_poller(_poller_id);
       _reactor.reset();
     }

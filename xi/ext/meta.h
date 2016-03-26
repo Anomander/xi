@@ -8,6 +8,7 @@
 #include <boost/mpl/greater.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/mpl/next.hpp>
+#include <boost/mpl/and.hpp>
 #include <boost/mpl/or.hpp>
 #include <boost/mpl/pop_back.hpp>
 #include <boost/mpl/push_back.hpp>
@@ -19,6 +20,7 @@ inline namespace ext {
   namespace meta {
 
     using ::boost::mpl::if_;
+    using ::boost::mpl::and_;
     using ::boost::mpl::or_;
     using ::boost::mpl::vector;
     using ::boost::mpl::contains;

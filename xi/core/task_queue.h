@@ -57,7 +57,7 @@ namespace core {
     }
 
     void process_tasks() {
-      while (task *task = _ring_buffer.next()) {
+      while (auto *task = _ring_buffer.next()) {
         task->run();
         _ring_buffer.pop();
       }

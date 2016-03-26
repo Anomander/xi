@@ -12,6 +12,8 @@
 
 #include <signal.h>
 
+#include <boost/timer/timer.hpp>
+
 using namespace xi;
 using namespace xi::async;
 using namespace xi::async::libevent;
@@ -81,13 +83,13 @@ public:
   }
 };
 
-class http2_pipe : public net::client_pipe< net::kInet, net::kTCP > {
+class http2_pipe : public net::tcp_stream_pipe {
 public:
   template < class... A >
   http2_pipe(A&&... args) : client_pipe(forward< A >(args)...) {
     push_back(make< logging_filter >());
-    // push_back(make< range_echo >());
-    push_back(make< proto::http2::codec >(alloc()));
+    push_back(make< range_echo >());
+    // push_back(make< proto::http2::codec >(alloc()));
   }
 };
 
@@ -138,6 +140,13 @@ public:
 
 auto k = make< core::launchable_kernel< core::thread_launcher > >();
 
+struct foo {
+  int i[1000];
+
+  foo(int _) {
+  }
+};
+
 int
 main(int argc, char* argv[]) {
   signal(SIGINT, [](int sig) { k->initiate_shutdown(); });
@@ -146,7 +155,7 @@ main(int argc, char* argv[]) {
   own< core::executor_pool > pool;
   own< reactive_service > r_service;
   spin_lock sl;
-  k->start(1, 1 << 20).then([&, argc, argv] {
+  k->start(argc > 2 ? atoi(argv[2]) : 1, 1 << 20).then([&, argc, argv] {
     pool = make_executor_pool(edit(k));
 
     r_service = make< reactive_service >(share(pool));

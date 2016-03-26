@@ -22,9 +22,9 @@ namespace core {
     size_t size() const;
 
     template < class F >
-    void post_on_all(F &&f) {
+    void post_on_all(F const & f) {
       for (auto &e : _shards) {
-        e->post(forward< F >(f));
+        e->post(f); // copy to all shards
       }
     }
 
