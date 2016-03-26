@@ -15,6 +15,7 @@ namespace io {
 
     struct buffer_arena {
       usize length;
+      usize start = 0;
       atomic< u64 > ref_count{0};
       own< buffer_arena_deallocator > deallocator;
       u8 data[0];
@@ -33,8 +34,23 @@ namespace io {
           dealloc->deallocate(this);
         }
       }
+
+      usize free_size() {
+        return length - start;
+      }
+
+      void consume(usize sz) {
+        start += sz;
+      }
+
+      u8* allocate(usize sz) {
+        if ( sz > free_size() ) {
+          return nullptr;
+        }
+        return data + start;
+      }
     };
-    static_assert(sizeof(buffer_arena) == 32, "");
+    static_assert(sizeof(buffer_arena) == 40, "");
   }
 }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xi/ext/configure.h"
+#include "xi/core/async_defer.h"
 #include "xi/core/event_handler.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
@@ -13,7 +14,6 @@
 #include "xi/io/net/enumerations.h"
 #include "xi/io/net/socket.h"
 #include "xi/io/pipes/all.h"
-#include "xi/core/async_defer.h"
 
 namespace xi {
 namespace io {

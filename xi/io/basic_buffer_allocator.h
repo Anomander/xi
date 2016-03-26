@@ -35,22 +35,42 @@ namespace io {
     }
   };
 
-  template < class SA >
+  template < class SA, usize ARENA_SIZE = 1 << 24 >
   class basic_buffer_allocator : public buffer_allocator,
                                  public buffer_arena_allocator< SA > {
+    detail::buffer_arena* _current_arena = nullptr;
+
   public:
     using buffer_arena_allocator< SA >::buffer_arena_allocator;
+    ~basic_buffer_allocator() {
+      if (_current_arena) {
+        _current_arena->decrement_ref_count();
+      }
+    }
 
     buffer allocate(usize sz, usize headroom = 0, usize tailroom = 0) override {
       auto total_size = sz + headroom + tailroom;
-      auto c          = this->allocate_arena(total_size);
-      XI_SCOPE(fail) {
-        this->deallocate(c);
-      };
-      auto frag = own< fragment >{new fragment(c, 0, total_size)};
+      if (!total_size) {
+        return {};
+      }
+      assert(total_size <= ARENA_SIZE);
+
+      if (!_current_arena) {
+        _current_arena = this->allocate_arena(ARENA_SIZE);
+        _current_arena->increment_ref_count();
+      }
+      auto data = _current_arena->allocate(total_size);
+      if (!data) {
+        _current_arena->decrement_ref_count();
+        _current_arena = this->allocate_arena(ARENA_SIZE);
+        _current_arena->increment_ref_count();
+        data = _current_arena->allocate(total_size);
+      }
+      auto frag = own< fragment >{new fragment(_current_arena, data, total_size)};
       if (headroom) {
         frag->advance(headroom);
       }
+      _current_arena->consume(total_size);
       return {move(frag)};
     }
   };

@@ -7,8 +7,8 @@ fragment::~fragment() {
   _buffer->decrement_ref_count();
 }
 
-fragment::fragment(detail::buffer_arena* c, usize offset, usize sz)
-    : fragment(INTERNAL, c, c->data + offset, sz, c->data + offset, 0) {
+fragment::fragment(detail::buffer_arena* c, u8* data, usize sz)
+    : fragment(INTERNAL, c, data, sz, data, 0) {
 }
 
 fragment::fragment(internal_t,

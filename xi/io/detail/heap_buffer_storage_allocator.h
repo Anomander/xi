@@ -10,11 +10,11 @@ namespace io {
     public:
       void* allocate(usize sz) override {
         auto m = malloc(sz);
-        // std::cout << "malloc(" << m << ")" << std::endl;
+        std::cout << "malloc(" << m << ")" << std::endl;
         return m;
       }
       void free(void* p) override {
-        // std::cout << "free(" << p << ")" << std::endl;
+        std::cout << "free(" << p << ")" << std::endl;
         ::free(p);
       }
     };

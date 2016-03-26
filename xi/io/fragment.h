@@ -19,7 +19,7 @@ namespace io {
     usize _size;
 
   public:
-    fragment(detail::buffer_arena*, usize, usize);
+    fragment(detail::buffer_arena*, u8*, usize);
     ~fragment();
 
   private:

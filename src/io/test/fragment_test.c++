@@ -20,11 +20,12 @@ make_fragment(usize headroom, usize data, usize tailroom) {
 
   auto size  = data + headroom + tailroom;
   auto arena = ALLOC->allocate_arena(size);
-  auto b     = new fragment(arena, 0, size);
+  auto b     = new fragment(arena, arena->allocate(size), size);
   if (headroom) {
     b->advance(headroom);
   }
   b->write(byte_range{in});
+  arena->consume(size);
   return unique_ptr< fragment >(b);
 }
 
