@@ -2,6 +2,7 @@
 
 #include "xi/io/buffer.h"
 #include "xi/io/detail/buffer_utils.h"
+#include "xi/io/fragment_string.h"
 
 namespace xi {
 namespace io {
@@ -41,6 +42,7 @@ namespace io {
     }
 
     usize peek(byte_range);
+    fragment_string read_string(usize);
     usize read_string(mut< string > s, usize = -1);
     usize skip_any_of(u8 *pattern, usize len);
     opt< usize > find_byte(u8 target, usize offset = 0) const;
@@ -59,6 +61,11 @@ namespace io {
       return _buffer->read(r);
     }
     return 0;
+  }
+
+  inline fragment_string buffer::reader::read_string(usize len) {
+    auto buf = _buffer->split(len);
+    return fragment_string{move(buf._fragments), buf._size};
   }
 
   inline usize buffer::reader::read_string(mut< string > s, usize len) {
