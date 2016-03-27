@@ -104,13 +104,13 @@ namespace io {
           auto r = make_consuming_reader(in);
           if (auto space_pos = r.find_byte(' ', _length)) {
             _length = space_pos.unwrap();
-            r.read_string(edit(_uri), _length);
+            r.append_to_string(edit(_uri), _length);
             std::cout << "uri length " << _length << std::endl;
             std::cout << "uri [" << _uri << "]" << std::endl;
             in->skip_bytes(1); // skip space
             _state = state::VERSION;
           } else {
-            r.read_string(edit(_uri));
+            r.append_to_string(edit(_uri));
             return false;
           }
           return in->size() > 0;

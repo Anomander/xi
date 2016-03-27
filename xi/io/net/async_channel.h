@@ -49,8 +49,8 @@ namespace io {
       }
 
     protected:
-      own< buffer_allocator > alloc() {
-        return share(_alloc);
+      mut< buffer_allocator > alloc() override {
+        return edit(_alloc);
       }
 
       void handle_read() override {
@@ -192,8 +192,7 @@ namespace io {
       mut< channel > _pipe;
       adaptive_allocator _alloc;
       buffer _write_buf;
-      data_sink(mut< channel > c)
-          : _pipe(c), _alloc(edit(_pipe->alloc()), 1 << 12) {
+      data_sink(mut< channel > c) : _pipe(c), _alloc(_pipe->alloc(), 1 << 12) {
       }
 
       void read(mut< context > cx, socket_event e) override {
@@ -282,8 +281,8 @@ namespace io {
     template < address_family af, protocol proto = kNone >
     class acceptor_pipe final : public xi::core::io_handler,
                                 public stream_server_socket,
-                                public channel_interface,
-                                public pipe_acceptor_base< af, proto > {
+                                public pipe_acceptor_base< af, proto >,
+                                public virtual ownership::std_shared {
       using endpoint_type    = endpoint< af >;
       using client_pipe_type = client_pipe< af, proto >;
 
@@ -292,7 +291,7 @@ namespace io {
     public:
       acceptor_pipe()
           : stream_server_socket(af, proto)
-          , pipe_acceptor_base< af, proto >(this) {
+          , pipe_acceptor_base< af, proto >(nullptr) {
         xi::core::io_handler::descriptor(native_handle());
       }
 
@@ -308,7 +307,7 @@ namespace io {
       void handle_write() final override {
       }
 
-      void close() override {
+      void close() {
         xi::core::io_handler::cancel();
         stream_server_socket::close();
       }

@@ -41,5 +41,17 @@ namespace io {
   inline usize fragment_string::size() const {
     return _size;
   }
+
+  inline bool operator< (ref<fragment_string> l, ref<fragment_string> r) {
+    return l.compare(r) < 0;
+  }
+
+  inline bool operator> (ref<fragment_string> l, ref<fragment_string> r) {
+    return l.compare(r) < 0;
+  }
+
+  inline bool operator== (ref<fragment_string> l, ref<fragment_string> r) {
+    return l.compare(r) == 0;
+  }
 }
 }

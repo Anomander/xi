@@ -47,9 +47,14 @@ public:
   string S;
 };
 
-struct mock_channel
-    : public channel_interface{void close() override{}}* _channel =
-          new mock_channel;
+struct mock_channel : public channel_interface {
+  void close() override {
+  }
+  mut< buffer_allocator > alloc() override {
+    return nullptr;
+  }
+};
+auto *_channel = new mock_channel;
 
 TEST(simple, reads_arrive_in_correct_order) {
   auto p  = make< pipes::pipe< int > >(_channel);

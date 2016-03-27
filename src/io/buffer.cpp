@@ -76,7 +76,7 @@ namespace io {
     list_t new_list;
     for (auto i = _fragments.begin(); i != it;) {
       _size -= i->size();
-      new_list.splice(new_list.begin(), _fragments, i++);
+      new_list.splice(new_list.end(), _fragments, i++);
     }
 
     return {move(new_list), sz};

@@ -41,10 +41,13 @@ namespace io {
       return skip_any_of((u8 *)pattern, N - 1);
     }
 
+    usize size() const;
+
     usize peek(byte_range);
     fragment_string read_string(usize);
-    usize read_string(mut< string > s, usize = -1);
+    usize append_to_string(mut< string > s, usize = -1);
     usize skip_any_of(u8 *pattern, usize len);
+    usize skip_one_of(u8 *pattern, usize len);
     opt< usize > find_byte(u8 target, usize offset = 0) const;
   };
 
@@ -54,6 +57,10 @@ namespace io {
 
   inline buffer::reader make_reader(mut< buffer > b) {
     return buffer::reader(b, false);
+  }
+
+  inline usize buffer::reader::size() const {
+    return _buffer->size();
   }
 
   inline usize buffer::reader::peek(byte_range r) {
@@ -68,7 +75,7 @@ namespace io {
     return fragment_string{move(buf._fragments), buf._size};
   }
 
-  inline usize buffer::reader::read_string(mut< string > s, usize len) {
+  inline usize buffer::reader::append_to_string(mut< string > s, usize len) {
     if (0 == _buffer->size()) {
       return 0;
     }
