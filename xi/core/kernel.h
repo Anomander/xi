@@ -17,13 +17,9 @@ namespace core {
 
   private:
     hw::machine _machine;
-    struct alignas(64) inbound_tasks {
-      queue< unique_ptr< task > > tasks;
-      spin_lock lock;
-    };
 
+    usize _shard_queue_size = 1 << 12;
     vector< mut< shard > > _shards;
-    vector< vector< own< task_queue > > > _queues;
     exception_filter_type _exception_filter;
     exception_ptr _exit_exception;
     spin_lock _exception_lock;
@@ -56,7 +52,7 @@ namespace core {
     virtual void run_on_core(unsigned id);
     virtual void startup(u16 id);
     virtual void cleanup(u16 id);
-    virtual mut<shard> make_shard(u16 id);
+    virtual mut< shard > make_shard(u16 id);
 
     void poll_core(unsigned id);
 
@@ -74,7 +70,7 @@ namespace core {
 
   template < class func >
   void kernel::dispatch(unsigned core, func &&f) {
-    if (core >= _queues.size()) {
+    if (core >= _shards.size()) {
       throw std::invalid_argument("Target core not registered");
     }
     _shards[core]->dispatch(forward< func >(f));
@@ -82,7 +78,7 @@ namespace core {
 
   template < class func >
   void kernel::post(unsigned core, func &&f) {
-    if (core >= _queues.size()) {
+    if (core >= _shards.size()) {
       throw std::invalid_argument("Target core not registered");
     }
     _shards[core]->post(forward< func >(f));

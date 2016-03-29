@@ -9,7 +9,7 @@
 namespace xi {
 namespace core {
 
-  class task_queue : public virtual ownership::unique {
+  class task_queue {
     enum { kStaticOverflowQueueCapacity = 256, kRingBufferReserveSize = 32 };
     using overflow_queue_type = lockfree::queue< task * >;
 

@@ -21,8 +21,8 @@ namespace core {
 
   thread_local mut< shard > this_shard = nullptr;
 
-  shard::shard(mut< kernel > k, u16 core, queues_t &qs)
-      : _core_id(core), _queues(qs), _kernel(k) {
+  shard::shard(mut< kernel > k, u16 core, usize queue_size)
+      : _core_id(core), _task_queue(queue_size), _kernel(k) {
     std::cout << "Starting shard @" << _core_id << " in thread "
               << pthread_self() << std::endl;
   }
@@ -54,36 +54,25 @@ namespace core {
   }
 
   void shard::poll() {
-    auto start = high_resolution_clock::now();
-    ++_stats.iterations;
     try {
-      for (auto &&q : _queues[_core_id]) {
-        q->process_tasks();
-      }
-      auto point = high_resolution_clock::now();
-      _stats.total_queues += point - start;
-      start = point;
+      _task_queue.process_tasks();
+
       for (auto &&p : _pollers) {
         p->poll();
       }
-      point = high_resolution_clock::now();
-      _stats.total_pollers += point - start;
-      start = point;
 
       if (XI_UNLIKELY(!_inbound.tasks.empty())) {
-        auto lock   = make_lock(_inbound.lock);
         auto &tasks = _inbound.tasks;
         while (!tasks.empty()) {
-          auto &next_task = tasks.back();
-          XI_SCOPE(exit) {
-            tasks.pop();
-          }; // pop no matter what, we don't want to retry throwing tasks
-          next_task->run();
+          task* next_task = nullptr;
+          if (tasks.pop(next_task) && next_task) {
+            XI_SCOPE(exit) {
+              delete next_task;
+            };
+            next_task->run();
+          }
         }
       }
-      point = high_resolution_clock::now();
-      _stats.total_inbound += point - start;
-      start = point;
     } catch (...) {
       _handle_exception();
     }

@@ -7,14 +7,6 @@
 namespace xi {
 namespace core {
 
-  struct shard_stats {
-    usize iterations = 0;
-    nanoseconds total_spent = 0ns;
-    nanoseconds total_queues = 0ns;
-    nanoseconds total_pollers = 0ns;
-    nanoseconds total_inbound = 0ns;
-  };
-
   struct alignas(64) poller : public virtual ownership::unique {
     virtual ~poller()                = default;
     virtual unsigned poll() noexcept = 0;
@@ -25,20 +17,17 @@ namespace core {
   class alignas(64) shard final {
     u16 _core_id = -1;
 
-    using queues_t = vector< vector< own< task_queue > > >;
     struct {
-      queue< unique_ptr< task > > tasks;
-      spin_lock lock;
+      lockfree::queue< task* > tasks{128};
     } _inbound;
 
-    queues_t &_queues;
+    task_queue _task_queue;
     vector< own< poller > > _pollers;
     mut< kernel > _kernel;
     mut< core::reactor > _reactor;
-    shard_stats _stats;
 
   public:
-    shard(mut< kernel > k, u16 core, queues_t &qs);
+    shard(mut< kernel > k, u16 core, usize queue_size);
     void attach_reactor(own< core::reactor >);
 
   public:
@@ -59,7 +48,6 @@ namespace core {
     void poll();
 
     mut< core::reactor > reactor();
-    ref< shard_stats> stats();
 
   private:
     template < class F >
@@ -78,18 +66,15 @@ namespace core {
     return _reactor;
   }
 
-  inline ref< shard_stats > shard::stats() {
-    return _stats;
-  }
-
   template < class F >
   void shard::post(F &&func) {
-    if (nullptr == this_shard) {
-      // local thread is not managed by the kernel, so
-      // we must use a common input queue
+    if (nullptr == this_shard || this != this_shard) {
+      // local thread is not managed by the kernel
+      // or is a remote thread
+      // , so we must use a common input queue
       _push_task_to_inbound_queue(forward< F >(func));
     } else {
-      _queues[_core_id][this_shard->_core_id]->submit(forward< F >(func));
+      _task_queue.submit(forward< F >(func));
     }
   }
 
@@ -119,19 +104,18 @@ namespace core {
 
   template < class F >
   void shard::_push_task_to_inbound_queue(F &&func) {
-    auto lock = make_lock(_inbound.lock);
     _push_task_to_inbound_queue(forward< F >(func),
                                 is_base_of< task, decay_t< F > >());
   }
 
   template < class F >
   void shard::_push_task_to_inbound_queue(F &&func, meta::true_type) {
-    _inbound.tasks.push(make_unique_copy(forward< F >(func)));
+    _inbound.tasks.push(make_unique_copy(forward< F >(func)).release());
   }
 
   template < class F >
   void shard::_push_task_to_inbound_queue(F &&func, meta::false_type) {
-    _inbound.tasks.push(make_unique_copy(make_task(forward< F >(func))));
+    _inbound.tasks.push(make_unique_copy(make_task(forward< F >(func))).release());
   }
 }
 

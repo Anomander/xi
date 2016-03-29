@@ -24,6 +24,7 @@ namespace core {
   }
 
   core::future<> kernel::start(unsigned count, unsigned per_core_queue_size) {
+    _shard_queue_size = per_core_queue_size;
     if (count < 1) {
       return core::make_ready_future(
           make_exception_ptr(std::invalid_argument("Invalid core count.")));
@@ -32,17 +33,7 @@ namespace core {
       return core::make_ready_future(make_exception_ptr(
           std::invalid_argument("Not enough cores available.")));
     }
-    _queues.resize(count);
     _shards.resize(count);
-
-    for (unsigned dst = 0; dst < count; ++dst) {
-      _queues[dst].resize(count);
-      for (unsigned src = 0; src < count; ++src) {
-        _queues[dst][src] = make< task_queue >(per_core_queue_size);
-        std::cout << "Created queue " << src << "->" << dst << " @ "
-                  << address_of(_queues[dst][src]) << std::endl;
-      }
-    }
 
     return core::make_ready_future();
   }
@@ -60,7 +51,7 @@ namespace core {
   }
 
   mut<shard> kernel::make_shard(u16 id) {
-    return new shard(this, id, _queues);
+    return new shard(this, id, _shard_queue_size);
   }
 
   void kernel::initiate_shutdown() {
@@ -90,7 +81,7 @@ namespace core {
   }
 
   unsigned kernel::core_count() {
-    return _queues.size();
+    return _shards.size();
   }
 
   size_t kernel::register_poller(u16 core, own< poller > poller) {

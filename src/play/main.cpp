@@ -174,12 +174,6 @@ main(int argc, char* argv[]) {
                   << "\nr_bytes : " << stats.r_bytes
                   << "\nwrites : " << stats.writes
                   << "\nw_bytes : " << stats.w_bytes << std::endl;
-        auto i = shard()->stats().iterations;
-        std::cout << std::dec
-                  << "\nQ : " << shard()->stats().total_queues.count() / i
-                  << "\nP : " << shard()->stats().total_pollers.count() / i
-                  << "\nI : " << shard()->stats().total_inbound.count() / i
-                  << std::endl;
       });
     });
   });
