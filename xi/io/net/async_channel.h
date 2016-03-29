@@ -186,8 +186,9 @@ namespace io {
 
     template < address_family af, protocol proto >
     struct client_pipe< af, proto >::data_sink
-        : public pipes::
-              filter< socket_event, pipes::in< error_code >, buffer > {
+        : public pipes::context_aware_filter< socket_event,
+                                              pipes::in< error_code >,
+                                              buffer > {
       using channel = client_pipe< af, proto >;
       mut< channel > _pipe;
       adaptive_allocator _alloc;
@@ -195,35 +196,43 @@ namespace io {
       data_sink(mut< channel > c) : _pipe(c), _alloc(_pipe->alloc(), 1 << 12) {
       }
 
+      void read_data(bool on_io) {
+        auto loop = true;
+        buffer _b;
+        while (loop) {
+          auto b   = _alloc.allocate();
+          auto ret = _pipe->read_buffer(edit(b));
+          if (ret.has_error()) {
+            if (ret.error() == error::kEOF) {
+              _pipe->close();
+            } else {
+              my_context()->forward_read(ret.error());
+            }
+            loop = false;
+          } else {
+            loop = b.tailroom() == 0;
+            _alloc.report_size(b.size());
+            _b.push_back(move(b));
+            if (on_io) {
+              defer(_pipe, [this] { read_data(false); });
+            }
+          }
+        }
+        if (!_b.empty()) {
+          my_context()->forward_read(move(_b));
+          _pipe->expect_read(true);
+        }
+      }
+
       void read(mut< context > cx, socket_event e) override {
         switch (e) {
           case socket_event::kReadable: {
-            // auto b   = _pipe->alloc()->allocate(1 << 12);
-            auto loop = true;
-            buffer _b;
-            while (loop) {
-              auto b   = _alloc.allocate();
-              auto ret = _pipe->read_buffer(edit(b));
-              if (ret.has_error()) {
-                if (ret.error() == error::kEOF) {
-                  _pipe->close();
-                } else {
-                  cx->forward_read(ret.error());
-                }
-                loop = false;
-              } else {
-                loop = b.tailroom() == 0;
-                _alloc.report_size(b.size());
-                _b.push_back(move(b));
-              }
-            }
-            if (!_b.empty()) {
-              cx->forward_read(move(_b));
-            }
+            read_data(true);
           } break;
           case socket_event::kWritable: {
             if (!_write_buf.empty()) {
               _pipe->write_buffer(edit(_write_buf));
+              _pipe->expect_write(!_write_buf.empty());
               // std::cout << "write queue: " << _write_buf.size() << std::endl;
             }
           } break;
@@ -248,6 +257,7 @@ namespace io {
           }
         }
         _write_buf.push_back(b.split(b.size()));
+        _pipe->expect_write(true);
         // std::cout << "write queue: " << _write_buf.size() << std::endl;
         if (_write_buf.size() > 100 << 20) { // 100 MiB
           std::cout << "Closing connection due to slow reader" << std::endl;
@@ -318,6 +328,7 @@ namespace io {
         if (client.has_error()) {
           this->read(client.error());
         } else {
+          this->expect_read(true);
           auto socket = client.move_value();
           try {
             own< client_pipe_type > ch;

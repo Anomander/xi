@@ -192,6 +192,9 @@ namespace io {
       _size = 0;
     } else {
       it->skip_bytes(remainder);
+      if (it->empty()) {
+        ++it;
+      }
       _size -= sz;
     }
 

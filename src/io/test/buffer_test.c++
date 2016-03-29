@@ -71,6 +71,140 @@ TEST(interface, push_back_empty_buffer_ignored) {
   EXPECT_EQ(0u, b.tailroom());
 }
 
+TEST(interface, skip_bytes_empty_buffer) {
+  buffer b;
+
+  b.skip_bytes(0);
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, b.length());
+  EXPECT_EQ(0u, b.size());
+  EXPECT_EQ(0u, b.tailroom());
+
+  b.skip_bytes(1);
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, b.length());
+  EXPECT_EQ(0u, b.size());
+  EXPECT_EQ(0u, b.tailroom());
+
+  b.skip_bytes(100);
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, b.length());
+  EXPECT_EQ(0u, b.size());
+  EXPECT_EQ(0u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_single_buffer_half) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(10);
+
+  EXPECT_FALSE(b.empty());
+  EXPECT_EQ(1u, b.length());
+  EXPECT_EQ(10u, b.size());
+  EXPECT_EQ(20u, b.headroom());
+  EXPECT_EQ(30u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_single_buffer_completely) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(20);
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, b.length());
+  EXPECT_EQ(0u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+  EXPECT_EQ(0u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_single_buffer_over) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(200);
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, b.length());
+  EXPECT_EQ(0u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+  EXPECT_EQ(0u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_multi_buffer_half_first) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(10);
+
+  EXPECT_FALSE(b.empty());
+  EXPECT_EQ(2u, b.length());
+  EXPECT_EQ(30u, b.size());
+  EXPECT_EQ(20u, b.headroom());
+  EXPECT_EQ(30u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_multi_buffer_full_first) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(20);
+
+  EXPECT_FALSE(b.empty());
+  EXPECT_EQ(1u, b.length());
+  EXPECT_EQ(20u, b.size());
+  EXPECT_EQ(10u, b.headroom());
+  EXPECT_EQ(30u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_multi_buffer_half_second) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(30);
+
+  EXPECT_FALSE(b.empty());
+  EXPECT_EQ(1u, b.length());
+  EXPECT_EQ(10u, b.size());
+  EXPECT_EQ(20u, b.headroom());
+  EXPECT_EQ(30u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_multi_buffer_full_second) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(40);
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, b.length());
+  EXPECT_EQ(0u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+  EXPECT_EQ(0u, b.tailroom());
+}
+
+TEST(interface, skip_bytes_multi_buffer_over) {
+  buffer b;
+
+  b.push_back(make_buffer(10,20,30));
+  b.push_back(make_buffer(10,20,30));
+  b.skip_bytes(400);
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, b.length());
+  EXPECT_EQ(0u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+  EXPECT_EQ(0u, b.tailroom());
+}
+
 TEST(interface, coalesce_empty_chain) {
   buffer b;
 
