@@ -197,30 +197,42 @@ namespace io {
       }
 
       void read_data(bool on_io) {
-        auto loop = true;
         buffer _b;
-        while (loop) {
+        u8 loops   = 0;
+        bool close = false;
+        while (true) {
           auto b   = _alloc.allocate();
           auto ret = _pipe->read_buffer(edit(b));
           if (ret.has_error()) {
-            if (ret.error() == error::kEOF) {
-              _pipe->close();
+            auto error = ret.error();
+            if (error == error::kEOF) {
+              close = true;
+              // TODO: Move these into socket
+            } else if (error == error_from_value(EAGAIN) ||
+                       error == error_from_value(EWOULDBLOCK)) {
+              _pipe->expect_read(true);
+            } else if (error == error_from_value(ECONNRESET)) {
+              close = true;
             } else {
-              my_context()->forward_read(ret.error());
+              my_context()->forward_read(error);
+              close = true;
             }
-            loop = false;
+            break;
           } else {
-            loop = b.tailroom() == 0;
             _alloc.report_size(b.size());
             _b.push_back(move(b));
-            if (on_io) {
+            if (1 == loops && on_io) {
               defer(_pipe, [this] { read_data(false); });
+              break;
             }
           }
+          ++loops;
         }
         if (!_b.empty()) {
           my_context()->forward_read(move(_b));
-          _pipe->expect_read(true);
+        }
+        if (close) {
+          _pipe->close();
         }
       }
 

@@ -24,6 +24,13 @@ make_buffer(usize headroom, usize data, usize tailroom) {
   return move(b);
 }
 
+auto
+make_buffer(string data, usize headroom = 0, usize tailroom = 0) {
+  auto b = ALLOC->allocate(data.size(), headroom, tailroom);
+  b.write(byte_range{data});
+  return move(b);
+}
+
 TEST(interface, empty_chain) {
   buffer b;
   EXPECT_TRUE(b.empty());
@@ -60,7 +67,7 @@ TEST(interface, push_back_changes_stats) {
   EXPECT_EQ(20u, b.tailroom());
 }
 
-TEST(interface, push_back_empty_buffer_ignored) {
+TEST(interface, push_back_empty_buffer_skipd) {
   buffer b;
 
   b.push_back(make_buffer(0, 0, 0));
@@ -698,4 +705,225 @@ TEST(reader, find_byte_multiple_buffers_boundaries) {
   for (u8 i = 41; i <= 50; ++i) {
     EXPECT_EQ(none, r.find_byte(i, i));
   }
+}
+
+TEST(reader, read_value_and_skip_single_buffer) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ('A', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ('B', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ('C', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ(none, r.read_value_and_skip<char>());
+}
+
+TEST(reader, read_value_and_skip_mutliple_buffers) {
+  buffer b = make_buffer("ABC");
+  b.push_back(make_buffer("DEF"));
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ('A', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ('B', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ('C', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ('D', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ('E', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ('F', r.read_value_and_skip<char>().unwrap());
+  EXPECT_EQ(none, r.read_value_and_skip<char>());
+}
+
+TEST(reader, read_value_and_mark_single_buffer) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ('A', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ('B', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ('C', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ(none, r.read_value_and_mark<char>());
+  EXPECT_EQ("ABC", r.consume_mark_into_string());
+}
+
+TEST(reader, read_value_and_mark_mutliple_buffers) {
+  buffer b = make_buffer("ABC");
+  b.push_back(make_buffer("DEF"));
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ('A', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ('B', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ("AB", r.consume_mark_into_string());
+  EXPECT_EQ('C', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ('D', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ("CD", r.consume_mark_into_string());
+  EXPECT_EQ('E', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ('F', r.read_value_and_mark<char>().unwrap());
+  EXPECT_EQ(none, r.read_value_and_mark<char>());
+  EXPECT_EQ("EF", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_of_and_mark_single_buffer) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark(""));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("BC"));// starts with A
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("A"));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("AC"));// starts with B
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("ABc"));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("AB"));// starts with C
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("ABC"));
+  EXPECT_EQ("ABC", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_of_and_mark_single_buffer_all_at_once) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(3u, r.skip_any_of_and_mark("CBA"));
+  EXPECT_EQ("ABC", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_of_and_mark_multiple_buffers) {
+  buffer b = make_buffer("ABC");
+  b.push_back(make_buffer("DEF"));
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark(""));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("aBCDEF"));// starts with A
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("AbCDEF"));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("AbCDEF"));// starts with B
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("ABcDEF"));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("ABcDEF"));// starts with C
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("ABCdEF"));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("ABCdEF"));// starts with D
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("ABCDeF"));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("ABCDeF"));// starts with E
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("ABCDEf"));
+  EXPECT_EQ(0u, r.skip_any_of_and_mark("ABCDEf"));// starts with F
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("ABCDEF"));
+  EXPECT_EQ("ABCDEF", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_not_of_and_mark_single_buffer_empty_pattern) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(3u, r.skip_any_not_of_and_mark(""));
+  EXPECT_EQ("ABC", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_not_of_and_mark_single_buffer) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("A"));// starts with A
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("BC"));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("B"));// starts with B
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("AC"));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("C"));// starts with C
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("AB"));
+  EXPECT_EQ("ABC", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_not_of_and_mark_single_buffer_all_at_once) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(3u, r.skip_any_not_of_and_mark("DEF"));
+  EXPECT_EQ("ABC", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_not_of_and_mark_multiple_buffers_empty_pattern) {
+  buffer b = make_buffer("ABC");
+  b.push_back(make_buffer("DEF"));
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(6u, r.skip_any_not_of_and_mark(""));
+  EXPECT_EQ("ABCDEF", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_not_of_and_mark_multiple_buffers) {
+  buffer b = make_buffer("ABC");
+  b.push_back(make_buffer("DEF"));
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("Abcdef"));// starts with A
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("aBCDEF"));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("aBcdef"));// starts with B
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("AbCDEF"));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("abCdef"));// starts with C
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("ABcDEF"));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("abcDef"));// starts with D
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("ABCdEF"));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("abcdEf"));// starts with E
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("ABCDeF"));
+  EXPECT_EQ(0u, r.skip_any_not_of_and_mark("abcdeF"));// starts with F
+  EXPECT_EQ(1u, r.skip_any_not_of_and_mark("ABCDEf"));
+  EXPECT_EQ("ABCDEF", r.consume_mark_into_string());
+}
+
+TEST(reader, skip_any_of_and_mark_multiple_buffers_all_at_once) {
+  buffer b = make_buffer("ABC");
+  b.push_back(make_buffer("DEF"));
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(6u, r.skip_any_not_of_and_mark("GHIJKLMNOPQRSTUVWXYZ"));
+  EXPECT_EQ("ABCDEF", r.consume_mark_into_string());
+}
+
+TEST(reader, discard_to_mark_single_buffer) {
+  buffer b = make_buffer("ABC");
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(3u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+
+  EXPECT_EQ(2u, r.skip_any_of_and_mark("BA"));
+  EXPECT_EQ(3u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+
+  r.discard_to_mark();
+  EXPECT_EQ(1u, b.size());
+  EXPECT_EQ(1u, r.total_size());
+  EXPECT_EQ(2u, b.headroom());
+
+  EXPECT_EQ(1u, r.skip_any_of_and_mark("C"));
+  r.discard_to_mark();
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, r.total_size());
+  EXPECT_EQ(0u, r.unmarked_size());
+  EXPECT_EQ(0u, r.marked_size());
+}
+
+TEST(reader, discard_to_mark_multiple_buffers) {
+  buffer b = make_buffer("ABC");
+  b.push_back(make_buffer("DEF"));
+
+  auto r = make_reader(edit(b));
+  EXPECT_EQ(6u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+
+  EXPECT_EQ(2u, r.skip_any_of_and_mark("BA"));
+  EXPECT_EQ(6u, b.size());
+  EXPECT_EQ(0u, b.headroom());
+
+  r.discard_to_mark();
+  EXPECT_EQ(4u, b.size());
+  EXPECT_EQ(4u, r.total_size());
+  EXPECT_EQ(2u, b.headroom());
+
+  EXPECT_EQ(2u, r.skip_any_of_and_mark("CD"));
+  r.discard_to_mark();
+
+  EXPECT_EQ(2u, b.size());
+  EXPECT_EQ(1u, b.length());
+  EXPECT_EQ(2u, r.total_size());
+  EXPECT_EQ(1u, b.headroom());
+
+  EXPECT_EQ(2u, r.skip_any_of_and_mark("EF"));
+  r.discard_to_mark();
+
+  EXPECT_TRUE(b.empty());
+  EXPECT_EQ(0u, r.total_size());
+  EXPECT_EQ(0u, r.unmarked_size());
+  EXPECT_EQ(0u, r.marked_size());
 }

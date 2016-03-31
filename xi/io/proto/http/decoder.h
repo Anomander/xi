@@ -63,8 +63,8 @@ namespace io {
           if (in->size() < 6) {
             return false;
           }
-          auto r = make_consuming_reader(in);
-          switch (r.read< u8 >().unwrap()) {
+          auto r = make_reader(in);
+          switch (r.read_value_and_skip< u8 >().unwrap()) {
             case 'D':
               if (compare_bytes("ELETE", in)) {
                 _verb = verb::DELETE;
@@ -101,18 +101,18 @@ namespace io {
         }
 
         bool read_uri(mut< buffer > in) {
-          auto r = make_consuming_reader(in);
-          if (auto space_pos = r.find_byte(' ', _length)) {
-            _length = space_pos.unwrap();
-            r.append_to_string(edit(_uri), _length);
-            std::cout << "uri length " << _length << std::endl;
-            std::cout << "uri [" << _uri << "]" << std::endl;
-            in->skip_bytes(1); // skip space
-            _state = state::VERSION;
-          } else {
-            r.append_to_string(edit(_uri));
-            return false;
-          }
+          // auto r = make_reader(in);
+          // if (auto space_pos = r.find_byte(' ', _length)) {
+          //   _length = space_pos.unwrap();
+          //   r.append_to_string(edit(_uri), _length);
+          //   std::cout << "uri length " << _length << std::endl;
+          //   std::cout << "uri [" << _uri << "]" << std::endl;
+          //   in->skip_bytes(1); // skip space
+          //   _state = state::VERSION;
+          // } else {
+          //   r.append_to_string(edit(_uri));
+          //   return false;
+          // }
           return in->size() > 0;
         }
 
@@ -120,14 +120,14 @@ namespace io {
           if (in->size() < 8) {
             return false;
           }
-          auto r = make_consuming_reader(in);
-          if ('H' == r.read< char >().unwrap()) {
-            if (compare_bytes("TTP/1.", in)) {
-              _version = r.read< u8 >().unwrap() - '0';
-              std::cout << "VERSION is HTTP/1." << (u32)_version << std::endl;
-              _state = state::CRLF;
-            }
-          }
+          // auto r = make_reader(in);
+          // if ('H' == r.read< char >().unwrap()) {
+          //   if (compare_bytes("TTP/1.", in)) {
+          //     _version = r.read< u8 >().unwrap() - '0';
+          //     std::cout << "VERSION is HTTP/1." << (u32)_version << std::endl;
+          //     _state = state::CRLF;
+          //   }
+          // }
           return in->size() > 0;
         }
         bool read_crlf(mut< buffer > in) {
@@ -142,17 +142,17 @@ namespace io {
 
         template < u32 N >
         bool compare_bytes(const char (&pattern)[N], mut< buffer > in) {
-          u32 i  = 0;
-          auto r = make_consuming_reader(in);
-          while (auto b = r.peek< char >()) {
-            if (b.unwrap() != pattern[i++]) {
-              return false;
-            }
-            in->skip_bytes(1);
-            if (i == N - 1) {
-              break;
-            }
-          }
+          // u32 i  = 0;
+          // auto r = make_consuming_reader(in);
+          // while (auto b = r.peek< char >()) {
+          //   if (b.unwrap() != pattern[i++]) {
+          //     return false;
+          //   }
+          //   in->skip_bytes(1);
+          //   if (i == N - 1) {
+          //     break;
+          //   }
+          // }
           return true;
         }
       };

@@ -10,126 +10,128 @@ namespace io {
   class buffer::reader {
   protected:
     mut< buffer > _buffer;
-    bool _consume = false;
+    usize _mark = 0;
 
   public:
-    reader(mut< buffer > b, bool consume) : _buffer(b), _consume(consume) {
+    reader(mut< buffer > b, usize m = 0) : _buffer(b), _mark(m) {
     }
 
     template < class T >
-    opt< T > read() {
-      auto val = peek< T >();
-      return _consume ? val.map([this](auto t) mutable {
-        _buffer->skip_bytes(sizeof(T));
-        return move(t);
-      })
-                      : move(val);
-    }
-
-    template < class T >
-    opt< T > peek() const {
-      if (_buffer->size() >= sizeof(T)) {
+    opt< T > read_value() {
+      if (_mark < _buffer->size() && _buffer->size() - _mark >= sizeof(T)) {
         T value;
-        _buffer->read(byte_range_for_object(value));
+        _buffer->read(byte_range_for_object(value), _mark);
         return some(value);
       }
       return none;
     }
 
-    template < usize N >
-    usize skip_any_of(const char (&pattern)[N]) {
-      return skip_any_of((u8 *)pattern, N - 1);
+    template < class T >
+    opt< T > read_value_and_mark() {
+      return read_value< T >().map([&](auto &&v) {
+        _mark += sizeof(T);
+        return move(v);
+      });
     }
 
-    usize size() const;
+    template < class T >
+    opt< T > read_value_and_skip() {
+      return read_value< T >().map([&](auto &&v) {
+        _buffer->skip_bytes(_mark + sizeof(T));
+        _mark = 0;
+        return move(v);
+      });
+    }
 
-    usize peek(byte_range);
-    fragment_string read_string(usize);
-    usize append_to_string(mut< string > s, usize = -1);
-    usize skip_any_of(u8 *pattern, usize len);
-    usize skip_one_of(u8 *pattern, usize len);
+    template < usize N >
+    usize skip_any_not_of_and_mark(const char (&pattern)[N]) {
+      if (N == 1) {
+        return _mark = _buffer->size();
+      }
+      return skip_any_of_and_mark(
+          (u8 *)pattern, N - 1, [](bool b) { return b; });
+    }
+
+    template < usize N >
+    usize skip_any_of_and_mark(const char (&pattern)[N]) {
+      if (N == 1) {
+        return 0;
+      }
+      return skip_any_of_and_mark(
+          (u8 *)pattern, N - 1, [](bool b) { return !b; });
+    }
+
+    usize total_size() const;
+    usize unmarked_size() const;
+    usize marked_size() const;
+
+    void discard_to_mark();
+    buffer consume_mark_into_buffer();
+    fragment_string consume_mark_into_string();
+    template < class Pred >
+    usize skip_any_of_and_mark(u8 *pattern, usize len, Pred const &);
     opt< usize > find_byte(u8 target, usize offset = 0) const;
   };
 
-  inline buffer::reader make_consuming_reader(mut< buffer > b) {
-    return buffer::reader(b, true);
-  }
-
   inline buffer::reader make_reader(mut< buffer > b) {
-    return buffer::reader(b, false);
+    return buffer::reader(b);
   }
 
-  inline usize buffer::reader::size() const {
+  inline usize buffer::reader::total_size() const {
     return _buffer->size();
   }
 
-  inline usize buffer::reader::peek(byte_range r) {
-    if (!r.empty() && _buffer->size() >= r.size()) {
-      return _buffer->read(r);
-    }
-    return 0;
+  inline usize buffer::reader::unmarked_size() const {
+    return _buffer->size() - _mark;
   }
 
-  inline fragment_string buffer::reader::read_string(usize len) {
-    auto buf = _buffer->split(len);
+  inline usize buffer::reader::marked_size() const {
+    return _mark;
+  }
+
+  inline void buffer::reader::discard_to_mark() {
+    XI_SCOPE(success) {
+      _mark = 0;
+    };
+    return _buffer->skip_bytes(_mark);
+  }
+
+  inline buffer buffer::reader::consume_mark_into_buffer() {
+    XI_SCOPE(success) {
+      _mark = 0;
+    };
+    return _buffer->split(_mark);
+  }
+
+  inline fragment_string buffer::reader::consume_mark_into_string() {
+    auto buf = _buffer->split(_mark);
+    _mark    = 0;
     return fragment_string{move(buf._fragments), buf._size};
   }
 
-  inline usize buffer::reader::append_to_string(mut< string > s, usize len) {
-    if (0 == _buffer->size()) {
-      return 0;
-    }
-    auto it   = _buffer->_fragments.begin();
-    auto end  = _buffer->_fragments.end();
-    auto size = len;
-
-    while (!it->size()) {
-      ++it;
-    }
-
-    auto consume_begin = it;
-    while (len && it != end) {
-      auto r = it->data_range();
-      if (XI_UNLIKELY(len >= r.size())) {
-        s->append((char *)r.data(), r.size());
-        len -= r.size();
-        ++it;
-      } else {
-        s->append((char *)r.data(), len);
-        if (_consume) {
-          it->skip_bytes(len);
-        }
-        len = 0;
-        break;
-      }
-    }
-
-    if (_consume && consume_begin != it) {
-      _buffer->_fragments.erase_and_dispose(
-          consume_begin, it, fragment_deleter);
-    }
-
-    _buffer->_size -= (size - len);
-    return size - len;
-  }
-
-  usize buffer::reader::skip_any_of(u8 *pattern, usize len) {
-    usize ret = 0;
-    auto it   = _buffer->_fragments.begin();
-    auto end  = _buffer->_fragments.end();
+  template < class Pred >
+  usize buffer::reader::skip_any_of_and_mark(u8 *pattern,
+                                             usize len,
+                                             Pred const &predicate) {
+    usize ret   = 0;
+    auto end    = _buffer->_fragments.end();
+    auto offset = _mark;
+    auto it     = skip_offset(_buffer->_fragments.begin(), end, edit(offset));
 
     while (end != it) {
-      for (auto ch : it->data_range()) {
-        if (::memchr(pattern, ch, len)) {
+      auto ch     = it->data_range().data() + offset;
+      auto ch_end = it->data_range().data() + it->size();
+      while (ch != ch_end) {
+        if (predicate(::memchr(pattern, *(ch++), len))) {
           goto done;
         }
         ++ret;
       }
+      offset      = 0;
+      ++it;
     }
   done:
-    if (_consume && ret) {
-      _buffer->skip_bytes(ret);
-    }
+    _mark += ret;
     return ret;
   }
 
@@ -138,13 +140,8 @@ namespace io {
       return none;
     }
 
-    auto it  = _buffer->_fragments.begin();
     auto end = _buffer->_fragments.end();
-
-    for (; it != end && offset >= it->size(); ++it) {
-      // find the first buffer past offset
-      offset -= it->size();
-    }
+    auto it  = skip_offset(_buffer->_fragments.begin(), end, edit(offset));
 
     void *found = nullptr;
     usize size  = 0u;

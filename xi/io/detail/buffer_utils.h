@@ -4,16 +4,16 @@ namespace xi {
 namespace io {
   namespace {
 
-    void fragment_deleter(fragment *f) {
+    inline void fragment_deleter(fragment *f) {
       delete f;
     };
 
     template < class I >
-    static auto find_fragment_by_size(I beg, I end, mut< usize > sz) {
-      for (; beg != end && *sz > beg->size(); ++beg) {
-        *sz -= beg->size();
+    auto skip_offset(I start, I end, mut< usize > offset) {
+      for (; start != end && *offset >= start->size(); ++start) {
+        *offset -= start->size();
       }
-      return beg;
+      return start;
     }
   }
 }

@@ -87,8 +87,11 @@ inline namespace util {
       size_t reader_idx         = _read_idx.load(memory_order_acquire);
       size_t adjusted_write_idx = current_writer_idx;
       auto available = write_available(current_writer_idx, reader_idx, _SIZE);
+      // std::cout << available << ":"<< size << std::endl;
+      // std::cout << typeid(U).name() << std::endl;
       if (XI_UNLIKELY(available < size)) {
-        std::cout << __FILE__ << ":"<< __LINE__<< std::endl;
+        // std::cout << __FILE__ << ":"<< __LINE__<< std::endl;
+        // std::cout << available << ":"<< size << std::endl;
         return false;
       }
       if (adjusted_write_idx + size >= _SIZE) {
@@ -96,8 +99,8 @@ inline namespace util {
         adjusted_write_idx = 0;
         available = write_available(adjusted_write_idx, reader_idx, _SIZE);
         if (XI_UNLIKELY(available < size)) {
-          std::cout << __FILE__ << ":"<< __LINE__<< std::endl;
-          std::cout << available << ":"<< size << std::endl;
+          // std::cout << __FILE__ << ":"<< __LINE__<< std::endl;
+          // std::cout << available << ":"<< size << std::endl;
           // not enough space available after wrap-around
           return false;
         }

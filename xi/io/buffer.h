@@ -47,7 +47,7 @@ namespace io {
     void skip_bytes(usize, bool free = true);
     void ignore_bytes_at_end(usize, bool free = true);
 
-    usize read(byte_range);
+    usize read(byte_range, usize offset = 0);
     usize write(const byte_range);
   };
 

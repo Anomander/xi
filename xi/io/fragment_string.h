@@ -53,5 +53,13 @@ namespace io {
   inline bool operator== (ref<fragment_string> l, ref<fragment_string> r) {
     return l.compare(r) == 0;
   }
+
+  inline bool operator== (ref<fragment_string> l, string_ref r) {
+    return l.compare(r) == 0;
+  }
+
+  inline bool operator== (string_ref l, ref<fragment_string> r) {
+    return r == l;
+  }
 }
 }

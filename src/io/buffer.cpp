@@ -61,13 +61,8 @@ namespace io {
       return {move(_fragments), old_size};
     }
 
-    auto it  = _fragments.begin();
-    auto end = _fragments.end();
-
     auto remainder = sz;
-    for (; it != end && remainder >= it->size(); ++it) {
-      remainder -= it->size();
-    }
+    auto it = skip_offset(begin(_fragments), end(_fragments), edit(remainder));
 
     if (XI_LIKELY(remainder > 0)) {
       auto new_node = it->split(remainder);
@@ -93,13 +88,8 @@ namespace io {
       length = _size - offset;
     }
 
-    auto it  = _fragments.begin();
     auto end = _fragments.end();
-
-    for (; it != end && offset >= it->size(); ++it) {
-      // find the first buffer past offset
-      offset -= it->size();
-    }
+    auto it  = skip_offset(begin(_fragments), end, edit(offset));
 
     auto head_size = it->size() - offset;
     if (XI_UNLIKELY(head_size >= length)) {
@@ -141,29 +131,27 @@ namespace io {
     }
     coalesce(alloc, offset, length);
 
-    auto it  = _fragments.begin();
-    auto end = _fragments.end();
-
-    for (; it != end && offset >= it->size(); ++it) {
-      // find the first buffer past offset
-      offset -= it->size();
-    }
-
+    auto it = skip_offset(begin(_fragments), end(_fragments), edit(offset));
     return byte_range{it->data() + offset, min(length, it->size() - offset)};
   }
 
-  usize buffer::read(byte_range r) {
-    if (XI_UNLIKELY(empty() || r.empty())) {
+  usize buffer::read(byte_range r, usize offset) {
+    if (XI_UNLIKELY(empty() || r.empty() || offset >= _size)) {
       return 0;
     }
 
+    auto end = _fragments.end();
+    auto it  = skip_offset(begin(_fragments), end, edit(offset));
+
     auto sz = r.size();
-    for (auto &c : _fragments) {
-      c.read(r);
-      r = r.subrange(c.size());
+    while(it != end) {
+      auto ret = it->read(r, offset);
+      offset = 0;
+      r = r.subrange(ret);
       if (r.empty()) {
         break;
       }
+      ++it;
     }
     return sz - r.size();
   }
@@ -186,7 +174,7 @@ namespace io {
     auto remainder = sz;
     auto beg       = _fragments.begin();
     auto end       = _fragments.end();
-    auto it        = find_fragment_by_size(beg, end, edit(remainder));
+    auto it        = skip_offset(beg, end, edit(remainder));
 
     if (XI_UNLIKELY(it == end)) {
       _size = 0;
@@ -213,7 +201,7 @@ namespace io {
     auto remainder = sz;
     auto beg       = _fragments.rbegin();
     auto end       = _fragments.rend();
-    auto it        = find_fragment_by_size(beg, end, edit(remainder));
+    auto it        = skip_offset(beg, end, edit(remainder));
 
     if (XI_UNLIKELY(it == end)) {
       _size = 0;

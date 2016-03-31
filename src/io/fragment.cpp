@@ -54,9 +54,12 @@ fragment::write(const byte_range r) {
 }
 
 usize
-fragment::read(byte_range r) {
-  auto cap = min(r.size(), size());
-  copy(_head, _head + cap, r.begin());
+fragment::read(byte_range r, usize offset) {
+  if (offset >= size()) {
+    return 0;
+  }
+  auto cap = min(r.size(), size() - offset);
+  copy(_head + offset, _head + offset + cap, r.begin());
   return cap;
 }
 

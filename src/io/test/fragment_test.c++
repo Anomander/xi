@@ -29,7 +29,7 @@ make_fragment(usize headroom, usize data, usize tailroom) {
   return unique_ptr< fragment >(b);
 }
 
-TEST(interface2, create) {
+TEST(interface, create) {
   auto b = make_fragment(1024, 0, 1024);
 
   ASSERT_EQ(1024U, b->headroom());
@@ -37,15 +37,43 @@ TEST(interface2, create) {
   ASSERT_EQ(1024U, b->tailroom());
 }
 
-TEST(correctness2, read_from_empty_does_nothing) {
+TEST(interface, read_from_empty_does_nothing) {
   auto b = make_fragment(0, 0, 1024);
   vector< u8 > v(10);
 
   auto ret = b->read(byte_range{v});
   ASSERT_EQ(0U, ret);
+
+  ret = b->read(byte_range{v}, 1);
+  ASSERT_EQ(0U, ret);
 }
 
-TEST(correctness2, write_changes_stats) {
+TEST(interface, read_offset) {
+  auto b = make_fragment(0, 0, 10);
+  vector< u8 > in1 = {0, 1, 2, 3, 4}, in2 = {5, 6, 7, 8, 9}, out(5);
+
+  b->write(byte_range{in1});
+  b->write(byte_range{in2});
+  EXPECT_EQ(10u, b->size());
+
+  auto ret = b->read(byte_range{out}, 0);
+  ASSERT_EQ(5u, ret);
+  EXPECT_EQ(in1, out);
+
+  ret = b->read(byte_range{out}, 5);
+  ASSERT_EQ(5u, ret);
+  EXPECT_EQ(in2, out);
+
+  ret = b->read(byte_range{out}, 3);
+  ASSERT_EQ(5u, ret);
+  EXPECT_EQ(3, out[0]);
+  EXPECT_EQ(4, out[1]);
+  EXPECT_EQ(5, out[2]);
+  EXPECT_EQ(6, out[3]);
+  EXPECT_EQ(7, out[4]);
+}
+
+TEST(interface, write_changes_stats) {
   auto b          = make_fragment(0, 0, 1024);
   vector< u8 > in = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -54,7 +82,7 @@ TEST(correctness2, write_changes_stats) {
   ASSERT_EQ(10U, b->size());
 }
 
-TEST(correctness2, written_can_be_read) {
+TEST(interface, written_can_be_read) {
   auto b          = make_fragment(0, 0, 1024);
   vector< u8 > in = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, out(10);
 
@@ -65,7 +93,7 @@ TEST(correctness2, written_can_be_read) {
   ASSERT_EQ(in, out);
 }
 
-TEST(correctness2, reads_repeat) {
+TEST(interface, reads_repeat) {
   auto b          = make_fragment(0, 0, 1024);
   vector< u8 > in = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, out1(10), out2(10);
 
@@ -83,7 +111,7 @@ TEST(correctness2, reads_repeat) {
   ASSERT_EQ(out1, out2);
 }
 
-TEST(correctness2, skip_bytes) {
+TEST(interface, skip_bytes) {
   auto b          = make_fragment(0, 0, 1024);
   vector< u8 > in = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -100,7 +128,7 @@ TEST(correctness2, skip_bytes) {
   ASSERT_EQ(0U, b->size());
 }
 
-TEST(correctness2, clone) {
+TEST(interface, clone) {
   auto b = make_fragment(1024, 0, 1024);
   ASSERT_EQ(1024U, b->headroom());
   ASSERT_EQ(1024U, b->tailroom());
@@ -112,7 +140,7 @@ TEST(correctness2, clone) {
   ASSERT_EQ(0U, c->size());
 }
 
-TEST(correctness2, advance_empty_buffer) {
+TEST(interface, advance_empty_buffer) {
   auto b = make_fragment(0, 0, 1024);
   ASSERT_EQ(1024U, b->tailroom());
   ASSERT_EQ(0U, b->size());

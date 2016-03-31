@@ -46,7 +46,7 @@ namespace io {
     void retreat(usize);
 
     usize write(const byte_range);
-    usize read(byte_range);
+    usize read(byte_range, usize offset = 0);
     usize skip_bytes(usize len);
     usize ignore_bytes_at_end(usize len);
 

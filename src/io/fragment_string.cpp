@@ -25,7 +25,6 @@ namespace io {
   i32 fragment_string::compare(string_ref s) const {
     usize offset = 0;
     if (!s.size()) {
-      std::cout << "ret 1 " << make_signed_t< usize >(_size) << std::endl;
       return make_signed_t< usize >(_size);
     }
     for (auto&& frag : _fragments) {
@@ -35,22 +34,18 @@ namespace io {
       auto cap = min(frag.size(), s.size() - offset);
       auto ret = memcmp(frag.data(), s.data() + offset, cap);
       if (ret) {
-        std::cout << "ret 2 " << ret << std::endl;
         return ret;
       }
       offset += cap;
       if (offset == s.size()) {
-        std::cout << "ret 3 " << make_signed_t< usize >(_size - offset) << std::endl;
         return make_signed_t< usize >(_size - offset);
       }
     }
-    std::cout << "ret 4 " << make_signed_t< usize >(_size - s.size()) << std::endl;
     return make_signed_t< usize >(_size - s.size());
   }
 
   i32 fragment_string::compare(ref<fragment_string> s) const {
     if (!s.size()) {
-      std::cout << "ret 1 " << make_signed_t< usize >(_size) << std::endl;
       return make_signed_t< usize >(_size);
     }
     auto it_my = begin(_fragments);
@@ -61,7 +56,6 @@ namespace io {
       auto cap = min(it_my->size(), it_other->size());
       auto ret = memcmp(it_my->data(), it_other->data(), cap);
       if (ret) {
-        std::cout << "ret 2 " << ret << std::endl;
         return ret;
       }
       if (it_my->size() != it_other->size()) {
