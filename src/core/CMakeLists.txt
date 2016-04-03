@@ -1,5 +1,6 @@
 file(GLOB xi_core_SRC "*.cpp")
 
+add_subdirectory(epoll)
 add_subdirectory(libevent)
 
 set(xi_SRC ${xi_SRC} ${xi_core_SRC} PARENT_SCOPE)

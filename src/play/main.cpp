@@ -1,6 +1,6 @@
 #include "xi/core/kernel_utils.h"
 #include "xi/core/launchable_kernel.h"
-#include "xi/core/libevent/reactor.h"
+#include "xi/core/epoll/reactor.h"
 #include "xi/core/thread_launcher.h"
 #include "xi/hw/hardware.h"
 #include "xi/io/buffer.h"
@@ -128,7 +128,7 @@ public:
 };
 
 auto k = make< core::launchable_kernel< core::thread_launcher,
-                                        core::libevent::reactor > >();
+                                        core::epoll::reactor > >();
 
 int
 main(int argc, char* argv[]) {

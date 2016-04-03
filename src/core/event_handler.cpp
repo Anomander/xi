@@ -43,6 +43,14 @@ namespace core {
     if (state & kRead) {
       handle_read();
     }
+
+    if (state & kClose) {
+      handle_close();
+    }
+
+    if (state & kError) {
+      handle_error();
+    }
   }
 
   void io_handler::expect_read(bool flag) {

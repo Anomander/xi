@@ -56,6 +56,14 @@ namespace io {
         return edit(_alloc);
       }
 
+      void handle_error() override {
+        close(); // TODO: handle socket errors
+      }
+
+      void handle_close() final override {
+        close();
+      }
+
       void handle_read() override {
         read(socket_event::kReadable);
       }
@@ -330,6 +338,14 @@ namespace io {
 
     private:
       void handle_write() final override {
+      }
+
+      void handle_error() final override {
+        close(); // TODO: handle socket errors
+      }
+
+      void handle_close() final override {
+        close();
       }
 
       void close() {

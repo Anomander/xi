@@ -24,6 +24,7 @@ inline namespace ext {
   using ::std::is_same;
   using ::std::is_base_of;
   using ::std::is_arithmetic;
+  using ::std::is_integral;
   using ::std::is_unsigned;
   using ::std::is_signed;
   using ::std::has_virtual_destructor;

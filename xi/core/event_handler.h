@@ -35,6 +35,8 @@ namespace core {
   protected:
     virtual void handle_read()  = 0;
     virtual void handle_write() = 0;
+    virtual void handle_close() = 0;
+    virtual void handle_error() = 0;
 
     void handle(event_state) override;
     opt< milliseconds > expected_timeout() const noexcept override;

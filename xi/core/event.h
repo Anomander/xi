@@ -10,6 +10,8 @@ namespace core {
     kRead      = 1,
     kWrite     = 1 >> 1,
     kTimeout   = 1 >> 2,
+    kClose     = 1 >> 3,
+    kError     = 1 >> 4,
     kReadWrite = kRead | kWrite,
   };
 

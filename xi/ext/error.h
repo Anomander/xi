@@ -71,5 +71,8 @@ inline namespace ext {
     return std::error_condition((int)value, C::instance());                    \
   }
 
+  [[gnu::noreturn]] inline void throw_errno() {
+    throw system_error(error_from_errno());
+  }
 } // inline namespace ext
 } // namespace xi
