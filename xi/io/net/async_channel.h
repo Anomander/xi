@@ -83,7 +83,7 @@ namespace io {
 
     template < address_family af >
     struct datagram {
-      buffer data;
+      own<buffer> data;
       endpoint< af > remote;
     };
 
@@ -152,8 +152,8 @@ namespace io {
       }
 
       void write(mut< context > cx, datagram< af > b) override {
-        // std::cout << "Writing " << b.data.size() << " bytes to "
-        //           << b.remote.to_string() << std::endl;
+        // std::cout << "Writing " << b->data.size() << " bytes to "
+        //           << b->remote.to_string() << std::endl;
         _pipe->write_buffer_to(edit(b.data), b.remote.to_posix());
       }
     };
@@ -191,7 +191,7 @@ namespace io {
     struct client_pipe< af, proto >::data_sink
         : public pipes::context_aware_filter< socket_event,
                                               pipes::in< error_code >,
-                                              buffer > {
+                                              own<buffer> > {
       using channel = client_pipe< af, proto >;
       mut< channel > _pipe;
       adaptive_allocator _alloc;
@@ -200,7 +200,7 @@ namespace io {
       }
 
       void read_data(bool on_io) {
-        buffer _b;
+        auto _b = make<buffer>();
         u8 loops   = 0;
         bool close = false;
         while (true) {
@@ -222,8 +222,8 @@ namespace io {
             }
             break;
           } else {
-            _alloc.report_size(b.size());
-            _b.push_back(move(b));
+            _alloc.report_size(b->size());
+            _b->push_back(move(b));
             if (1 == loops && on_io) {
               defer(_pipe, [this] { read_data(false); });
               break;
@@ -231,7 +231,7 @@ namespace io {
           }
           ++loops;
         }
-        if (!_b.empty()) {
+        if (!_b->empty()) {
           my_context()->forward_read(move(_b));
         }
         if (close) {
@@ -264,14 +264,14 @@ namespace io {
             break;
         };
       }
-      void write(mut< context > cx, buffer b) override {
+      void write(mut< context > cx, own<buffer> b) override {
         if (_write_buf.empty()) {
           _pipe->write_buffer(edit(b));
-          if (!b.size()) {
+          if (!b->size()) {
             return;
           }
         }
-        _write_buf.push_back(b.split(b.size()));
+        _write_buf.push_back(b->split(b->size()));
         _pipe->expect_write(true);
         // std::cout << "write queue: " << _write_buf.size() << std::endl;
         if (_write_buf.size() > 100 << 20) { // 100 MiB

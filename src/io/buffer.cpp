@@ -1,3 +1,4 @@
+#include "xi/ext/configure.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
 #include "xi/io/detail/buffer_utils.h"
@@ -23,14 +24,20 @@ namespace io {
     _fragments.clear_and_dispose(fragment_deleter);
   }
 
-  void buffer::push_front(buffer &&p, bool pack) {
-    _size += p.size();
-    _fragments.splice(begin(_fragments), p._fragments);
+  void buffer::push_front(own< buffer > &&p, bool pack) {
+    if (!p) {
+      return;
+    }
+    _size += p->size();
+    _fragments.splice(begin(_fragments), p->_fragments);
   }
 
-  void buffer::push_back(buffer &&p, bool pack) {
-    _size += p.size();
-    _fragments.splice(end(_fragments), p._fragments);
+  void buffer::push_back(own< buffer > &&p, bool pack) {
+    if (!p) {
+      return;
+    }
+    _size += p->size();
+    _fragments.splice(end(_fragments), p->_fragments);
   }
 
   bool buffer::empty() const {
@@ -51,14 +58,14 @@ namespace io {
     return prev(end(_fragments))->tailroom();
   }
 
-  auto buffer::split(usize sz) -> buffer {
+  own< buffer > buffer::split(usize sz) {
     if (XI_UNLIKELY(empty() || 0 == sz)) {
       return {};
     }
     if (XI_UNLIKELY(size() < sz)) {
       auto old_size = _size;
       _size         = 0;
-      return {move(_fragments), old_size};
+      return make< buffer >(move(_fragments), old_size);
     }
 
     auto remainder = sz;
@@ -74,7 +81,7 @@ namespace io {
       new_list.splice(new_list.end(), _fragments, i++);
     }
 
-    return {move(new_list), sz};
+    return make< buffer >(move(new_list), sz);
   }
 
   usize buffer::coalesce(mut< buffer_allocator > alloc,
@@ -101,7 +108,7 @@ namespace io {
     if (XI_LIKELY(head_size + it->tailroom() < length)) {
       // not enough space in the first buffer
       auto new_buffer = alloc->allocate(length);
-      _fragments.splice(it, new_buffer._fragments);
+      _fragments.splice(it, new_buffer->_fragments);
       write_fragment_it = prev(it);
     } else {
       // skip the buffer we'll write into
@@ -123,12 +130,12 @@ namespace io {
     return write_fragment_it->size();
   }
 
-  buffer buffer::clone() {
+  own< buffer > buffer::clone() {
     list_t fragments;
-    for(auto && f : _fragments) {
+    for (auto &&f : _fragments) {
       fragments.push_back(*f.clone().release());
     }
-    return buffer(move(fragments), _size);
+    return make< buffer >(move(fragments), _size);
   }
 
   byte_range buffer::range(mut< buffer_allocator > alloc,
@@ -152,10 +159,10 @@ namespace io {
     auto it  = skip_offset(begin(_fragments), end, edit(offset));
 
     auto sz = r.size();
-    while(it != end) {
+    while (it != end) {
       auto ret = it->read(r, offset);
-      offset = 0;
-      r = r.subrange(ret);
+      offset   = 0;
+      r        = r.subrange(ret);
       if (r.empty()) {
         break;
       }

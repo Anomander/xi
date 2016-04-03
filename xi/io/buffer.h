@@ -7,7 +7,7 @@ namespace io {
 
   class buffer_allocator;
 
-  class buffer final {
+  class buffer final : public virtual ownership::unique {
     using list_t =
         intrusive::list< fragment,
                          intrusive::link_mode< intrusive::normal_link >,
@@ -15,20 +15,17 @@ namespace io {
     list_t _fragments;
     usize _size = 0;
 
-  private:
-    buffer(list_t &&, usize);
-
   public:
     struct iovec_adapter;
     class reader;
 
-    buffer() = default;
     buffer(own< fragment >);
+    buffer(list_t &&, usize);
     ~buffer();
-    XI_CLASS_DEFAULTS(buffer, move);
+    XI_CLASS_DEFAULTS(buffer, move, ctor);
 
-    void push_front(buffer &&, bool pack = false);
-    void push_back(buffer &&, bool pack = false);
+    void push_front(unique_ptr<buffer> &&, bool pack = false);
+    void push_back(unique_ptr<buffer> &&, bool pack = false);
 
     bool empty() const;
     usize length() const;
@@ -36,7 +33,7 @@ namespace io {
     usize tailroom() const;
     usize size() const;
 
-    buffer split(usize = -1);
+    unique_ptr<buffer> split(usize = -1);
     usize coalesce(mut< buffer_allocator > alloc,
                    usize offset = 0,
                    usize length = -1);
@@ -49,7 +46,7 @@ namespace io {
 
     usize read(byte_range, usize offset = 0);
     usize write(const byte_range);
-    buffer clone();
+    unique_ptr<buffer> clone();
   };
 
   inline usize buffer::length() const {

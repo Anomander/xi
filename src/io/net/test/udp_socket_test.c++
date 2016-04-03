@@ -58,7 +58,7 @@ namespace test {
     auto in = prepare_data(100);
     _remote.send(in.data(), in.size());
 
-    auto b   = ALLOC->allocate(0);
+    auto b   = ALLOC->allocate(0, 10, 0);
     auto ret = read(edit(b));
     EXPECT_FALSE(ret.has_error());
     EXPECT_EQ(0, ret);
@@ -72,8 +72,8 @@ namespace test {
     auto ret = read(edit(b));
     EXPECT_FALSE(ret.has_error());
     EXPECT_EQ(50, ret);
-    EXPECT_EQ(0U, b.tailroom());
-    EXPECT_EQ(50U, b.size());
+    EXPECT_EQ(0U, b->tailroom());
+    EXPECT_EQ(50U, b->size());
   }
 
   TEST_F(client, read_from_closed_conn) {
@@ -83,8 +83,8 @@ namespace test {
     auto ret = read(edit(b));
     EXPECT_TRUE(ret.has_error());
     EXPECT_EQ(error_from_value(EAGAIN), ret.error());
-    EXPECT_EQ(50U, b.tailroom());
-    EXPECT_EQ(0U, b.size());
+    EXPECT_EQ(50U, b->tailroom());
+    EXPECT_EQ(0U, b->size());
   }
 
   TEST_F(client, read_some_data_and_close) {
@@ -95,14 +95,14 @@ namespace test {
     auto b   = ALLOC->allocate(50);
     auto ret = read(edit(b));
     EXPECT_FALSE(ret.has_error());
-    EXPECT_EQ(10U, b.tailroom());
-    EXPECT_EQ(40U, b.size());
+    EXPECT_EQ(10U, b->tailroom());
+    EXPECT_EQ(40U, b->size());
 
     ret = read(edit(b));
     EXPECT_TRUE(ret.has_error());
     EXPECT_EQ(error_from_value(EAGAIN), ret.error());
-    EXPECT_EQ(10U, b.tailroom());
-    EXPECT_EQ(40U, b.size());
+    EXPECT_EQ(10U, b->tailroom());
+    EXPECT_EQ(40U, b->size());
   }
 
   TEST_F(client, read_truncated_data_and_close) {
@@ -114,8 +114,8 @@ namespace test {
 
     auto ret = read(edit(b));
     EXPECT_FALSE(ret.has_error());
-    EXPECT_EQ(0U, b.tailroom());
-    EXPECT_EQ(50U, b.size());
+    EXPECT_EQ(0U, b->tailroom());
+    EXPECT_EQ(50U, b->size());
 
     b   = ALLOC->allocate(50);
     ret = read(edit(b));
@@ -124,11 +124,11 @@ namespace test {
   }
 
   TEST_F(client, large_messages_are_rejected) {
-    buffer b = ALLOC->allocate(100 * 1024);
+    auto b = ALLOC->allocate(100 * 1024);
     auto in  = prepare_data(100 * 1024);
-    b.write(byte_range{in});
-    EXPECT_EQ(100u * 1024, b.size());
-    EXPECT_EQ(1u, b.length());
+    b->write(byte_range{in});
+    EXPECT_EQ(100u * 1024, b->size());
+    EXPECT_EQ(1u, b->length());
 
     auto ret = write(edit(b));
     EXPECT_TRUE(ret.has_error());

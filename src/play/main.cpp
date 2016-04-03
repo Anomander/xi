@@ -21,49 +21,50 @@ alignas(64) static thread_local struct {
   usize w_bytes     = 0;
 } stats;
 
-class logging_filter
-    : public pipes::filter< buffer, net::ip_datagram, net::unix_datagram > {
+class logging_filter : public pipes::filter< own< buffer >,
+                                             net::ip_datagram,
+                                             net::unix_datagram > {
 public:
   logging_filter() {
     ++stats.connections;
   }
-  void read(mut< context > cx, buffer b) override {
+  void read(mut< context > cx, own< buffer > b) override {
     ++stats.reads;
-    stats.r_bytes += b.size();
+    stats.r_bytes += b->size();
     cx->forward_read(move(b));
   }
 
-  void write(mut< context > cx, buffer b) override {
+  void write(mut< context > cx, own< buffer > b) override {
     ++stats.writes;
-    stats.w_bytes += b.size();
+    stats.w_bytes += b->size();
     cx->forward_write(move(b));
   }
   void read(mut< context > cx, net::ip_datagram b) override {
     ++stats.reads;
-    stats.r_bytes += b.data.size();
+    stats.r_bytes += b.data->size();
     cx->forward_read(move(b));
   }
   void read(mut< context > cx, net::unix_datagram b) override {
     ++stats.reads;
-    stats.r_bytes += b.data.size();
+    stats.r_bytes += b.data->size();
     cx->forward_read(move(b));
   }
   void write(mut< context > cx, net::ip_datagram b) override {
     ++stats.writes;
-    stats.w_bytes += b.data.size();
+    stats.w_bytes += b.data->size();
     cx->forward_write(move(b));
   }
   void write(mut< context > cx, net::unix_datagram b) override {
     ++stats.writes;
-    stats.w_bytes += b.data.size();
+    stats.w_bytes += b.data->size();
     cx->forward_write(move(b));
   }
 };
 
 class range_echo
-    : public pipes::filter< buffer, net::ip_datagram, net::unix_datagram > {
+  : public pipes::filter< own<buffer>, net::ip_datagram, net::unix_datagram > {
 public:
-  void read(mut< context > cx, buffer b) override {
+  void read(mut< context > cx, own<buffer> b) override {
     // std::cout << "Got buffer " << b->size() << std::endl;
     cx->forward_write(move(b));
   }

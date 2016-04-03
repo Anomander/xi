@@ -12,7 +12,7 @@ namespace io {
   namespace proto {
     namespace http2 {
 
-      class codec : public pipes::context_aware_filter< buffer >,
+      class codec : public pipes::context_aware_filter< own<buffer> >,
                     public delegate {
 
         decoder _decoder{this};
@@ -30,7 +30,7 @@ namespace io {
         codec(own< buffer_allocator > alloc) : _alloc(move(alloc)) {
         }
 
-        void read(mut< context > cx, buffer in) final override {
+        void read(mut< context > cx, own<buffer> in) final override {
           _decoder.decode(edit(in));
         }
 
@@ -61,15 +61,15 @@ namespace io {
         }
         void settings_end() override {
           auto b = _alloc->allocate(1 << 10);
-          b.write(byte_range{"\0\0\0\4\1\0\0\0\0"});
+          b->write(byte_range{"\0\0\0\4\1\0\0\0\0"});
           my_context()->forward_write(move(b));
         }
         void settings_ack() override {
         }
         void send_connection_error(http2::error e) override {
           auto b = _alloc->allocate(1 << 10);
-          b.write(byte_range{"\0\0\x8\7\0\0\0\0\0\0\0\0\0\0\0\0"});
-          b.write(byte_range_for_object(e));
+          b->write(byte_range{"\0\0\x8\7\0\0\0\0\0\0\0\0\0\0\0\0"});
+          b->write(byte_range_for_object(e));
           my_context()->forward_write(move(b));
           my_context()->channel()->close();
         }

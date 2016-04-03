@@ -45,11 +45,10 @@ protected:
 
 public:
   void decode(ref< string > in) {
-    auto b = make_buffer(in);
-    decode(move(b));
+    decode(make_buffer(in));
   }
 
-  void decode(buffer in) {
+  void decode(own<buffer> in) {
     dec->decode(edit(in));
   }
 
@@ -106,8 +105,8 @@ public:
   auto construct_frame(u32 stream, frame type, u8 flags, u32 length) {
     auto b = alloc->allocate(length + 9 + 100 /* for various manipulations */);
     write_be(length, edit(b), 24);
-    b.write(byte_range_for_object(type));
-    b.write(byte_range_for_object(flags));
+    b->write(byte_range_for_object(type));
+    b->write(byte_range_for_object(flags));
     write_be(stream, edit(b));
     return move(b);
   }
@@ -169,7 +168,7 @@ TEST_F(decoder_test, settings_frame_errors) {
 TEST_F(decoder_test, settings_frame_errors_incoherent_length) {
   // settings should be a multiple of 6 bytes in length
   auto frame = make_advanced_settings_frame(0, false, {}, 4);
-  frame.write(byte_range_for_object((u32)1));
+  frame->write(byte_range_for_object((u32)1));
   new_conn_decode(move(frame));
   EXPECT_EQ(error::FRAME_SIZE_ERROR, delegate->connection_error);
 }

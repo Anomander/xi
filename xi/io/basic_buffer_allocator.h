@@ -48,7 +48,9 @@ namespace io {
       }
     }
 
-    buffer allocate(usize sz, usize headroom = 0, usize tailroom = 0) override {
+    own< buffer > allocate(usize sz,
+                           usize headroom = 0,
+                           usize tailroom = 0) override {
       auto total_size = sz + headroom + tailroom;
       if (!total_size) {
         return {};
@@ -62,14 +64,15 @@ namespace io {
       if (!data) {
         _current_arena->decrement_ref_count();
         _current_arena = this->allocate_arena(ARENA_SIZE);
-        data = _current_arena->allocate(total_size);
+        data           = _current_arena->allocate(total_size);
       }
-      auto frag = own< fragment >{new fragment(_current_arena, data, total_size)};
+      auto frag =
+          own< fragment >{new fragment(_current_arena, data, total_size)};
       if (headroom) {
         frag->advance(headroom);
       }
       _current_arena->consume(total_size);
-      return {move(frag)};
+      return make< buffer >(move(frag));
     }
   };
 }

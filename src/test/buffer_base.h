@@ -15,7 +15,7 @@ namespace test {
   public:
     auto make_buffer(ref< string > in, usize headroom = 0, usize tailroom = 0) {
       auto b = alloc->allocate(in.size(), headroom, tailroom);
-      b.write(io::byte_range{in});
+      b->write(io::byte_range{in});
       return move(b);
     }
     auto make_buffer(usize headroom, usize data, usize tailroom) {
@@ -24,7 +24,7 @@ namespace test {
       std::generate_n(begin(in), data, [&] { return ++i; });
 
       auto b = alloc->allocate(data, headroom, tailroom);
-      b.write(io::byte_range{in});
+      b->write(io::byte_range{in});
       return move(b);
     }
   };

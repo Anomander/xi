@@ -52,7 +52,7 @@ TEST_F(client, read_into_empty_buf) {
   auto in = prepare_data(100);
   _remote.send(in.data(), in.size());
 
-  auto b   = ALLOC->allocate(0);
+  auto b   = ALLOC->allocate(0, 10, 0);
   auto ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
   ASSERT_EQ(0, ret);
@@ -66,8 +66,8 @@ TEST_F(client, read_into_smaller_buf) {
   auto ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
   ASSERT_EQ(50, ret);
-  ASSERT_EQ(0U, b.tailroom());
-  ASSERT_EQ(50U, b.size());
+  ASSERT_EQ(0U, b->tailroom());
+  ASSERT_EQ(50U, b->size());
 }
 
 TEST_F(client, read_from_closed_conn) {
@@ -77,8 +77,8 @@ TEST_F(client, read_from_closed_conn) {
   auto ret = read(edit(b));
   ASSERT_TRUE(ret.has_error());
   ASSERT_EQ(error::kEOF, ret.error());
-  ASSERT_EQ(50U, b.tailroom());
-  ASSERT_EQ(0U, b.size());
+  ASSERT_EQ(50U, b->tailroom());
+  ASSERT_EQ(0U, b->size());
 }
 
 TEST_F(client, read_some_data_and_close) {
@@ -89,14 +89,14 @@ TEST_F(client, read_some_data_and_close) {
   auto b   = ALLOC->allocate(50);
   auto ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
-  ASSERT_EQ(10U, b.tailroom());
-  ASSERT_EQ(40U, b.size());
+  ASSERT_EQ(10U, b->tailroom());
+  ASSERT_EQ(40U, b->size());
 
   ret = read(edit(b));
   ASSERT_TRUE(ret.has_error());
   ASSERT_EQ(error::kEOF, ret.error());
-  ASSERT_EQ(10U, b.tailroom());
-  ASSERT_EQ(40U, b.size());
+  ASSERT_EQ(10U, b->tailroom());
+  ASSERT_EQ(40U, b->size());
 }
 
 TEST_F(client, read_more_data_and_close) {
@@ -108,36 +108,36 @@ TEST_F(client, read_more_data_and_close) {
 
   auto ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
-  ASSERT_EQ(0U, b.tailroom());
-  ASSERT_EQ(50U, b.size());
+  ASSERT_EQ(0U, b->tailroom());
+  ASSERT_EQ(50U, b->size());
 
   b   = ALLOC->allocate(50);
   ret = read(edit(b));
   ASSERT_FALSE(ret.has_error());
-  ASSERT_EQ(0U, b.tailroom());
-  ASSERT_EQ(50U, b.size());
+  ASSERT_EQ(0U, b->tailroom());
+  ASSERT_EQ(50U, b->size());
 
   b   = ALLOC->allocate(50);
   ret = read(edit(b));
   ASSERT_TRUE(ret.has_error());
   ASSERT_EQ(error::kEOF, ret.error());
-  ASSERT_EQ(50U, b.tailroom());
-  ASSERT_EQ(0U, b.size());
+  ASSERT_EQ(50U, b->tailroom());
+  ASSERT_EQ(0U, b->size());
 }
 
 void
 client::test_big_writes(int how_big) {
-  buffer b = ALLOC->allocate(100 * how_big);
+  auto b = ALLOC->allocate(100 * how_big);
   auto in  = prepare_data(100 * how_big);
-  b.write(byte_range{in});
-  EXPECT_EQ(100u * how_big, b.size());
-  EXPECT_EQ(1u, b.length());
+  b->write(byte_range{in});
+  EXPECT_EQ(100u * how_big, b->size());
+  EXPECT_EQ(1u, b->length());
 
   auto ret = write(edit(b));
   ASSERT_FALSE(ret.has_error());
   EXPECT_EQ(100 * how_big, ret);
-  EXPECT_EQ(0U, b.tailroom());
-  EXPECT_EQ(0U, b.size());
+  EXPECT_EQ(0U, b->tailroom());
+  EXPECT_EQ(0U, b->size());
 
   vector< u8 > out(100 * how_big);
   ::bzero(out.data(), out.size());

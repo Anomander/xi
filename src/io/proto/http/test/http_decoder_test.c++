@@ -16,7 +16,7 @@ protected:
 public:
   void decode(ref< string > in) {
     auto b = make_buffer(in);
-    decode(move(b));
+    decode(edit(b));
   }
 
   void decode(buffer in) {

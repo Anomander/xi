@@ -6,7 +6,7 @@
 namespace xi {
 namespace io {
 
-  class fragment_string final {
+  class fragment_string final : public virtual ownership::unique {
     using list_t =
         intrusive::list< fragment,
                          intrusive::link_mode< intrusive::normal_link >,
@@ -16,10 +16,9 @@ namespace io {
 
   public:
     fragment_string(list_t &&, usize);
-    fragment_string() = default;
     fragment_string(own< fragment >);
     ~fragment_string();
-    XI_CLASS_DEFAULTS(fragment_string, move);
+    XI_CLASS_DEFAULTS(fragment_string, move, ctor);
 
     bool empty() const;
     usize length() const;

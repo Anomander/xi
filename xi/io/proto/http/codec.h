@@ -10,12 +10,12 @@ namespace io {
   namespace proto {
     namespace http {
 
-      class codec : public pipes::context_aware_filter< buffer > {
+      class codec : public pipes::context_aware_filter< own<buffer> > {
         decoder _decoder;
         buffer _read_buf;
 
       private:
-        void read(mut< context > cx, buffer in) final override {
+        void read(mut< context > cx, own<buffer> in) final override {
           _read_buf.push_back(move(in));
           _decoder.decode(edit(_read_buf));
         }

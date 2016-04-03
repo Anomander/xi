@@ -101,8 +101,8 @@ namespace io {
 
     void mark_offset(usize);
     void discard_to_mark();
-    buffer consume_mark_into_buffer();
-    fragment_string consume_mark_into_string();
+    own<buffer> consume_mark_into_buffer();
+    own<fragment_string> consume_mark_into_string();
     template < class Pred >
     usize skip_any_of_and_mark(u8 *pattern, usize len, Pred const &);
     opt< usize > find_byte(u8 target, usize offset = 0) const;
@@ -136,17 +136,17 @@ namespace io {
     return _buffer->skip_bytes(_mark);
   }
 
-  inline buffer buffer::reader::consume_mark_into_buffer() {
+  inline own<buffer> buffer::reader::consume_mark_into_buffer() {
     XI_SCOPE(success) {
       _mark = 0;
     };
     return _buffer->split(_mark);
   }
 
-  inline fragment_string buffer::reader::consume_mark_into_string() {
+  inline own<fragment_string> buffer::reader::consume_mark_into_string() {
     auto buf = _buffer->split(_mark);
     _mark    = 0;
-    return fragment_string{move(buf._fragments), buf._size};
+    return make<fragment_string>( move(buf->_fragments), buf->_size );
   }
 
   template < class Pred >
