@@ -18,7 +18,7 @@ namespace core {
           result |= EV_TIMEOUT;
         }
         // result |= EV_PERSIST;
-        // result |= EV_ET;
+        result |= EV_ET;
 
         return result;
       }

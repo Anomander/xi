@@ -20,6 +20,8 @@
 
 #define XI_VIRTUAL_DTOR(Class) virtual ~Class() = default;
 
+#define XI_CTOR(Class) Class() = default;
+
 #define XI_DEFAULT_COPIABLE_AND_MOVABLE(Class)                                 \
   XI_DEFAULT_COPIABLE(Class)                                                   \
   XI_DEFAULT_MOVABLE(Class)
@@ -45,7 +47,9 @@
 #define __XI_CLASS_SEMANTIC_move(Class) XI_DEFAULT_MOVABLE(Class)
 #define __XI_CLASS_SEMANTIC_copy(Class) XI_DEFAULT_COPIABLE(Class)
 
-#define __XI_CLASS_SEMANTIC_virtual_dtor(Class) XI_DEFAULT_COPIABLE(Class)
+#define __XI_CLASS_SEMANTIC_virtual_dtor(Class) XI_VIRTUAL_DTOR(Class)
+
+#define __XI_CLASS_SEMANTIC_ctor(Class) XI_CTOR(Class)
 
 #define XI_CLASS_DEFAULTS(Class, ...)                                          \
   BOOST_PP_SEQ_FOR_EACH(                                                       \

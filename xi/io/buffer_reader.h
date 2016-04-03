@@ -17,11 +17,19 @@ namespace io {
     }
 
     template < class T >
-    opt< T > read_value() {
+    bool read_value(T & value) {
       if (_mark < _buffer->size() && _buffer->size() - _mark >= sizeof(T)) {
-        T value;
         _buffer->read(byte_range_for_object(value), _mark);
-        return some(value);
+        return true;
+      }
+      return false;
+    }
+
+    template < class T >
+    opt< T > read_value() {
+      T value;
+      if (read_value(value)) {
+        return some(move(value));
       }
       return none;
     }
@@ -35,6 +43,15 @@ namespace io {
     }
 
     template < class T >
+    bool read_value_and_mark(T & value) {
+      auto ret = read_value(value);
+      if (ret) {
+        _mark += sizeof(T);
+      }
+      return ret;
+    }
+
+    template < class T >
     opt< T > read_value_and_skip() {
       return read_value< T >().map([&](auto &&v) {
         _buffer->skip_bytes(_mark + sizeof(T));
@@ -43,28 +60,46 @@ namespace io {
       });
     }
 
+    template < class T >
+    bool read_value_and_skip(T & value) {
+      auto ret = read_value(value);
+      if (ret) {
+        _buffer->skip_bytes(_mark + sizeof(T));
+        _mark = 0;
+      }
+      return ret;
+    }
+
     template < usize N >
     usize skip_any_not_of_and_mark(const char (&pattern)[N]) {
-      if (N == 1) {
+      return skip_any_not_of_and_mark(pattern, N - 1);
+    }
+
+    usize skip_any_not_of_and_mark(const char *pattern, usize len) {
+      if (!len) {
         return _mark = _buffer->size();
       }
-      return skip_any_of_and_mark(
-          (u8 *)pattern, N - 1, [](bool b) { return b; });
+      return skip_any_of_and_mark((u8 *)pattern, len, [](bool b) { return b; });
     }
 
     template < usize N >
     usize skip_any_of_and_mark(const char (&pattern)[N]) {
-      if (N == 1) {
+      return skip_any_of_and_mark(pattern, N - 1);
+    }
+
+    usize skip_any_of_and_mark(const char *pattern, usize len) {
+      if (!len) {
         return 0;
       }
       return skip_any_of_and_mark(
-          (u8 *)pattern, N - 1, [](bool b) { return !b; });
+          (u8 *)pattern, len, [](bool b) { return !b; });
     }
 
     usize total_size() const;
     usize unmarked_size() const;
     usize marked_size() const;
 
+    void mark_offset(usize);
     void discard_to_mark();
     buffer consume_mark_into_buffer();
     fragment_string consume_mark_into_string();
@@ -87,6 +122,11 @@ namespace io {
 
   inline usize buffer::reader::marked_size() const {
     return _mark;
+  }
+
+  inline void buffer::reader::mark_offset(usize offset){
+    assert(make_signed_t<usize>(_mark + offset) > 0);
+    _mark += min(offset, unmarked_size());
   }
 
   inline void buffer::reader::discard_to_mark() {
@@ -127,7 +167,7 @@ namespace io {
         }
         ++ret;
       }
-      offset      = 0;
+      offset = 0;
       ++it;
     }
   done:

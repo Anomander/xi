@@ -49,6 +49,7 @@ namespace io {
 
     usize read(byte_range, usize offset = 0);
     usize write(const byte_range);
+    buffer clone();
   };
 
   inline usize buffer::length() const {

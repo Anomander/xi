@@ -57,13 +57,11 @@ namespace io {
 
       if (!_current_arena) {
         _current_arena = this->allocate_arena(ARENA_SIZE);
-        _current_arena->increment_ref_count();
       }
       auto data = _current_arena->allocate(total_size);
       if (!data) {
         _current_arena->decrement_ref_count();
         _current_arena = this->allocate_arena(ARENA_SIZE);
-        _current_arena->increment_ref_count();
         data = _current_arena->allocate(total_size);
       }
       auto frag = own< fragment >{new fragment(_current_arena, data, total_size)};

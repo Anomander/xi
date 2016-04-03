@@ -5,7 +5,6 @@
 namespace xi {
 namespace io {
   namespace detail {
-
     struct buffer_arena;
 
     struct buffer_arena_deallocator : public virtual ownership::std_shared {
@@ -16,7 +15,7 @@ namespace io {
     struct buffer_arena {
       usize length;
       usize start = 0;
-      atomic< u64 > ref_count{0};
+      u64 ref_count = 1;
       own< buffer_arena_deallocator > deallocator;
       u8 data[0];
 
@@ -25,10 +24,10 @@ namespace io {
       }
 
       void increment_ref_count() noexcept {
-        ref_count.fetch_add(1, memory_order_relaxed);
+        ++ref_count;
       }
       void decrement_ref_count() noexcept {
-        if (1 >= ref_count.fetch_sub(1, memory_order_relaxed)) {
+        if (0 == --ref_count) {
           auto dealloc = deallocator;
           this->~buffer_arena();
           dealloc->deallocate(this);

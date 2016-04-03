@@ -123,6 +123,14 @@ namespace io {
     return write_fragment_it->size();
   }
 
+  buffer buffer::clone() {
+    list_t fragments;
+    for(auto && f : _fragments) {
+      fragments.push_back(*f.clone().release());
+    }
+    return buffer(move(fragments), _size);
+  }
+
   byte_range buffer::range(mut< buffer_allocator > alloc,
                            usize offset,
                            usize length) {

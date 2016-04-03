@@ -28,12 +28,15 @@ namespace io {
     using heap_buffer_allocator =
         basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
 
+    thread_local auto SOCKET_ALLOCATOR = make<heap_buffer_allocator>();
+
     using socket_pipe_base =
         pipes::pipe< socket_event, pipes::in< error_code > >;
     template < address_family af, socket_type sock, protocol proto = kNone >
     class socket_base : public xi::core::io_handler,
                         public channel_interface,
                         public socket_pipe_base {
+      // own< buffer_allocator > _alloc = share(SOCKET_ALLOCATOR);
       own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
 
     public:
