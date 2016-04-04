@@ -27,7 +27,7 @@ namespace io {
     detail::buffer_arena* allocate_arena(usize sz) {
       auto size = sz + detail::aligned_size(sizeof(detail::buffer_arena));
       return new (_storage_alloc->allocate(size))
-          detail::buffer_arena{sz, share(this)};
+          detail::buffer_arena{sz, this};
     };
 
     void deallocate(detail::buffer_arena* c) noexcept override {

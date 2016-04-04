@@ -28,15 +28,13 @@ namespace io {
     using heap_buffer_allocator =
         basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
 
-    thread_local auto SOCKET_ALLOCATOR = make<heap_buffer_allocator>();
-
     using socket_pipe_base =
         pipes::pipe< socket_event, pipes::in< error_code > >;
+
     template < address_family af, socket_type sock, protocol proto = kNone >
     class socket_base : public xi::core::io_handler,
                         public channel_interface,
                         public socket_pipe_base {
-      // own< buffer_allocator > _alloc = share(SOCKET_ALLOCATOR);
       own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
 
     public:
@@ -91,7 +89,7 @@ namespace io {
 
     template < address_family af >
     struct datagram {
-      own<buffer> data;
+      own< buffer > data;
       endpoint< af > remote;
     };
 
@@ -199,16 +197,19 @@ namespace io {
     struct client_pipe< af, proto >::data_sink
         : public pipes::context_aware_filter< socket_event,
                                               pipes::in< error_code >,
-                                              own<buffer> > {
+                                              own< buffer > > {
       using channel = client_pipe< af, proto >;
       mut< channel > _pipe;
       adaptive_allocator _alloc;
       buffer _write_buf;
+      bool _scheduled_write = false;
+      i16 _inline_writes = 0;
+
       data_sink(mut< channel > c) : _pipe(c), _alloc(_pipe->alloc(), 1 << 12) {
       }
 
       void read_data(bool on_io) {
-        auto _b = make<buffer>();
+        auto _b    = make< buffer >();
         u8 loops   = 0;
         bool close = false;
         while (true) {
@@ -247,6 +248,30 @@ namespace io {
         }
       }
 
+      void write_data() {
+        _scheduled_write = false;
+        bool close       = false;
+        while (!_write_buf.empty()) {
+          auto ret = _pipe->write_buffer(edit(_write_buf));
+          if (XI_UNLIKELY(ret.has_error())) {
+            auto error = ret.error();
+            if (error == error_from_value(EAGAIN) ||
+                error == error_from_value(EWOULDBLOCK)) {
+              _pipe->expect_write(true);
+            } else if (error == error_from_value(EPIPE)) {
+              close = true;
+            } else {
+              my_context()->forward_read(error);
+              close = true;
+            }
+            break;
+          }
+        }
+        if (close) {
+          _pipe->close();
+        }
+      }
+
       void read(mut< context > cx, socket_event e) override {
         switch (e) {
           case socket_event::kReadable: {
@@ -272,19 +297,22 @@ namespace io {
             break;
         };
       }
-      void write(mut< context > cx, own<buffer> b) override {
-        if (_write_buf.empty()) {
+      void write(mut< context > cx, own< buffer > b) override {
+        if (!_scheduled_write && ++_inline_writes < 2) {
           _pipe->write_buffer(edit(b));
           if (!b->size()) {
             return;
           }
         }
         _write_buf.push_back(b->split(b->size()));
-        _pipe->expect_write(true);
         // std::cout << "write queue: " << _write_buf.size() << std::endl;
         if (_write_buf.size() > 100 << 20) { // 100 MiB
           std::cout << "Closing connection due to slow reader" << std::endl;
           _pipe->close();
+          return;
+        }
+        if (XI_UNLIKELY(!_scheduled_write)) {
+          defer(_pipe, [this] { write_data(); });
         }
       }
     };

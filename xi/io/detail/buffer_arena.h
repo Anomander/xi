@@ -16,10 +16,10 @@ namespace io {
       usize length;
       usize start = 0;
       u64 ref_count = 1;
-      own< buffer_arena_deallocator > deallocator;
+      mut< buffer_arena_deallocator > deallocator;
       u8 data[0];
 
-      buffer_arena(usize l, own< buffer_arena_deallocator > d)
+      buffer_arena(usize l, mut< buffer_arena_deallocator > d)
           : length(l), deallocator(move(d)) {
       }
 
@@ -49,7 +49,7 @@ namespace io {
         return data + start;
       }
     };
-    static_assert(sizeof(buffer_arena) == 40, "");
+    static_assert(sizeof(buffer_arena) == 32, "");
   }
 }
 }
