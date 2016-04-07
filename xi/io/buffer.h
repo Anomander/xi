@@ -5,7 +5,7 @@
 namespace xi {
 namespace io {
 
-  class buffer_allocator;
+  struct buffer_allocator;
 
   class buffer final : public virtual ownership::unique {
     using list_t =
@@ -16,13 +16,16 @@ namespace io {
     usize _size = 0;
 
   public:
-    struct iovec_adapter;
+    class iovec_adapter;
     class reader;
 
     buffer(own< fragment >);
     buffer(list_t &&, usize);
     ~buffer();
     XI_CLASS_DEFAULTS(buffer, move, ctor);
+
+    void push_front(own<fragment> &&, bool pack = false);
+    void push_back(own<fragment> &&, bool pack = false);
 
     void push_front(unique_ptr<buffer> &&, bool pack = false);
     void push_back(unique_ptr<buffer> &&, bool pack = false);

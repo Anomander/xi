@@ -7,15 +7,15 @@ using namespace xi;
 using xi::core::task_queue;
 
 TEST(simple, add_task_and_process) {
-  task_queue _queue(1000);
+  task_queue _queue;
   int i = 0;
   _queue.submit([&] { i = 42; });
   _queue.process_tasks();
   ASSERT_EQ(42, i);
 }
 
-TEST(simple, add_task_and_process_f_i_f_o) {
-  task_queue _queue(1000);
+TEST(simple, add_task_and_process_fifo) {
+  task_queue _queue;
   int i = 0;
   _queue.submit([&] { i += 42; });
   _queue.submit([&] { i /= 2; });
@@ -34,7 +34,7 @@ struct destructor_tracker_task : public test::object_tracker,
 size_t destructor_tracker_task::RUN = 0;
 
 TEST(simple, tasks_destroyed_after_run) {
-  task_queue _queue(1000);
+  task_queue _queue;
   _queue.submit(destructor_tracker_task());
   ASSERT_EQ(1UL, destructor_tracker_task::CREATED);
   ASSERT_EQ(1UL, destructor_tracker_task::DESTROYED); // the copy
@@ -57,7 +57,7 @@ struct big_task : public xi::core::task {
 size_t big_task::RUN = 0;
 
 TEST(overflow, tasks_beyond_capacity_are_queued) {
-  task_queue _queue(1000);
+  task_queue _queue;
   _queue.submit(big_task());
   ASSERT_EQ(0UL, big_task::RUN);
   ASSERT_LT(1000UL, sizeof(big_task));

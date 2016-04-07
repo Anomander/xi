@@ -3,24 +3,18 @@
 using namespace xi;
 using namespace xi::io;
 
-fragment::~fragment() {
-  _buffer->decrement_ref_count();
+fragment::fragment(byte_blob bytes) noexcept
+    : _bytes(move(bytes)), _head(_bytes.begin()), _size(0) {
+  maybe_release();
 }
 
-fragment::fragment(detail::buffer_arena* c, u8* data, usize sz)
-    : fragment(INTERNAL, c, data, sz, data, 0) {
-}
-
-fragment::fragment(internal_t,
-                   detail::buffer_arena* c,
-                   u8* data,
-                   usize len,
-                   u8* head,
-                   usize sz) noexcept
-    : _buffer(c), _data(data), _length(len), _head(head), _size(sz) {
-  assert(_data >= _buffer->data);
-  assert(_data + _length <= _buffer->data + _buffer->length);
-  _buffer->increment_ref_count();
+void
+fragment::maybe_release() {
+  if (XI_UNLIKELY(_bytes.empty())) {
+    _bytes = {};
+    _head  = nullptr;
+    _size  = 0;
+  }
 }
 
 void
@@ -68,6 +62,7 @@ fragment::skip_bytes(usize len) {
   auto cap = min(size(), len);
   _head += cap;
   _size -= cap;
+  maybe_release();
   return cap;
 }
 
@@ -80,21 +75,31 @@ fragment::ignore_bytes_at_end(usize len) {
 
 own< fragment >
 fragment::clone() {
-  return own< fragment >(
-      new fragment(INTERNAL, _buffer, _data, _length, _head, _size));
+  auto f   = make< fragment >(_bytes.clone());
+  f->_head = _head;
+  f->_size = _size;
+  return f;
 }
 
 own< fragment >
 fragment::split(usize sz) {
-  if (!sz || sz >= size()) {
+  if (sz >= size()) {
     return nullptr;
   }
 
+  if (!sz && !headroom()) {
+    XI_SCOPE(success) {
+      _bytes = {};
+      _head  = nullptr;
+      _size  = 0;
+    };
+    return make< fragment >(move(_bytes));
+  }
+
   auto split_point = sz + headroom();
-  auto head        = _data + split_point;
-  auto ret         = own< fragment >(new fragment(
-      INTERNAL, _buffer, head, _length - split_point, head, size() - sz));
-  _size   = sz;
-  _length = split_point;
-  return move(ret);
+  auto ret         = make< fragment >(_bytes.split(split_point));
+  ret->_size       = _size - sz;
+  _head            = _bytes.begin() + headroom();
+  _size            = _bytes.size() - headroom();
+  return ret;
 }

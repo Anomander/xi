@@ -8,7 +8,6 @@
 #include "xi/io/buffer_allocator.h"
 #include "xi/io/channel_interface.h"
 #include "xi/io/channel_options.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 #include "xi/io/error.h"
 #include "xi/io/net/endpoint.h"
 #include "xi/io/net/enumerations.h"
@@ -25,8 +24,8 @@ namespace io {
       kClosing,
     };
 
-    using heap_buffer_allocator =
-        basic_buffer_allocator< detail::heap_buffer_storage_allocator >;
+    thread_local own< fragment_allocator > ALLOC =
+        make< simple_fragment_allocator >();
 
     using socket_pipe_base =
         pipes::pipe< socket_event, pipes::in< error_code > >;
@@ -35,7 +34,9 @@ namespace io {
     class socket_base : public xi::core::io_handler,
                         public channel_interface,
                         public socket_pipe_base {
-      own< buffer_allocator > _alloc = make< heap_buffer_allocator >();
+      // own< fragment_allocator > _alloc = make< arena_fragment_allocator >(1
+      // << 24);
+      own< fragment_allocator > _alloc = make< simple_fragment_allocator >();
 
     public:
       socket_base() : socket_pipe_base(this) {
@@ -46,11 +47,11 @@ namespace io {
       }
 
       void close() override {
-        defer(this, [&] { write(socket_event::kClosing); });
+        defer(this, [&] { this->write(socket_event::kClosing); });
       }
 
     protected:
-      mut< buffer_allocator > alloc() override {
+      mut< fragment_allocator > alloc() override {
         return edit(_alloc);
       }
 
@@ -63,11 +64,11 @@ namespace io {
       }
 
       void handle_read() override {
-        read(socket_event::kReadable);
+        this->read(socket_event::kReadable);
       }
 
       void handle_write() override {
-        read(socket_event::kWritable);
+        this->read(socket_event::kWritable);
       }
     };
 
@@ -79,7 +80,7 @@ namespace io {
       endpoint_t _remote;
 
     public:
-      class data_sink;
+      struct data_sink;
       class data_source;
 
       client_pipe(stream_client_socket s);
@@ -99,7 +100,7 @@ namespace io {
       using endpoint_t = endpoint< af >;
 
     public:
-      class data_sink;
+      struct data_sink;
       class data_source;
 
       datagram_pipe();
@@ -124,7 +125,7 @@ namespace io {
       void read(mut< context > cx, socket_event e) override {
         switch (e) {
           case socket_event::kReadable: {
-            auto b = _pipe->alloc()->allocate(1 << 16);
+            auto b = make< buffer >(_pipe->alloc()->allocate(1 << 16));
             endpoint_t remote;
             auto ret = _pipe->read_buffer_from(edit(b), remote.to_posix());
             // std::cout << "Read " << ret << " bytes from " <<
@@ -147,7 +148,7 @@ namespace io {
         };
       }
 
-      void write(mut< context > cx, socket_event e) override {
+      void write(mut< context >, socket_event e) override {
         switch (e) {
           case socket_event::kClosing:
             _pipe->cancel();
@@ -157,7 +158,7 @@ namespace io {
         };
       }
 
-      void write(mut< context > cx, datagram< af > b) override {
+      void write(mut< context >, datagram< af > b) override {
         // std::cout << "Writing " << b->data.size() << " bytes to "
         //           << b->remote.to_string() << std::endl;
         _pipe->write_buffer_to(edit(b.data), b.remote.to_posix());
@@ -170,29 +171,6 @@ namespace io {
       this->push_back(make< data_sink >(this));
     }
 
-    class adaptive_allocator {
-      mut< buffer_allocator > _alloc;
-      usize _block_size;
-      double _ratio;
-
-    public:
-      adaptive_allocator(mut< buffer_allocator > alloc,
-                         usize initial,
-                         double ratio = 1.2)
-          : _alloc(alloc), _block_size(initial), _ratio(ratio) {
-      }
-      auto allocate() {
-        return _alloc->allocate(_block_size * _ratio);
-      }
-      void report_size(usize sz) {
-        if (sz > _block_size) {
-          _block_size *= _ratio;
-        } else if (sz < _block_size / _ratio) {
-          _block_size /= _ratio;
-        }
-      }
-    };
-
     template < address_family af, protocol proto >
     struct client_pipe< af, proto >::data_sink
         : public pipes::context_aware_filter< socket_event,
@@ -200,12 +178,11 @@ namespace io {
                                               own< buffer > > {
       using channel = client_pipe< af, proto >;
       mut< channel > _pipe;
-      adaptive_allocator _alloc;
       buffer _write_buf;
       bool _scheduled_write = false;
-      i16 _inline_writes = 0;
+      i16 _inline_writes    = 0;
 
-      data_sink(mut< channel > c) : _pipe(c), _alloc(_pipe->alloc(), 1 << 12) {
+      data_sink(mut< channel > c) : _pipe(c) {
       }
 
       void read_data(bool on_io) {
@@ -213,8 +190,8 @@ namespace io {
         u8 loops   = 0;
         bool close = false;
         while (true) {
-          auto b   = _alloc.allocate();
-          auto ret = _pipe->read_buffer(edit(b));
+          _b->push_back(_pipe->alloc()->allocate(4 << 12));
+          auto ret = _pipe->read_buffer(edit(_b));
           if (ret.has_error()) {
             auto error = ret.error();
             if (error == error::kEOF) {
@@ -231,8 +208,6 @@ namespace io {
             }
             break;
           } else {
-            _alloc.report_size(b->size());
-            _b->push_back(move(b));
             if (1 == loops && on_io) {
               defer(_pipe, [this] { read_data(false); });
               break;
@@ -267,12 +242,13 @@ namespace io {
             break;
           }
         }
+        _inline_writes = 0;
         if (close) {
           _pipe->close();
         }
       }
 
-      void read(mut< context > cx, socket_event e) override {
+      void read(mut< context >, socket_event e) override {
         switch (e) {
           case socket_event::kReadable: {
             read_data(true);
@@ -288,7 +264,7 @@ namespace io {
             break;
         };
       }
-      void write(mut< context > cx, socket_event e) override {
+      void write(mut< context >, socket_event e) override {
         switch (e) {
           case socket_event::kClosing:
             _pipe->cancel();
@@ -297,8 +273,8 @@ namespace io {
             break;
         };
       }
-      void write(mut< context > cx, own< buffer > b) override {
-        if (!_scheduled_write && ++_inline_writes < 2) {
+      void write(mut< context >, own< buffer > b) override {
+        if (!_scheduled_write && ++_inline_writes < 1) {
           _pipe->write_buffer(edit(b));
           if (!b->size()) {
             return;
@@ -408,7 +384,6 @@ namespace io {
     using unix_datagram      = datagram< kUnix >;
     using tcp_stream_pipe    = client_pipe< kInet, kTCP >;
     using udp_datagram_pipe  = datagram_pipe< kInet, kUDP >;
-    using unix_stream_pipe   = client_pipe< kUnix >;
     using unix_datagram_pipe = datagram_pipe< kUnix >;
     using tcp_acceptor_pipe  = acceptor_pipe< kInet, kTCP >;
     using unix_acceptor_pipe = acceptor_pipe< kUnix >;

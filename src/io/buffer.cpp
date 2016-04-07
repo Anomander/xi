@@ -24,6 +24,22 @@ namespace io {
     _fragments.clear_and_dispose(fragment_deleter);
   }
 
+  void buffer::push_front(own< fragment > &&p, bool pack) {
+    if (!p) {
+      return;
+    }
+    _size += p->size();
+    _fragments.insert(begin(_fragments), *p.release());
+  }
+
+  void buffer::push_back(own< fragment > &&p, bool pack) {
+    if (!p) {
+      return;
+    }
+    _size += p->size();
+    _fragments.insert(end(_fragments), *p.release());
+  }
+
   void buffer::push_front(own< buffer > &&p, bool pack) {
     if (!p) {
       return;

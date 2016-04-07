@@ -1,6 +1,5 @@
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/channel_options.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 #include "xi/io/net/socket.h"
 #include "src/test/base.h"
 #include "udp_socket_mock.h"
@@ -11,8 +10,8 @@ using namespace xi;
 using namespace xi::io;
 using namespace xi::io::net;
 
-auto ALLOC = make<
-    basic_buffer_allocator< io::detail::heap_buffer_storage_allocator > >();
+auto ALLOC =
+    make< basic_buffer_allocator >(make< exact_fragment_allocator >());
 
 namespace xi {
 namespace test {
@@ -40,7 +39,7 @@ namespace test {
       auto data = vector< u8 >(size);
       u16 i     = 0;
       std::generate_n(begin(data), size, [&i] { return i++; });
-      return move(data);
+      return data;
     }
 
     auto read(mut< buffer > b) {
@@ -124,8 +123,8 @@ namespace test {
   }
 
   TEST_F(client, large_messages_are_rejected) {
-    auto b = ALLOC->allocate(100 * 1024);
-    auto in  = prepare_data(100 * 1024);
+    auto b  = ALLOC->allocate(100 * 1024);
+    auto in = prepare_data(100 * 1024);
     b->write(byte_range{in});
     EXPECT_EQ(100u * 1024, b->size());
     EXPECT_EQ(1u, b->length());

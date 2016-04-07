@@ -85,6 +85,17 @@ namespace io {
       if (-1 == retval) {
         return error_from_errno();
       }
+      for (auto &&o : _child_options) {
+        auto res = posix_to_expected(setsockopt,
+                          retval,
+                          get< 0 >(o),
+                          get< 1 >(o),
+                          &get< 2 >(o),
+                          get< 3 >(o));
+        if (res.has_error()) {
+          return res.error();
+        }
+      }
       return stream_client_socket(retval);
     }
 

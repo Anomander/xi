@@ -2,6 +2,7 @@
 
 #define BOOST_MOVE_USE_STANDARD_LIBRARY_MOVE
 
+#include "xi/ext/align.h"
 #include "xi/ext/atomic.h"
 #include "xi/ext/chrono.h"
 #include "xi/ext/class_semantics.h"

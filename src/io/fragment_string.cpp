@@ -44,13 +44,13 @@ namespace io {
     return make_signed_t< usize >(_size - s.size());
   }
 
-  i32 fragment_string::compare(ref<fragment_string> s) const {
+  i32 fragment_string::compare(ref< fragment_string > s) const {
     if (!s.size()) {
       return make_signed_t< usize >(_size);
     }
-    auto it_my = begin(_fragments);
-    auto end_my = end(_fragments);
-    auto it_other = begin(s._fragments);
+    auto it_my     = begin(_fragments);
+    auto end_my    = end(_fragments);
+    auto it_other  = begin(s._fragments);
     auto end_other = end(s._fragments);
     for (; end_my != it_my && end_other != it_other; ++it_my, ++it_other) {
       auto cap = min(it_my->size(), it_other->size());
@@ -72,10 +72,10 @@ namespace io {
         break;
       }
       auto cap = min(frag.size(), sz);
-      ret.append(reinterpret_cast< char* >(frag.data()), cap);
+      ret.append((char*)(frag.data()), cap);
       sz -= cap;
     }
-    return move(ret);
+    return ret;
   }
 }
 }

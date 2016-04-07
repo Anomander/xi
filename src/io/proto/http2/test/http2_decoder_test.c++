@@ -48,7 +48,7 @@ public:
     decode(make_buffer(in));
   }
 
-  void decode(own<buffer> in) {
+  void decode(own< buffer > in) {
     dec->decode(edit(in));
   }
 
@@ -74,41 +74,81 @@ public:
     decode("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n");
   }
 
-  template < class I >
-  void write_be(I value, mut< buffer > in, u8 bits = sizeof(I) * 8) {
+  void write_be(u64 value, mut< buffer > in, u8 length = 8) {
     union {
-      u8 byte[sizeof(I)];
-      I val;
+      struct {
+        u32 _u32;
+        u8 byte[4];
+      };
+      u64 val;
     } bytes;
     bytes.val = value;
 
-    switch (bits / 8) {
+    switch (length) {
+      default:
       case 8:
-        in->write(byte_range_for_object(bytes.byte[7]));
-      case 7:
-        in->write(byte_range_for_object(bytes.byte[6]));
-      case 6:
-        in->write(byte_range_for_object(bytes.byte[5]));
-      case 5:
-        in->write(byte_range_for_object(bytes.byte[4]));
-      case 4:
         in->write(byte_range_for_object(bytes.byte[3]));
-      case 3:
+      case 7:
         in->write(byte_range_for_object(bytes.byte[2]));
+      case 6:
+        in->write(byte_range_for_object(bytes.byte[1]));
+      case 5:
+        in->write(byte_range_for_object(bytes.byte[0]));
+      case 4:
+      case 3:
+      case 2:
+      case 1:
+        write_be(bytes._u32, in, length);
+    }
+  }
+
+  void write_be(u32 value, mut< buffer > in, u8 length = 4) {
+    union {
+      struct {
+        u16 _u16;
+        u8 byte[2];
+      };
+      u32 val;
+    } bytes;
+    bytes.val = value;
+
+    switch (length) {
+      default:
+      case 4:
+        in->write(byte_range_for_object(bytes.byte[1]));
+      case 3:
+        in->write(byte_range_for_object(bytes.byte[0]));
+      case 2:
+      case 1:
+        write_be(bytes._u16, in, length);
+    }
+  }
+
+  void write_be(u16 value, mut< buffer > in, u8 length = 2) {
+    union {
+      u16 val;
+      u8 byte[2];
+    } bytes;
+    bytes.val = value;
+
+  switch (length) {
+      default:
       case 2:
         in->write(byte_range_for_object(bytes.byte[1]));
       case 1:
         in->write(byte_range_for_object(bytes.byte[0]));
-    }
+      case 0:
+        break;
+    };
   }
 
-  auto construct_frame(u32 stream, frame type, u8 flags, u32 length) {
+  own< buffer > construct_frame(u32 stream, frame type, u8 flags, u32 length) {
     auto b = alloc->allocate(length + 9 + 100 /* for various manipulations */);
-    write_be(length, edit(b), 24);
+    write_be(length, edit(b), 3);
     b->write(byte_range_for_object(type));
     b->write(byte_range_for_object(flags));
     write_be(stream, edit(b));
-    return move(b);
+    return b;
   }
 
   auto make_advanced_settings_frame(
@@ -125,7 +165,7 @@ public:
       write_be((u16)s.first, edit(f));
       write_be(s.second, edit(f));
     }
-    return move(f);
+    return f;
   }
 
   auto make_simple_settings_frame(vector< pair< setting, u32 > > settings) {

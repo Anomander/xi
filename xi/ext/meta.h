@@ -3,12 +3,12 @@
 #include "xi/ext/test.h"
 #include "xi/ext/type_traits.h"
 
+#include <boost/mpl/and.hpp>
 #include <boost/mpl/back.hpp>
 #include <boost/mpl/contains.hpp>
 #include <boost/mpl/greater.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/mpl/next.hpp>
-#include <boost/mpl/and.hpp>
 #include <boost/mpl/or.hpp>
 #include <boost/mpl/pop_back.hpp>
 #include <boost/mpl/push_back.hpp>
@@ -37,9 +37,13 @@ inline namespace ext {
     using bool_type = ::std::integral_constant< bool, B >;
 
     template < size_t A, size_t B >
-    using ulong_greater =
-        typename boost::mpl::greater< boost::mpl::integral_c< size_t, A >,
-                                      boost::mpl::integral_c< size_t, B > >;
+    using is_equal = typename ::std::integral_constant< bool, A == B >;
+
+    template < size_t A, size_t B >
+    using is_less = typename ::std::integral_constant< bool, (A < B) >;
+
+    template < size_t A, size_t B >
+    using is_greater = typename ::std::integral_constant< bool, (A > B) >;
 
     enum class enabled { value };
 

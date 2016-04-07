@@ -15,6 +15,8 @@
 
 #include <iostream>
 
+#include <malloc.h>
+
 namespace xi {
 inline namespace ext {
   using ::std::declval;

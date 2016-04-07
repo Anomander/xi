@@ -1,7 +1,6 @@
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_reader.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 
 #include <gtest/gtest.h>
 
@@ -11,7 +10,7 @@ using namespace xi;
 using namespace xi::io;
 using namespace xi::io::detail;
 
-auto ALLOC = make< basic_buffer_allocator< heap_buffer_storage_allocator > >();
+auto ALLOC = make< basic_buffer_allocator >(make< exact_fragment_allocator >());
 
 auto
 make_buffer(usize headroom, usize data, usize tailroom) {
@@ -23,14 +22,14 @@ make_buffer(usize headroom, usize data, usize tailroom) {
   if (b) {
     b->write(byte_range{in});
   }
-  return move(b);
+  return b;
 }
 
 auto
 make_buffer(string data, usize headroom = 0, usize tailroom = 0) {
   auto b = ALLOC->allocate(data.size(), headroom, tailroom);
   b->write(byte_range{data});
-  return move(b);
+  return b;
 }
 
 TEST(interface, empty_chain) {

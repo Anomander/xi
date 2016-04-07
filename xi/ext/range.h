@@ -21,7 +21,7 @@ inline namespace ext {
     }
     template < typename T, XI_REQUIRE_DECL(is_integral< T >) >
     auto step(T value) {
-      return detail::step_value<T>(value);
+      return detail::step_value<T>{ value };
     }
     template < typename T, XI_REQUIRE_DECL(is_integral< T >) >
     auto to(T upper) {

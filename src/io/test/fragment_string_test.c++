@@ -1,7 +1,6 @@
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_reader.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 
 #include <gtest/gtest.h>
 
@@ -11,23 +10,23 @@ using namespace xi;
 using namespace xi::io;
 using namespace xi::io::detail;
 
-auto ALLOC = make< basic_buffer_allocator< heap_buffer_storage_allocator > >();
+auto ALLOC = make< exact_fragment_allocator >();
 
 auto
-make_string(initializer_list<usize> sizes) {
+make_string(initializer_list< usize > sizes) {
   vector< char > in(92);
   char i = 'A';
   std::generate_n(begin(in), 92, [&] { return i++; });
 
   intrusive::list< fragment,
                    intrusive::link_mode< intrusive::normal_link >,
-                   intrusive::constant_time_size< true > > list;
+                   intrusive::constant_time_size< true > >
+      list;
   usize size = 0;
   for (auto sz : sizes) {
-    auto arena = ALLOC->allocate_arena(sz);
-    auto b     = new fragment(arena, arena->allocate(sz), sz);
+    auto b = ALLOC->allocate(sz);
     b->write(byte_range{in});
-    list.push_back(*b);
+    list.push_back(*b.release());
     size += sz;
   }
   return fragment_string{move(list), size};
@@ -60,7 +59,7 @@ TEST(interface, compare_single_fragment) {
 }
 
 TEST(interface, compare_multi_fragment) {
-  auto s = make_string({5,5});
+  auto s = make_string({5, 5});
   EXPECT_TRUE(0 < s.compare(""));
   EXPECT_TRUE(0 < s.compare("A"));
   EXPECT_TRUE(0 < s.compare("ABCD"));
@@ -87,7 +86,7 @@ TEST(interface, copy_to_string_single_buffer) {
 }
 
 TEST(interface, copy_to_string_multi_buffer) {
-  auto s = make_string({5,5});
+  auto s = make_string({5, 5});
   EXPECT_EQ("ABCDEABCDE", s.copy_to_string());
   EXPECT_EQ("A", s.copy_to_string(1));
   EXPECT_EQ("ABCDEA", s.copy_to_string(6));
@@ -99,23 +98,23 @@ TEST(interface, empty_compare_other) {
   fragment_string s;
   EXPECT_EQ(0, s.compare(fragment_string{}));
   EXPECT_TRUE(0 > s.compare(make_string({1})));
-  EXPECT_TRUE(0 > s.compare(make_string({1,10})));
+  EXPECT_TRUE(0 > s.compare(make_string({1, 10})));
 }
 
 TEST(interface, compare_other_single_buffer) {
   auto s = make_string({10});
   EXPECT_TRUE(0 < s.compare(fragment_string{}));
   EXPECT_TRUE(0 < s.compare(make_string({1})));
-  EXPECT_TRUE(0 < s.compare(make_string({1,1})));
+  EXPECT_TRUE(0 < s.compare(make_string({1, 1})));
   EXPECT_TRUE(0 == s.compare(make_string({10})));
   EXPECT_TRUE(0 > s.compare(make_string({11})));
 }
 
 TEST(interface, compare_other_multi_buffer) {
-  auto s = make_string({5,5});
+  auto s = make_string({5, 5});
   EXPECT_TRUE(0 < s.compare(fragment_string{}));
   EXPECT_TRUE(0 < s.compare(make_string({1})));
-  EXPECT_TRUE(0 < s.compare(make_string({1,1})));
-  EXPECT_TRUE(0 == s.compare(make_string({5,5})));
+  EXPECT_TRUE(0 < s.compare(make_string({1, 1})));
+  EXPECT_TRUE(0 == s.compare(make_string({5, 5})));
   EXPECT_TRUE(0 > s.compare(make_string({11})));
 }

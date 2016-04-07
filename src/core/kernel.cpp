@@ -24,18 +24,18 @@ namespace core {
   }
 
   core::future<> kernel::start(unsigned count, unsigned per_core_queue_size) {
-    _shard_queue_size = per_core_queue_size;
     if (count < 1) {
-      return core::make_ready_future(
+      return make_ready_future(
           make_exception_ptr(std::invalid_argument("Invalid core count.")));
     }
     if (_machine.cpus().size() < count) {
-      return core::make_ready_future(make_exception_ptr(
+      return make_ready_future(make_exception_ptr(
           std::invalid_argument("Not enough cores available.")));
     }
+    _shard_queue_size = per_core_queue_size;
     _shards.resize(count);
 
-    return core::make_ready_future();
+    return make_ready_future();
   }
 
   void kernel::startup(u16 id) {
@@ -51,7 +51,7 @@ namespace core {
   }
 
   mut<shard> kernel::make_shard(u16 id) {
-    return new shard(this, id, _shard_queue_size);
+    return new shard(this);
   }
 
   void kernel::initiate_shutdown() {

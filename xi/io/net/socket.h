@@ -63,7 +63,6 @@ namespace io {
       expected< i32 > read(mut< buffer > b,
                            opt< posix_endpoint > remote = none) const;
 
-    private:
       expected< i32 > write_iov(struct iovec *iov,
                                 usize iov_len,
                                 opt< posix_endpoint > remote = none) const;

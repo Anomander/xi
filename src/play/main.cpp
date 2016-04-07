@@ -1,12 +1,15 @@
+#include "xi/core/epoll/reactor.h"
 #include "xi/core/kernel_utils.h"
 #include "xi/core/launchable_kernel.h"
-#include "xi/core/epoll/reactor.h"
 #include "xi/core/thread_launcher.h"
 #include "xi/hw/hardware.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
 #include "xi/io/net/async_channel.h"
 #include "xi/io/proto/all.h"
+#include "xi/core/memory/memory.h"
+
+#include "xi/core/memory/memory.h"
 
 #include <signal.h>
 
@@ -61,10 +64,11 @@ public:
   }
 };
 
-class range_echo
-  : public pipes::filter< own<buffer>, net::ip_datagram, net::unix_datagram > {
+class range_echo : public pipes::filter< own< buffer >,
+                                         net::ip_datagram,
+                                         net::unix_datagram > {
 public:
-  void read(mut< context > cx, own<buffer> b) override {
+  void read(mut< context > cx, own< buffer > b) override {
     // std::cout << "Got buffer " << b->size() << std::endl;
     cx->forward_write(move(b));
   }
@@ -81,9 +85,9 @@ public:
 class http2_pipe : public net::tcp_stream_pipe {
 public:
   template < class... A >
-  http2_pipe(A&&... args) : client_pipe(forward< A >(args)...) {
-    push_back(make< logging_filter >());
-    push_back(make< range_echo >());
+  http2_pipe(A&&... args) : net::tcp_stream_pipe(forward< A >(args)...) {
+    this->push_back(make< logging_filter >());
+    this->push_back(make< range_echo >());
     // push_back(make< proto::http2::codec >(alloc()));
   }
 };
@@ -127,18 +131,40 @@ public:
   }
 };
 
-auto k = make< core::launchable_kernel< core::thread_launcher,
-                                        core::epoll::reactor > >();
+auto k = make<
+    core::launchable_kernel< core::thread_launcher, core::epoll::reactor > >();
 
 int
 main(int argc, char* argv[]) {
+  // malloc(16 << 20);
+  // malloc(16 << 20);
+  // malloc(16 << 20);
+  // return 0;
   signal(SIGINT, [](int sig) { k->initiate_shutdown(); });
-  signal(SIGPIPE, [](auto) { std::cout << "Ignoring SIGPIPE." << std::endl; });
+  signal(SIGPIPE,
+         [](int sig) { std::cout << "Ignoring SIGPIPE." << std::endl; });
 
   own< core::executor_pool > pool;
   spin_lock sl;
   k->start(argc > 2 ? atoi(argv[2]) : 1, 1 << 20).then([&, argc, argv] {
     pool = make_executor_pool(edit(k));
+    // void* p[100];
+    // usize total_size = 0;
+    // for (auto i : range::to(100)) {
+    //   xi::core::this_shard->post([i, &p, &total_size] {
+    //     p[i] = malloc(16 << 20);
+    //     total_size += malloc_usable_size(p[i]);
+    //     std::cout << "malloc(" << p[i] << ") sz: " << total_size << std::endl;
+    //   });
+    // }
+    // for (auto i : range::to(100)) {
+    //   xi::core::this_shard->post([i, &p] {
+    //     std::cout << "free(" << p[i] << ")" << std::endl;
+    //     free(p[i]);
+    //   });
+    // }
+    // xi::core::this_shard->post([] { std::cout << "done" << std::endl; });
+    // return;
 
     auto acc   = make< net::tcp_acceptor_pipe >();
     auto dgram = make< net::udp_datagram_pipe >();
@@ -159,8 +185,9 @@ main(int argc, char* argv[]) {
     std::cout << "Acceptor bound." << std::endl;
     acc->set_pipe_factory(make< http2_pipe_factory >());
     acc->push_back(make< http2_handler >(edit(pool)));
-    acc->set_child_options(net::option::tcp::no_delay::yes);
-    acc->set_child_options(net::option::socket::receive_buffer::val(1 << 20));
+    // acc->set_child_options(net::option::tcp::no_delay::yes);
+    // acc->set_child_options(net::option::socket::receive_buffer::val(1 << 20));
+    // acc->set_child_options(net::option::socket::send_buffer::val(1 << 16));
 
     pool->post([ acc = move(acc), dgram = move(dgram) ] {
       shard()->reactor()->attach_handler(move(acc));
@@ -175,9 +202,23 @@ main(int argc, char* argv[]) {
                   << "\nr_bytes : " << stats.r_bytes
                   << "\nwrites : " << stats.writes
                   << "\nw_bytes : " << stats.w_bytes << std::endl;
+        auto mstats = xi::core::memory::stats();
+        std::cout << "MALLOC:\n" << "\nallocs : " << mstats.mallocs
+                  << "\nfrees : " << mstats.frees
+                  << "\ncross_cpu_frees : " << mstats.cross_cpu_frees
+                  << "\ntotal_memory : " << mstats.total_memory
+                  << "\nfree_memory : " << mstats.free_memory << std::endl;
       });
     });
   });
 
+  struct statistics {
+    u64 mallocs;
+    u64 frees;
+    u64 cross_cpu_frees;
+    usize total_memory;
+    usize free_memory;
+    u64 reclaims;
+  };
   k->await_shutdown();
 }

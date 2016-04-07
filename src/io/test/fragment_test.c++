@@ -1,5 +1,4 @@
 #include "xi/io/basic_buffer_allocator.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 #include "xi/io/fragment.h"
 
 #include <gtest/gtest.h>
@@ -10,7 +9,7 @@ using namespace xi;
 using namespace xi::io;
 using namespace xi::io::detail;
 
-auto ALLOC = make< buffer_arena_allocator< heap_buffer_storage_allocator > >();
+auto ALLOC = make< exact_fragment_allocator >();
 
 auto
 make_fragment(usize headroom, usize data, usize tailroom) {
@@ -19,14 +18,12 @@ make_fragment(usize headroom, usize data, usize tailroom) {
   std::generate_n(begin(in), data, [&] { return ++i; });
 
   auto size  = data + headroom + tailroom;
-  auto arena = ALLOC->allocate_arena(size);
-  auto b     = new fragment(arena, arena->allocate(size), size);
+  auto b = ALLOC->allocate(size);
   if (headroom) {
     b->advance(headroom);
   }
   b->write(byte_range{in});
-  arena->consume(size);
-  return unique_ptr< fragment >(b);
+  return b;
 }
 
 TEST(interface, create) {

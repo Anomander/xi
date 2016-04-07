@@ -2,7 +2,7 @@
 
 #include "xi/ext/configure.h"
 #include "xi/io/byte_range.h"
-#include "xi/io/detail/buffer_arena.h"
+#include "xi/io/byte_blob.h"
 
 namespace xi {
 namespace io {
@@ -12,26 +12,22 @@ namespace io {
                        intrusive::link_mode< intrusive::normal_link > > {
     enum internal_t { INTERNAL };
 
-    detail::buffer_arena* _buffer;
-    u8* _data;
-    usize _length;
-    u8* _head;
-    usize _size;
+  private:
+    byte_blob _bytes;
+    u8* _head = _bytes.begin();
+    usize _size = 0;
 
   public:
-    fragment(detail::buffer_arena*, u8*, usize);
-    ~fragment();
+    fragment(byte_blob) noexcept;
 
   private:
-    fragment(
-        internal_t, detail::buffer_arena*, u8*, usize, u8*, usize) noexcept;
-
     XI_CLASS_DEFAULTS(fragment, no_move, no_copy);
 
-    u8* buffer_end() const;
+    void maybe_release();
 
   public:
-    u8* data() const;
+    u8* data();
+    u8 const* data() const;
     u8* tail() const;
     usize headroom() const;
     usize size() const;
@@ -55,19 +51,19 @@ namespace io {
 
     usize record_bytes(usize);
   };
-  static_assert(sizeof(fragment) <= 64, "Unexpected growth");
+  static_assert(sizeof(fragment) <= 72, "Unexpected growth");
 
-  inline u8* fragment::buffer_end() const {
-    return _data + _length;
+  inline u8* fragment::data() {
+    return _head;
   }
-  inline u8* fragment::data() const {
+  inline u8 const* fragment::data() const {
     return _head;
   }
   inline u8* fragment::tail() const {
     return _head + _size;
   }
   inline usize fragment::headroom() const {
-    return _head - _data;
+    return _head - _bytes.begin();
   }
   inline usize fragment::size() const {
     return _size;
@@ -76,7 +72,7 @@ namespace io {
     return 0 == size();
   }
   inline usize fragment::tailroom() const {
-    return buffer_end() - tail();
+    return _bytes.end() - tail();
   }
   inline byte_range fragment::head_range() {
     return byte_range{_head, headroom()};
@@ -88,7 +84,7 @@ namespace io {
     return byte_range{tail(), tailroom()};
   }
   inline usize fragment::record_bytes(usize sz) {
-    assert(make_signed_t< usize >(sz + _size) > 0);
+    assert(make_signed_t< usize >(sz + size()) >= 0);
     auto increment = min(sz, tailroom());
     _size += increment;
     return increment;

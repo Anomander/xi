@@ -2,11 +2,19 @@
 
 #include <cstdint>
 
+#include "xi/ext/class_semantics.h"
+#include "xi/ext/types.h"
+
 namespace xi {
 inline namespace ext {
   namespace detail {
     template < unsigned >
     struct bit_counter;
+
+    template <>
+    struct bit_counter< 1 > {
+      enum { count = 1, mask = ~1 };
+    };
 
     template <>
     struct bit_counter< 4 > {
@@ -19,9 +27,9 @@ inline namespace ext {
     };
   }
 
-  template < class T, class E >
+  template < class T, class E, usize align = alignof(void*) >
   class tagged_ptr {
-    using bit_counter = detail::bit_counter< sizeof(void*) >;
+    using bit_counter = detail::bit_counter< align >;
     template < E tag >
     constexpr void verify_bit() noexcept {
       static_assert((tag < 1 << bit_counter::count),
@@ -30,10 +38,24 @@ inline namespace ext {
     T* _pointer = nullptr;
 
   public:
-    tagged_ptr(T* p = nullptr) : _pointer(p) {
+    XI_CLASS_DEFAULTS(tagged_ptr, copy);
+
+    explicit tagged_ptr(T* p = nullptr) : _pointer(p) {
     }
-    tagged_ptr(tagged_ptr const&) = default;
-    tagged_ptr(tagged_ptr&&)      = default;
+
+    explicit tagged_ptr(tagged_ptr&& other) : _pointer(other._pointer) {
+      other._pointer = nullptr;
+    }
+
+    tagged_ptr& operator=(tagged_ptr&& other) {
+      this->~tagged_ptr();
+      new (this) tagged_ptr(move(other));
+      return *this;
+    }
+
+    void reset(T* p) {
+      _pointer = p;
+    }
 
     template < E tag >
     void set_tag() {
@@ -48,7 +70,7 @@ inline namespace ext {
     }
 
     template < E tag >
-    E get_tag() {
+    E get_tag() const {
       verify_bit< tag >();
       return static_cast< E >(uintptr_t(_pointer) & tag);
     }
@@ -65,6 +87,9 @@ inline namespace ext {
     }
     T const* operator->() const {
       return get();
+    }
+    explicit operator bool() const {
+      return bool(get());
     }
   };
 }

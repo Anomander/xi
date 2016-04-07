@@ -14,10 +14,8 @@ namespace io {
       class decoder {
         state _state  = state::VERB;
         verb _verb    = verb::INVALID;
-        usize _length = 0;
         own< buffer_allocator > _alloc;
         string _uri = {};
-        u8 _version = -1;
 
       public:
         decoder(own< buffer_allocator > alloc) : _alloc(move(alloc)) {

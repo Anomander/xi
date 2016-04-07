@@ -21,7 +21,7 @@ namespace io {
         using impl  = filter_context_impl< C, M0 >;
 
       public:
-        using super::filter_context_filter_adapter;
+        using super::super;
         using super::forward_read;
         using super::forward_write;
         using impl::forward_read;
@@ -66,7 +66,7 @@ namespace io {
         using impl  = filter_context_impl< C, read_only< M0 > >;
 
       public:
-        using super::filter_context_filter_adapter;
+        using super::super;
         using super::forward_read;
         using super::forward_write;
         using impl::forward_read;
@@ -107,7 +107,7 @@ namespace io {
         using impl  = filter_context_impl< C, write_only< M0 > >;
 
       public:
-        using super::filter_context_filter_adapter;
+        using super::super;
         using super::forward_read;
         using super::forward_write;
         using impl::forward_write;
@@ -142,14 +142,14 @@ namespace io {
         filter_context_filter_adapter(own< H > h) : _handler(move(h)) {
         }
 
-        void add_read_if_null(mut< generic_filter_context > cx) {
+        void add_read_if_null(mut< generic_filter_context >) override {
         }
-        void add_write_if_null(mut< generic_filter_context > cx) {
+        void add_write_if_null(mut< generic_filter_context >) override {
         }
 
-        void unlink_read(mut< generic_filter_context > cx) override {
+        void unlink_read(mut< generic_filter_context >) override {
         }
-        void unlink_write(mut< generic_filter_context > cx) override {
+        void unlink_write(mut< generic_filter_context >) override {
         }
 
       protected:

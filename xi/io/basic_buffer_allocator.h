@@ -2,76 +2,88 @@
 
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
-#include "xi/io/detail/buffer_arena.h"
-#include "xi/io/detail/buffer_storage_allocator.h"
 
 namespace xi {
 namespace io {
-  namespace detail {
-    constexpr size_t aligned_size(size_t sz, size_t align = alignof(void*)) {
-      return (sz + align - 1) & ~(align - 1);
-    }
-  }
   // FIXME: This needs a rewrite
 
-  template < class SA >
-  class buffer_arena_allocator : public detail::buffer_arena_deallocator {
-    own< SA > _storage_alloc = make< SA >();
+  struct fragment_allocator : public virtual ownership::std_shared {
+    virtual ~fragment_allocator()              = default;
+    virtual own< fragment > allocate(usize sz) = 0;
+  };
 
-  public:
-    buffer_arena_allocator() = default;
-    buffer_arena_allocator(own< SA > storage_alloc)
-        : _storage_alloc(move(storage_alloc)) {
+  struct arena_fragment_allocator : public fragment_allocator {
+    byte_blob _arena;
+    usize _arena_size;
+    usize _low_watermark;
+
+    arena_fragment_allocator(usize arena_size, usize low_watermark = 0)
+        : _arena_size(arena_size), _low_watermark(low_watermark) {
+      if (!_low_watermark) {
+        _low_watermark = arena_size / 100;
+      }
     }
 
-    detail::buffer_arena* allocate_arena(usize sz) {
-      auto size = sz + detail::aligned_size(sizeof(detail::buffer_arena));
-      return new (_storage_alloc->allocate(size))
-          detail::buffer_arena{sz, this};
-    };
+    auto make_arena() {
+      auto mem       = reinterpret_cast< u8* >(malloc(_arena_size));
+      auto actual_sz = malloc_usable_size(mem);
+      return byte_blob(
+          mem, mem ? actual_sz : 0, detail::make_simple_guard(mem));
+    }
 
-    void deallocate(detail::buffer_arena* c) noexcept override {
-      _storage_alloc->free(c);
+    own< fragment > allocate(usize sz) override {
+      if (_arena.empty()) {
+        _arena = make_arena();
+      } else if (_arena.size() <= sz + _low_watermark) {
+        XI_SCOPE(exit) {
+          _arena = make_arena();
+        };
+        return make< fragment >(move(_arena));
+      }
+      auto blob = _arena;
+      _arena = _arena.split(sz);
+      return make< fragment >(move(blob));
     }
   };
 
-  template < class SA, usize ARENA_SIZE = 1 << 24 >
-  class basic_buffer_allocator : public buffer_allocator,
-                                 public buffer_arena_allocator< SA > {
-    detail::buffer_arena* _current_arena = nullptr;
+  struct exact_fragment_allocator : public fragment_allocator {
+    auto make_heap_byte_blob(usize sz) {
+      auto mem = reinterpret_cast< u8* >(malloc(sz));
+      return byte_blob(mem, mem ? sz : 0, detail::make_simple_guard(mem));
+    }
+    own< fragment > allocate(usize sz) override {
+      return make< fragment >(make_heap_byte_blob(sz));
+    }
+  };
+
+  struct simple_fragment_allocator : public fragment_allocator {
+    auto make_heap_byte_blob(usize sz) {
+      auto mem       = reinterpret_cast< u8* >(malloc(sz));
+      auto actual_sz = malloc_usable_size(mem);
+      return byte_blob(
+          mem, mem ? actual_sz : 0, detail::make_simple_guard(mem));
+    }
+    own< fragment > allocate(usize sz) override {
+      return make< fragment >(make_heap_byte_blob(sz));
+    }
+  };
+
+  class basic_buffer_allocator : public buffer_allocator {
+    own< fragment_allocator > _fragment_allocator;
 
   public:
-    using buffer_arena_allocator< SA >::buffer_arena_allocator;
-    ~basic_buffer_allocator() {
-      if (_current_arena) {
-        _current_arena->decrement_ref_count();
-      }
+    basic_buffer_allocator(own< fragment_allocator > alloc)
+        : _fragment_allocator(move(alloc)) {
     }
 
     own< buffer > allocate(usize sz,
                            usize headroom = 0,
                            usize tailroom = 0) override {
       auto total_size = sz + headroom + tailroom;
-      if (!total_size) {
-        return {};
-      }
-      assert(total_size <= ARENA_SIZE);
-
-      if (!_current_arena) {
-        _current_arena = this->allocate_arena(ARENA_SIZE);
-      }
-      auto data = _current_arena->allocate(total_size);
-      if (!data) {
-        _current_arena->decrement_ref_count();
-        _current_arena = this->allocate_arena(ARENA_SIZE);
-        data           = _current_arena->allocate(total_size);
-      }
-      auto frag =
-          own< fragment >{new fragment(_current_arena, data, total_size)};
+      auto frag       = _fragment_allocator->allocate(total_size);
       if (headroom) {
         frag->advance(headroom);
       }
-      _current_arena->consume(total_size);
       return make< buffer >(move(frag));
     }
   };

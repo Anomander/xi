@@ -8,8 +8,8 @@ option(COVERALLS "Generate coveralls data" OFF)
 option(HWLOC "Has hwloc available" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -ftemplate-backtrace-limit=0")
-# set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -save-temps=obj -g -fsanitize=undefined -ftemplate-backtrace-limit=0")
+# set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -Wno-overloaded-virtual -ftemplate-backtrace-limit=0")
+set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O0 -g -Wno-overloaded-virtual -ftemplate-backtrace-limit=0")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -19,7 +19,9 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
-find_package( Boost 1.55 REQUIRED thread timer chrono system )
+find_package( LibNuma REQUIRED )
+
+find_package( Boost 1.55 REQUIRED thread timer chrono system)
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 
@@ -41,15 +43,17 @@ endif()
 function(register_test name)
   cxx_executable_with_flags(
     ${name}
-    "${cxx_default} -g -O0 -ftest-coverage -fprofile-arcs -fsanitize=address -fsanitize=undefined -fsanitize=leak"
-    "-lgcov --coverage -lasan -lubsan"
+    # "${cxx_default} -g -O0 -ftest-coverage -fprofile-arcs -fsanitize=address -fsanitize=undefined -fsanitize=leak"
+    "${cxx_default} -g -O0 -ftest-coverage -fprofile-arcs"
+    # "-lgcov --coverage -lasan -lubsan"
+    "-lgcov --coverage"
     "test/${name}.c++"
   )
 
   foreach(arg ${ARGN})
     set(libraries ${libraries} ${arg})
   endforeach()
-  target_link_libraries(${name} ${libraries} ${Boost_LIBRARIES} gtest_main)
+  target_link_libraries(${name} ${libraries} ${Boost_LIBRARIES} ${LIBNUMA_LIBRARIES} gtest_main)
   add_test("${name}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name}")
 endfunction()
 

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "xi/core/latch.h"
 #include "xi/core/kernel.h"
+#include "xi/core/latch.h"
+#include "xi/core/memory/memory.h"
 
 namespace xi {
 namespace core {
@@ -14,7 +15,7 @@ namespace core {
 
   public:
     core::future<> start(unsigned count,
-                          unsigned per_core_queue_size) override {
+                         unsigned per_core_queue_size) override {
       _start_latch      = make_shared< core::latch >(count);
       _shutdown_promise = make_shared< core::promise<> >();
       kernel::start(count, per_core_queue_size).then([this, count]() mutable {
@@ -22,6 +23,10 @@ namespace core {
           _threads.emplace_back(machine().core(t));
           _threads[t].start([this, t] {
             _threads[t].pin();
+            memory::resource r;
+            r.bytes  = 1ull << 30;
+            r.nodeid = 0;
+            memory::configure({r}, none);
             run_on_core(t);
           });
         }
@@ -48,9 +53,9 @@ namespace core {
       _start_latch->count_down();
     }
 
-    mut<shard> make_shard(u16 id) override {
+    mut< shard > make_shard(u16 id) override {
       auto s = kernel::make_shard(id);
-      auto r = make<R>(s);
+      auto r = make< R >(s);
       s->attach_reactor(move(r));
       return s;
     }

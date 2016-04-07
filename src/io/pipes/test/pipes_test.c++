@@ -50,7 +50,7 @@ public:
 struct mock_channel : public channel_interface {
   void close() override {
   }
-  mut< buffer_allocator > alloc() override {
+  mut< fragment_allocator > alloc() override {
     return nullptr;
   }
 };

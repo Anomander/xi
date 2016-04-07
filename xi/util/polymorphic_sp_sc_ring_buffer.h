@@ -66,11 +66,6 @@ inline namespace util {
       return &_data[reader_idx];
     }
 
-    static size_t adjust_for_alignment(
-        size_t size, size_t align = alignof(void *)) noexcept {
-      return ((size + align - 1) & ~(align - 1));
-    }
-
     template < class U >
     bool do_push(U &&obj, bool force) {
       using UType = decay_t< U >;
@@ -82,7 +77,7 @@ inline namespace util {
         UType obj;
       };
 
-      auto size                 = adjust_for_alignment(sizeof(pod));
+      auto size                 = align_up(sizeof(pod), alignof(void*));
       size_t current_writer_idx = _write_idx.load(memory_order_relaxed);
       size_t reader_idx         = _read_idx.load(memory_order_acquire);
       size_t adjusted_write_idx = current_writer_idx;

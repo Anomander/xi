@@ -1,5 +1,6 @@
 #pragma once
 
+#include "xi/ext/lockfree.h"
 #include "xi/core/reactor.h"
 #include "xi/core/task_queue.h"
 #include "xi/util/spin_lock.h"
@@ -18,16 +19,16 @@ namespace core {
     u16 _core_id = -1;
 
     struct {
-      lockfree::queue< task* > tasks{128};
+      lockfree::queue< task * > tasks{128};
     } _inbound;
 
     task_queue _task_queue;
     vector< own< poller > > _pollers;
-    mut< kernel > _kernel;
     mut< core::reactor > _reactor;
+    mut< kernel > _kernel;
 
   public:
-    shard(mut< kernel > k, u16 core, usize queue_size);
+    shard(mut< kernel >);
     void attach_reactor(own< core::reactor >);
 
   public:
@@ -115,7 +116,8 @@ namespace core {
 
   template < class F >
   void shard::_push_task_to_inbound_queue(F &&func, meta::false_type) {
-    _inbound.tasks.push(make_unique_copy(make_task(forward< F >(func))).release());
+    _inbound.tasks.push(
+        make_unique_copy(make_task(forward< F >(func))).release());
   }
 }
 

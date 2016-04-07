@@ -139,7 +139,9 @@ main(int argc, char *argv[]) {
   } else {
     tcp::resolver::query query(argv[1], argv[2]);
     resolver.async_resolve(query, [&service](auto error, auto iterator) {
-      new client(service, *iterator);
+      for (auto i = 0; i < 100; ++i) {
+        new client(service, *iterator);
+      }
     });
   }
 

@@ -1,6 +1,5 @@
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/channel_options.h"
-#include "xi/io/detail/heap_buffer_storage_allocator.h"
 #include "xi/io/net/socket.h"
 #include "tcp_socket_mock.h"
 
@@ -22,8 +21,8 @@ using namespace xi::io::net;
 #define ASSERT_SYSTEM_ERROR(E, ...) _SYSTEM_ERROR(ASSERT, E, __VA_ARGS__)
 #define EXPECT_SYSTEM_ERROR(E, ...) _SYSTEM_ERROR(EXPECT, E, __VA_ARGS__)
 
-auto ALLOC = make<
-    basic_buffer_allocator< io::detail::heap_buffer_storage_allocator > >();
+auto ALLOC =
+    make< basic_buffer_allocator >(make< simple_fragment_allocator >());
 
 class stream_server_test : public ::testing::Test {
 protected:
@@ -51,7 +50,7 @@ protected:
     auto data = vector< u8 >(size);
     u16 i     = 0;
     std::generate_n(begin(data), size, [&i] { return i++; });
-    return move(data);
+    return data;
   }
 
   auto accept() {

@@ -21,8 +21,7 @@ namespace core {
 
   thread_local mut< shard > this_shard = nullptr;
 
-  shard::shard(mut< kernel > k, u16 core, usize queue_size)
-      : _core_id(core), _task_queue(queue_size), _kernel(k) {
+  shard::shard(mut<kernel> k) : _core_id(0), _kernel(k) {
     std::cout << "Starting shard @" << _core_id << " in thread "
               << pthread_self() << std::endl;
   }
@@ -64,7 +63,7 @@ namespace core {
       if (XI_UNLIKELY(!_inbound.tasks.empty())) {
         auto &tasks = _inbound.tasks;
         while (!tasks.empty()) {
-          task* next_task = nullptr;
+          task *next_task = nullptr;
           if (tasks.pop(next_task) && next_task) {
             XI_SCOPE(exit) {
               delete next_task;
