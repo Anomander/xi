@@ -11,6 +11,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -ftemplate-backtrace-limit=0")
 # set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -save-temps=obj -g -fsanitize=undefined -ftemplate-backtrace-limit=0")
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # boost
 set(Boost_USE_STATIC_LIBS        ON)
 set(Boost_USE_MULTITHREADED      ON)
@@ -20,14 +22,6 @@ set(Boost_DETAILED_FAILURE_MSG   ON)
 find_package( Boost 1.55 REQUIRED thread timer chrono system )
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
-
-# libevent
-set(EVENT__DISABLE_TESTS ON)
-
-add_subdirectory(third-party/libevent)
-
-INCLUDE_DIRECTORIES( ${libevent_SOURCE_DIR}/include )
-INCLUDE_DIRECTORIES( ${CMAKE_BINARY_DIR}/third-party/libevent/include )
 
 # googletest
 add_subdirectory(third-party/googletest)
@@ -47,8 +41,8 @@ endif()
 function(register_test name)
   cxx_executable_with_flags(
     ${name}
-    "${cxx_default} -g -O0 -ftest-coverage -fprofile-arcs"
-    "-lgcov --coverage"
+    "${cxx_default} -g -O0 -ftest-coverage -fprofile-arcs -fsanitize=address -fsanitize=undefined -fsanitize=leak"
+    "-lgcov --coverage -lasan -lubsan"
     "test/${name}.c++"
   )
 

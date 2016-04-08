@@ -14,7 +14,7 @@ namespace core {
   }
   kernel::kernel(hw::machine m)
       : _machine(move(m))
-      , _exception_filter([](auto exception) { return false; }) {
+      , _exception_filter([](auto) { return false; }) {
   }
   kernel::~kernel() {
     try {

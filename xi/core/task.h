@@ -14,6 +14,7 @@ namespace core {
     struct delegate_task : public task {
       delegate_task(func &&delegate) : _delegate(forward< func >(delegate)) {
       }
+
       void run() override {
         _delegate();
       }
