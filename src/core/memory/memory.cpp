@@ -55,7 +55,9 @@
 
 #ifndef DEFAULT_ALLOCATOR
 
+#ifdef XI_HAS_NUMA
 #include <numaif.h>
+#endif // XI_HAS_NUMA
 #include <sys/mman.h>
 
 namespace xi {
@@ -720,7 +722,7 @@ namespace core {
       ::madvise(mmap_start, mmap_size, MADV_HUGEPAGE);
       // one past last page structure is a sentinel
       auto new_page_array_pages =
-        align_up(sizeof(page)*( new_pages + 1 ), page_size) / page_size;
+          align_up(sizeof(page) * (new_pages + 1), page_size) / page_size;
       auto new_page_array =
           reinterpret_cast< page* >(allocate_large(new_page_array_pages));
       if (!new_page_array) {
@@ -731,7 +733,7 @@ namespace core {
       new_page_array[new_pages].free = false;
       auto old_pages                 = reinterpret_cast< char* >(pages);
       auto old_nr_pages              = nr_pages;
-      auto old_pages_size  = align_up(sizeof(page)*( nr_pages + 1 ), page_size);
+      auto old_pages_size  = align_up(sizeof(page) * (nr_pages + 1), page_size);
       pages                = new_page_array;
       nr_pages             = new_pages;
       auto old_pages_start = (old_pages - memory) / page_size;
@@ -832,8 +834,7 @@ namespace core {
       }
       auto* obj = _free;
 
-
-      _free     = _free->next;
+      _free = _free->next;
       --_free_count;
       return obj;
     }
@@ -1021,7 +1022,7 @@ namespace core {
       cpu_mem.resize(total, sys_alloc);
       usize pos = 0;
       for (auto&& x : m) {
-        // #ifdef HAVE_NUMA
+#ifdef XI_HAS_NUMA
         unsigned long nodemask = 1UL << x.nodeid;
         auto r                 = ::mbind(cpu_mem.mem() + pos,
                          x.bytes,
@@ -1037,7 +1038,7 @@ namespace core {
                        "suffer: "
                     << err << std::endl;
         }
-        // #endif
+#endif // XI_HAS_NUMA
         pos += x.bytes;
       }
       // if (hugetlbfs_path) {
