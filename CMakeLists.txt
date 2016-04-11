@@ -20,14 +20,18 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_NO_BOOST_CMAKE         ON)
 set(Boost_DETAILED_FAILURE_MSG   ON)
 
+set(XI_EXTERN_LIBRARIES pthread)
+
 if (NUMA)
   add_definitions(-DXI_HAS_NUMA)
   find_package( LibNuma REQUIRED )
+  set(XI_EXTERN_LIBRARIES ${XI_EXTERN_LIBRARIES} ${LIBNUMA_LIBRARIES})
 endif()
 
 find_package( Boost 1.55 REQUIRED thread timer chrono system)
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
+set(XI_EXTERN_LIBRARIES ${XI_EXTERN_LIBRARIES} ${Boost_LIBRARIES})
 
 # googletest
 add_subdirectory(third-party/googletest)
@@ -57,7 +61,7 @@ function(register_test name)
   foreach(arg ${ARGN})
     set(libraries ${libraries} ${arg})
   endforeach()
-  target_link_libraries(${name} ${libraries} ${Boost_LIBRARIES} ${LIBNUMA_LIBRARIES} gtest_main)
+  target_link_libraries(${name} ${libraries} ${XI_EXTERN_LIBRARIES} gtest_main)
   add_test("${name}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${name}")
 endfunction()
 

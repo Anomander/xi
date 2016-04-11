@@ -17,10 +17,10 @@ matrix:
       addons:
         apt:
           sources: ['kalakris-cmake', 'boost-latest', 'llvm-toolchain-precise']
-          packages: ['llvm-3.9', 'llvm-3.9-dev', 'cmake', 'libhwloc-dev', 'libboost1.55-all-dev']
+          packages: ['llvm-3.8', 'llvm-3.8-dev', 'cmake', 'libhwloc-dev', 'libboost1.55-all-dev']
       after_success:
         - make test
-      env: COMPILER=clang++-3.9
+      env: COMPILER=clang++-3.8
 
 script:
   - CXX=$COMPILER cmake . -DHWLOC=ON -DNUMA=OFF -DCMAKE_BUILD_TYPE=Debug
