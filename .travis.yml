@@ -13,8 +13,16 @@ matrix:
         - make test
         - coveralls -i src -i xi --gcov-options '\lp' --gcov 'gcov-4.9'
       env: COMPILER=g++-4.9
+    - os: linux
+      addons:
+        apt:
+          sources: ['kalakris-cmake', 'boost-latest', 'llvm-toolchain-precise']
+          packages: ['llvm-3.9', 'llvm-3.9-dev', 'cmake', 'libhwloc-dev', 'libboost1.55-all-dev']
+      after_success:
+        - make test
+      env: COMPILER=clang++-3.9
 
 script:
-  - CXX=$COMPILER cmake . -DHWLOC=ON -DCMAKE_BUILD_TYPE=Debug -DEVENT__DISABLE_TESTS=ON
+  - CXX=$COMPILER cmake . -DHWLOC=ON -DNUMA=OFF -DCMAKE_BUILD_TYPE=Debug
   - make
 
