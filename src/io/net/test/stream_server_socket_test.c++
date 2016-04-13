@@ -1,5 +1,5 @@
 #include "xi/io/basic_buffer_allocator.h"
-#include "xi/io/channel_options.h"
+#include "xi/io/net/channel_options.h"
 #include "xi/io/net/socket.h"
 #include "tcp_socket_mock.h"
 

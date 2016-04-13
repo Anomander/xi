@@ -17,7 +17,7 @@ namespace io {
     }
 
     template < class T >
-    bool read_value(T & value) {
+    bool read_value(T &value) {
       if (_mark < _buffer->size() && _buffer->size() - _mark >= sizeof(T)) {
         _buffer->read(byte_range_for_object(value), _mark);
         return true;
@@ -43,7 +43,7 @@ namespace io {
     }
 
     template < class T >
-    bool read_value_and_mark(T & value) {
+    bool read_value_and_mark(T &value) {
       auto ret = read_value(value);
       if (ret) {
         _mark += sizeof(T);
@@ -61,7 +61,7 @@ namespace io {
     }
 
     template < class T >
-    bool read_value_and_skip(T & value) {
+    bool read_value_and_skip(T &value) {
       auto ret = read_value(value);
       if (ret) {
         _buffer->skip_bytes(_mark + sizeof(T));
@@ -99,10 +99,12 @@ namespace io {
     usize unmarked_size() const;
     usize marked_size() const;
 
-    void mark_offset(usize);
+    byte_range next_data_range() const;
+
+    usize mark_offset(usize);
     void discard_to_mark();
-    own<buffer> consume_mark_into_buffer();
-    own<fragment_string> consume_mark_into_string();
+    own< buffer > consume_mark_into_buffer();
+    own< fragment_string > consume_mark_into_string();
     template < class Pred >
     usize skip_any_of_and_mark(u8 *pattern, usize len, Pred const &);
     opt< usize > find_byte(u8 target, usize offset = 0) const;
@@ -124,9 +126,25 @@ namespace io {
     return _mark;
   }
 
-  inline void buffer::reader::mark_offset(usize offset){
-    assert(make_signed_t<usize>(_mark + offset) > 0);
-    _mark += min(offset, unmarked_size());
+  inline byte_range buffer::reader::next_data_range() const {
+    if (!unmarked_size()) {
+      return byte_range::null();
+    }
+
+    auto offset = _mark;
+    auto end    = _buffer->_fragments.end();
+    auto it     = skip_offset(_buffer->_fragments.begin(), end, edit(offset));
+    while (it != end && it->size() == 0) {
+      ++it;
+    }
+    return it == end ? byte_range::null() : it->data_range().subrange(offset);
+  }
+
+  inline usize buffer::reader::mark_offset(usize offset) {
+    assert(make_signed_t< usize >(_mark + offset) >= 0);
+    auto cap = min(offset, unmarked_size());
+    _mark += cap;
+    return cap;
   }
 
   inline void buffer::reader::discard_to_mark() {
@@ -136,17 +154,17 @@ namespace io {
     return _buffer->skip_bytes(_mark);
   }
 
-  inline own<buffer> buffer::reader::consume_mark_into_buffer() {
+  inline own< buffer > buffer::reader::consume_mark_into_buffer() {
     XI_SCOPE(success) {
       _mark = 0;
     };
     return _buffer->split(_mark);
   }
 
-  inline own<fragment_string> buffer::reader::consume_mark_into_string() {
+  inline own< fragment_string > buffer::reader::consume_mark_into_string() {
     auto buf = _buffer->split(_mark);
     _mark    = 0;
-    return make<fragment_string>( move(buf->_fragments), buf->_size );
+    return make< fragment_string >(move(buf->_fragments), buf->_size);
   }
 
   template < class Pred >

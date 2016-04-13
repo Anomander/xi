@@ -12,6 +12,7 @@ namespace core {
     virtual ~poller()                = default;
     virtual unsigned poll() noexcept = 0;
   };
+  class deferred_poller;
 
   class kernel;
 
@@ -23,12 +24,14 @@ namespace core {
     } _inbound;
 
     task_queue _task_queue;
+    mut<deferred_poller> _deferred_poller;
     vector< own< poller > > _pollers;
     mut< core::reactor > _reactor;
     mut< kernel > _kernel;
 
   public:
     shard(mut< kernel >);
+    void start();
     void attach_reactor(own< core::reactor >);
 
   public:
@@ -51,13 +54,8 @@ namespace core {
     mut< core::reactor > reactor();
 
   private:
-    template < class F >
-    void _push_task_to_inbound_queue(F &&);
-    template < class F >
-    void _push_task_to_inbound_queue(F &&func, meta::true_type);
-    template < class F >
-    void _push_task_to_inbound_queue(F &&func, meta::false_type);
-
+    void _push_task_to_inbound_queue(own< task >);
+    void _post_task(own< task >);
     void _handle_exception();
   };
 
@@ -69,14 +67,7 @@ namespace core {
 
   template < class F >
   void shard::post(F &&func) {
-    if (nullptr == this_shard || this != this_shard) {
-      // local thread is not managed by the kernel
-      // or is a remote thread
-      // , so we must use a common input queue
-      _push_task_to_inbound_queue(forward< F >(func));
-    } else {
-      _task_queue.submit(forward< F >(func));
-    }
+    _post_task(make_unique_copy(make_task(forward< F >(func))));
   }
 
   template < class F >
@@ -101,23 +92,6 @@ namespace core {
     return [ f = forward< F >(func), this ](auto... args) {
       post(::std::bind(f, forward< decltype(args)... >(args)...));
     };
-  }
-
-  template < class F >
-  void shard::_push_task_to_inbound_queue(F &&func) {
-    _push_task_to_inbound_queue(forward< F >(func),
-                                is_base_of< task, decay_t< F > >());
-  }
-
-  template < class F >
-  void shard::_push_task_to_inbound_queue(F &&func, meta::true_type) {
-    _inbound.tasks.push(make_unique_copy(forward< F >(func)).release());
-  }
-
-  template < class F >
-  void shard::_push_task_to_inbound_queue(F &&func, meta::false_type) {
-    _inbound.tasks.push(
-        make_unique_copy(make_task(forward< F >(func))).release());
   }
 }
 

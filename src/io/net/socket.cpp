@@ -120,10 +120,16 @@ namespace io {
       msg.msg_iovlen = iov_len;
       i32 retval     = sendmsg(_descriptor, &msg, MSG_DONTWAIT);
       if (-1 == retval) {
+        if (EAGAIN == errno || EWOULDBLOCK == errno) {
+          return error_code{io::error::kRetry};
+        }
+        if (ECONNRESET == retval || EPIPE == retval) {
+          return error_code{io::error::kEOF};
+        }
         return error_from_errno();
       }
       if (0 == retval) {
-        return error_code{io::error::kUnableToReadMessageHeader};
+        return error_code{io::error::kRetry};
       }
       return retval;
     }
@@ -172,6 +178,12 @@ namespace io {
       });
       i32 retval = recvmsg(_descriptor, &msg, MSG_DONTWAIT);
       if (-1 == retval) {
+        if (EAGAIN == errno || EWOULDBLOCK == errno) {
+          return error_code{io::error::kRetry};
+        }
+        if (ECONNRESET == errno) {
+          return error_code{io::error::kEOF};
+        }
         return error_from_errno();
       }
       if (0 == retval) {
@@ -190,10 +202,6 @@ namespace io {
       auto r = read_iov(iov, 1, move(remote));
       if (!r.has_error()) {
         buffer::iovec_adapter::report_written(b, r);
-      } else {
-        if (r.error() == error::kEOF) {
-          return error_code{error::kEOF};
-        }
       }
       return r;
     }

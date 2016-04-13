@@ -41,6 +41,11 @@ inline namespace ext {
   }
 
   template < class T >
+  auto make_unique_copy(unique_ptr< T > &&t) {
+    return t;
+  }
+
+  template < class T >
   auto make_unique_copy(T t) {
     return make_unique< typename ::std::decay< T >::type >(move(t));
   }

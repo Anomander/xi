@@ -4,15 +4,19 @@
 
 namespace xi {
 namespace core {
-  struct task {
+  struct task : public virtual ownership::unique {
     virtual ~task()    = default;
     virtual void run() = 0;
   };
 
-  template < class func >
-  auto make_task(func &&f) {
+  inline auto make_task(own<task> t) {
+    return t;
+  }
+
+  template < class F, XI_UNLESS_DECL(is_base_of<task, decay_t<F>>) >
+  auto make_task(F &&f) {
     struct delegate_task : public task {
-      delegate_task(func &&delegate) : _delegate(forward< func >(delegate)) {
+      delegate_task(F &&delegate) : _delegate(forward< F >(delegate)) {
       }
 
       void run() override {
@@ -20,10 +24,10 @@ namespace core {
       }
 
     private:
-      decay_t< func > _delegate;
+      decay_t< F > _delegate;
     };
 
-    return delegate_task{forward< func >(f)};
+    return delegate_task{forward< F >(f)};
   }
 }
 }

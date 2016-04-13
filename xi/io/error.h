@@ -8,7 +8,7 @@ namespace io {
 
     enum enumeration {
       kEOF,
-      kUnableToReadMessageHeader,
+      kRetry,
     };
 
     XI_DECLARE_ERROR_CATEGORY(xi_io_error_category, "xi") {
@@ -16,8 +16,8 @@ namespace io {
       switch (ec) {
         case kEOF:
           return "End of file";
-        case kUnableToReadMessageHeader:
-          return "Unable to read or parse message header";
+        case kRetry:
+          return "Operation would block";
         default:
           return "Unknown io";
       }

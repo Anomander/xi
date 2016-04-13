@@ -58,7 +58,14 @@
 #ifdef XI_HAS_NUMA
 #include <numaif.h>
 #endif // XI_HAS_NUMA
+
 #include <sys/mman.h>
+
+#ifdef XI_EMULATE_MADVISE
+#define MADV_HUGEPAGE 14   /* Worth backing with hugepages */
+#define MADV_NOHUGEPAGE 15 /* Not worth backing with hugepages */
+#define MADV_DONTDUMP 16   /* Explicity exclude from the core dump */
+#endif                     // XI_EMULATE_MADVISE
 
 namespace xi {
 namespace core {
@@ -1183,7 +1190,7 @@ extern "C"[[gnu::alias("cfree")]][[gnu::visibility("default")]] void
 __libc_cfree(void* obj);
 
 extern "C"[[gnu::visibility("default")]] usize
-malloc_usable_size(void* obj) {
+malloc_usable_size(void* obj) throw() {
   return object_size(obj);
 }
 

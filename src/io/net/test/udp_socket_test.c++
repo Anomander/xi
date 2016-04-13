@@ -1,5 +1,4 @@
 #include "xi/io/basic_buffer_allocator.h"
-#include "xi/io/channel_options.h"
 #include "xi/io/net/socket.h"
 #include "src/test/base.h"
 #include "udp_socket_mock.h"
@@ -81,7 +80,7 @@ namespace test {
     auto b   = ALLOC->allocate(50);
     auto ret = read(edit(b));
     EXPECT_TRUE(ret.has_error());
-    EXPECT_EQ(error_from_value(EAGAIN), ret.error());
+    EXPECT_EQ(error::kRetry, ret.error());
     EXPECT_EQ(50U, b->tailroom());
     EXPECT_EQ(0U, b->size());
   }
@@ -99,7 +98,7 @@ namespace test {
 
     ret = read(edit(b));
     EXPECT_TRUE(ret.has_error());
-    EXPECT_EQ(error_from_value(EAGAIN), ret.error());
+    EXPECT_EQ(error::kRetry, ret.error());
     EXPECT_EQ(10U, b->tailroom());
     EXPECT_EQ(40U, b->size());
   }
@@ -119,7 +118,7 @@ namespace test {
     b   = ALLOC->allocate(50);
     ret = read(edit(b));
     EXPECT_TRUE(ret.has_error());
-    EXPECT_EQ(error_from_value(EAGAIN), ret.error());
+    EXPECT_EQ(error::kRetry, ret.error());
   }
 
   TEST_F(client, large_messages_are_rejected) {

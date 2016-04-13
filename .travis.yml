@@ -16,13 +16,13 @@ matrix:
     - os: linux
       addons:
         apt:
-          sources: ['kalakris-cmake', 'boost-latest', 'llvm-toolchain-precise']
-          packages: ['llvm-3.8', 'llvm-3.8-dev', 'cmake', 'libhwloc-dev', 'libboost1.55-all-dev']
+          sources: ['kalakris-cmake', 'boost-latest', 'llvm-toolchain-precise-3.8']
+          packages: ['clang-3.8', 'cmake', 'libhwloc-dev', 'libboost1.55-all-dev']
       after_success:
         - make test
       env: COMPILER=clang++-3.8
 
 script:
-  - CXX=$COMPILER cmake . -DHWLOC=ON -DNUMA=OFF -DCMAKE_BUILD_TYPE=Debug
+  - CXX=$COMPILER cmake . -DHWLOC=ON -DNUMA=OFF -DEMULATE_MADVISE=ON -DCMAKE_BUILD_TYPE=Debug
   - make
 

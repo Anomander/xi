@@ -31,7 +31,7 @@ inline namespace ext {
   class tagged_ptr {
     using bit_counter = detail::bit_counter< align >;
     template < E tag >
-    constexpr void verify_bit() noexcept {
+    constexpr static void verify_bit() noexcept {
       static_assert((tag < 1 << bit_counter::count),
                     "Tag value can not fit on current architecture.");
     }

@@ -16,6 +16,7 @@ namespace core {
   }
 
   void event_handler::cancel() {
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
     if (is_active()) {
       _event->cancel();
       defer(this, [this]() mutable {

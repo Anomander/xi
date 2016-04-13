@@ -148,5 +148,3 @@ namespace core {
   }
 }
 }
-
-extern "C" xi::usize malloc_usable_size(void* obj);

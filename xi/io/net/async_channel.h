@@ -7,7 +7,6 @@
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
 #include "xi/io/channel_interface.h"
-#include "xi/io/channel_options.h"
 #include "xi/io/error.h"
 #include "xi/io/net/endpoint.h"
 #include "xi/io/net/enumerations.h"
@@ -151,6 +150,7 @@ namespace io {
       void write(mut< context >, socket_event e) override {
         switch (e) {
           case socket_event::kClosing:
+            std::cout << __func__ << std::endl;
             _pipe->cancel();
             break;
           default:
@@ -180,6 +180,7 @@ namespace io {
       mut< channel > _pipe;
       buffer _write_buf;
       bool _scheduled_write = false;
+      bool _closing         = false;
       i16 _inline_writes    = 0;
 
       data_sink(mut< channel > c) : _pipe(c) {
@@ -187,33 +188,32 @@ namespace io {
 
       void read_data(bool on_io) {
         auto _b    = make< buffer >();
-        u8 loops   = 0;
         bool close = false;
-        while (true) {
+        for (u8 loops = 0; !_closing; ++loops) {
           _b->push_back(_pipe->alloc()->allocate(4 << 12));
           auto ret = _pipe->read_buffer(edit(_b));
           if (ret.has_error()) {
             auto error = ret.error();
-            if (error == error::kEOF) {
-              close = true;
-              // TODO: Move these into socket
-            } else if (error == error_from_value(EAGAIN) ||
-                       error == error_from_value(EWOULDBLOCK)) {
+            if (error == error::kRetry) {
               _pipe->expect_read(true);
-            } else if (error == error_from_value(ECONNRESET)) {
-              close = true;
             } else {
-              my_context()->forward_read(error);
+              std::cout << "ERROR: " << error.message() << std::endl;
               close = true;
+              if (XI_UNLIKELY(error != error::kEOF)) {
+                my_context()->forward_read(error);
+              }
             }
             break;
           } else {
-            if (1 == loops && on_io) {
+            if (2 == loops && on_io) {
+              // if (_b->tailroom() == 0) {
               defer(_pipe, [this] { read_data(false); });
+              // } else {
+              //   _pipe->expect_read(true);
+              // }
               break;
             }
           }
-          ++loops;
         }
         if (!_b->empty()) {
           my_context()->forward_read(move(_b));
@@ -226,20 +226,19 @@ namespace io {
       void write_data() {
         _scheduled_write = false;
         bool close       = false;
-        while (!_write_buf.empty()) {
+        if (!_closing && !_write_buf.empty()) {
           auto ret = _pipe->write_buffer(edit(_write_buf));
           if (XI_UNLIKELY(ret.has_error())) {
             auto error = ret.error();
-            if (error == error_from_value(EAGAIN) ||
-                error == error_from_value(EWOULDBLOCK)) {
+            if (error == error::kRetry) {
               _pipe->expect_write(true);
-            } else if (error == error_from_value(EPIPE)) {
-              close = true;
             } else {
-              my_context()->forward_read(error);
               close = true;
+              if (XI_UNLIKELY(error != error::kEOF)) {
+                my_context()->forward_read(error);
+              }
             }
-            break;
+            // break;
           }
         }
         _inline_writes = 0;
@@ -267,6 +266,7 @@ namespace io {
       void write(mut< context >, socket_event e) override {
         switch (e) {
           case socket_event::kClosing:
+            _closing = true;
             _pipe->cancel();
             break;
           default:
@@ -276,19 +276,20 @@ namespace io {
       void write(mut< context >, own< buffer > b) override {
         if (!_scheduled_write && ++_inline_writes < 1) {
           _pipe->write_buffer(edit(b));
-          if (!b->size()) {
+          if (b->empty()) {
             return;
           }
         }
-        _write_buf.push_back(b->split(b->size()));
+        _write_buf.push_back(move(b));
         // std::cout << "write queue: " << _write_buf.size() << std::endl;
         if (_write_buf.size() > 100 << 20) { // 100 MiB
           std::cout << "Closing connection due to slow reader" << std::endl;
           _pipe->close();
           return;
         }
-        if (XI_UNLIKELY(!_scheduled_write)) {
+        if (XI_UNLIKELY(!_closing && !_scheduled_write)) {
           defer(_pipe, [this] { write_data(); });
+          _scheduled_write = true;
         }
       }
     };

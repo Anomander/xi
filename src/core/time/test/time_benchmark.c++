@@ -31,6 +31,8 @@ TEST(X, time_rdtscl) {
   }
 }
 
+#if _POSIX_TIMERS > 0
+#if _POSIX_MONOTONIC_CLOCK > 0
 TEST(X, time_monotomic_get_time) {
   for (int i = 0; i < 500000; i++) {
     struct timespec when;
@@ -44,17 +46,21 @@ TEST(X, time_monotomic_coarse_get_time) {
     clock_gettime(CLOCK_MONOTONIC_COARSE, &when);
   }
 }
-
+#endif //_POSIX_MONOTONIC_CLOCK > 0
+#if _POSIX_CPUTIME > 0
 TEST(X, time_process_get_time) {
   for (int i = 0; i < 500000; i++) {
     struct timespec when;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &when);
   }
 }
-
+#endif //_POSIX_CPUTIME > 0
+#if _POSIX_THREAD_CPUTIME > 0
 TEST(X, time_thread_get_time) {
   for (int i = 0; i < 500000; i++) {
     struct timespec when;
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &when);
   }
 }
+#endif //_POSIX_THREAD_CPUTIME > 0
+#endif //_POSIX_TIMERS > 0

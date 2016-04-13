@@ -7,10 +7,11 @@ message("Compiler version: " ${CMAKE_CXX_COMPILER_VERSION})
 option(COVERALLS "Generate coveralls data" OFF)
 option(HWLOC "Has hwloc available" OFF)
 option(NUMA "Has NUMA support available" OFF)
+option(EMULATE_MADVISE "Emulate support for ::madvise flags" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-# set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -Wno-overloaded-virtual -ftemplate-backtrace-limit=0")
-set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O0 -g -Wno-overloaded-virtual -ftemplate-backtrace-limit=0")
+set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -Wno-overloaded-virtual -ftemplate-backtrace-limit=0")
+# set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O0 -g -Wno-overloaded-virtual -ftemplate-backtrace-limit=0")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -26,6 +27,10 @@ if (NUMA)
   add_definitions(-DXI_HAS_NUMA)
   find_package( LibNuma REQUIRED )
   set(XI_EXTERN_LIBRARIES ${XI_EXTERN_LIBRARIES} ${LIBNUMA_LIBRARIES})
+endif()
+
+if (EMULATE_MADVISE)
+  add_definitions(-DXI_EMULATE_MADVISE)
 endif()
 
 find_package( Boost 1.55 REQUIRED thread timer chrono system)

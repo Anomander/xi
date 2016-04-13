@@ -58,10 +58,6 @@ namespace io {
           static tos reliability;
           static tos min_cost;
         };
-        tos tos::low_delay(IPTOS_LOWDELAY);
-        tos tos::throughput(IPTOS_THROUGHPUT);
-        tos tos::reliability(IPTOS_RELIABILITY);
-        tos tos::min_cost(IPTOS_MINCOST);
       }
 
       namespace tcp {

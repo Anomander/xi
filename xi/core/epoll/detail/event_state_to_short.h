@@ -14,7 +14,7 @@ namespace core {
         if (state & kWrite) {
           result |= EPOLLOUT;
         }
-        result |= EPOLLET;
+        // result |= EPOLLET;
         result |= EPOLLRDHUP;
 
         return result;
