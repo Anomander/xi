@@ -1,5 +1,5 @@
-file(GLOB xi_io_proto_http_SRC "*.cpp")
+file(GLOB src "*.cpp")
 
-set(xi_io_proto_SRC ${xi_io_proto_SRC} ${xi_io_proto_http_SRC} PARENT_SCOPE)
+set(xi_src ${xi_src} ${src} PARENT_SCOPE)
 
 register_test(http_decoder_test xi)

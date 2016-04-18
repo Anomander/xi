@@ -31,7 +31,7 @@ namespace core {
   struct callable_applier< meta::null > {
   public:
     template < class F >
-    static decltype(auto) apply(F &&f, meta::null &&v) {
+    static decltype(auto) apply(F &&f, meta::null &&) {
       return _apply(forward< F >(f), is_same< void, result_of_t< F() > >{});
     }
     template < class F >

@@ -9,27 +9,27 @@ inline namespace ext {
   using ::std::max;
   using ::std::numeric_limits;
 
-  inline constexpr auto count_leading_zeros(unsigned x) {
+  inline constexpr auto count_leading_zeroes(unsigned x) {
     return __builtin_clz(x);
   }
 
-  inline constexpr auto count_leading_zeros(unsigned long x) {
+  inline constexpr auto count_leading_zeroes(unsigned long x) {
     return __builtin_clzl(x);
   }
 
-  inline constexpr auto count_leading_zeros(unsigned long long x) {
+  inline constexpr auto count_leading_zeroes(unsigned long long x) {
     return __builtin_clzll(x);
   }
 
-  inline constexpr auto count_trailing_zeros(unsigned x) {
+  inline constexpr auto count_trailing_zeroes(unsigned x) {
     return __builtin_ctz(x);
   }
 
-  inline constexpr auto count_trailing_zeros(unsigned long x) {
+  inline constexpr auto count_trailing_zeroes(unsigned long x) {
     return __builtin_ctzl(x);
   }
 
-  inline constexpr auto count_trailing_zeros(unsigned long long x) {
+  inline constexpr auto count_trailing_zeroes(unsigned long long x) {
     return __builtin_ctzll(x);
   }
 

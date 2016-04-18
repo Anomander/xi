@@ -2,6 +2,7 @@
 
 #include "xi/ext/configure.h"
 #include "xi/core/async_defer.h"
+#include "xi/core/bootstrap.h"
 #include "xi/core/event_handler.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
@@ -206,11 +207,7 @@ namespace io {
             break;
           } else {
             if (2 == loops && on_io) {
-              // if (_b->tailroom() == 0) {
               defer(_pipe, [this] { read_data(false); });
-              // } else {
-              //   _pipe->expect_read(true);
-              // }
               break;
             }
           }
@@ -238,7 +235,6 @@ namespace io {
                 my_context()->forward_read(error);
               }
             }
-            // break;
           }
         }
         _inline_writes = 0;
@@ -312,14 +308,13 @@ namespace io {
 
     template < address_family af, protocol proto = kNone >
     using pipe_acceptor_base =
-        pipes::pipe< pipes::in< own< client_pipe< af, proto > > >,
-                     pipes::in< error_code >,
+        pipes::pipe< pipes::in< error_code >,
                      pipes::in< exception_ptr > >;
 
     template < address_family af, protocol proto = kNone >
     class acceptor_pipe final : public xi::core::io_handler,
                                 public stream_server_socket,
-                                public pipe_acceptor_base< af, proto >,
+                                public pipe_acceptor_base<af, proto>,
                                 public virtual ownership::std_shared {
       using endpoint_type    = endpoint< af >;
       using client_pipe_type = client_pipe< af, proto >;
@@ -367,13 +362,18 @@ namespace io {
           this->expect_read(true);
           auto socket = client.move_value();
           try {
-            own< client_pipe_type > ch;
-            if (is_valid(_pipe_factory)) {
-              ch = _pipe_factory->create_pipe(move(socket));
-            } else {
-              ch = make< client_pipe_type >(move(socket));
-            }
-            this->read(move(ch));
+            static u16 run_on = 0;
+            run_on            = (run_on + 1) % core::bootstrap::cpus();
+            shard_at(run_on)->dispatch(
+                [ s = move(socket), factory = _pipe_factory ]() mutable {
+                  own< client_pipe_type > ch;
+                  if (is_valid(factory)) {
+                    ch = factory->create_pipe(move(s));
+                  } else {
+                    ch = make< client_pipe_type >(move(s));
+                  }
+                  xi::shard()->reactor()->attach_handler(move(ch));
+                });
           } catch (...) {
             this->read(current_exception());
           }

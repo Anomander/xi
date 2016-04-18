@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include "xi/core/future.h"
-#include "xi/core/kernel_utils.h"
 #include "src/test/mock_kernel.h"
 
 using namespace xi;
@@ -333,11 +332,10 @@ TEST(continuation, future_from_continuation_is_unwrapped_Exception_Promise) {
 
 TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
   auto k    = make< test::mock_kernel >();
-  auto pool = make_executor_pool(edit(k));
 
   int i = 0;
   auto r =
-      make_ready_future(42).then(pool->executor_for_core(test::kCurrentThread),
+      make_ready_future(42).then(k->shard_for_core(test::kCurrentThread),
                                  [&i](int j) { i = j * j; });
 
   ASSERT_EQ(0, i);
@@ -360,14 +358,13 @@ TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
 TEST(executable_test,
      async_continuation_launches_asynchronously_Ready_promise) {
   auto k    = make< test::mock_kernel >();
-  auto pool = make_executor_pool(edit(k));
 
   int i = 0;
   promise< int > p;
   auto f = p.get_future();
   p.set(42);
 
-  auto r = f.then(pool->executor_for_core(test::kCurrentThread),
+  auto r = f.then(k->shard_for_core(test::kCurrentThread),
                   [&i](int j) { i = j * j; });
 
   ASSERT_EQ(0, i);
@@ -384,11 +381,10 @@ TEST(executable_test,
 TEST(executable_test,
      async_continuation_launches_asynchronously_Promise_set_value) {
   auto k    = make< test::mock_kernel >();
-  auto pool = make_executor_pool(edit(k));
 
   int i = 0;
   promise< int > p;
-  auto r = p.get_future().then(pool->executor_for_core(test::kCurrentThread),
+  auto r = p.get_future().then(k->shard_for_core(test::kCurrentThread),
                                [&i](int j) { i = j * j; });
   p.set(42);
 
@@ -405,11 +401,10 @@ TEST(executable_test,
 
 TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
   auto k    = make< test::mock_kernel >();
-  auto pool = make_executor_pool(edit(k));
 
   int i = 0;
   auto r =
-      make_ready_future(42).then(pool->executor_for_core(test::kCurrentThread),
+      make_ready_future(42).then(k->shard_for_core(test::kCurrentThread),
                                  [&i](int j) { throw std::exception(); });
 
   ASSERT_EQ(0, i);
@@ -426,11 +421,10 @@ TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
 TEST(executable_test,
      async_continuation_propagates_exceptions_Promise_set_value) {
   auto k    = make< test::mock_kernel >();
-  auto pool = make_executor_pool(edit(k));
 
   int i = 0;
   promise< int > p;
-  auto r = p.get_future().then(pool->executor_for_core(test::kCurrentThread),
+  auto r = p.get_future().then(k->shard_for_core(test::kCurrentThread),
                                [&i](int j) { throw std::exception(); });
   p.set(42);
 
@@ -447,11 +441,10 @@ TEST(executable_test,
 
 TEST(executable_test, async_promise_set_value_Propagates_value) {
   auto k    = make< test::mock_kernel >();
-  auto pool = make_executor_pool(edit(k));
 
   int i = 0;
   promise< int > p;
-  auto r = p.get_future().then(pool->executor_for_core(test::kCurrentThread),
+  auto r = p.get_future().then(k->shard_for_core(test::kCurrentThread),
                                [&i](int j) { i = j * j; });
 
   ASSERT_EQ(0, i);
@@ -468,11 +461,10 @@ TEST(executable_test, async_promise_set_value_Propagates_value) {
 
 TEST(executable_test, async_promise_set_value_Propagates_exception) {
   auto k    = make< test::mock_kernel >();
-  auto pool = make_executor_pool(edit(k));
 
   int i = 0;
   promise< int > p;
-  auto r = p.get_future().then(pool->executor_for_core(test::kCurrentThread),
+  auto r = p.get_future().then(k->shard_for_core(test::kCurrentThread),
                                [&i](int j) { throw std::exception(); });
 
   ASSERT_EQ(0, i);

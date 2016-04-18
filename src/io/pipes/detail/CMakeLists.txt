@@ -1,3 +1,2 @@
-file(GLOB xi_io_pipes_detail_SRC "*.cpp")
-
-set(xi_io_pipes_SRC ${xi_io_pipes_SRC} ${xi_io_pipes_detail_SRC} PARENT_SCOPE)
+file(GLOB src "*.cpp")
+set(xi_src ${xi_src} ${src} PARENT_SCOPE)

@@ -34,7 +34,7 @@ public:
 
   void schedule_read() {
     async_read(socket_,
-               buffer(data_, 0),
+               buffer(data, 0),
                boost::bind(&session::handle_read_event,
                            this,
                            placeholders::error,
@@ -43,12 +43,12 @@ public:
   void handle_read_event(boost::system::error_code error,
                          size_t bytes_transferred) {
     while (!error) {
-      auto data         = make_shared< vector< char > >(max_length);
-      bytes_transferred = socket_.receive(buffer(*data), MSG_DONTWAIT, error);
+      // auto data         = make_shared< vector< char > >(max_length);
+      bytes_transferred = socket_.receive(buffer(data), MSG_DONTWAIT, error);
       if (bytes_transferred > 0) {
         async_write(socket_,
-                    buffer(*data, bytes_transferred),
-                    [data](auto error, size_t) {});
+                    buffer(data, bytes_transferred),
+                    [](auto error, size_t) {});
       }
       if (bytes_transferred < max_length) {
         if (!error) {
@@ -64,8 +64,8 @@ public:
 
 private:
   tcp::socket socket_;
-  enum { max_length = 1024 };
-  char data_[max_length];
+  enum { max_length = 4 << 12 };
+  char data[max_length];
 };
 
 class server {

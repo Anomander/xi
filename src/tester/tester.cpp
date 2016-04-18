@@ -2,6 +2,7 @@
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/asio.hpp>
+#include <boost/thread.hpp>
 #include <chrono>
 #include <iostream>
 #include <istream>
@@ -131,21 +132,26 @@ using namespace std;
 
 int
 main(int argc, char *argv[]) {
-
-  io_service service;
-  tcp::resolver resolver(service);
-  if (string(argv[1]) == "-s") {
-    new server(service, atoi(argv[2]));
-  } else {
-    tcp::resolver::query query(argv[1], argv[2]);
-    resolver.async_resolve(query, [&service](auto error, auto iterator) {
-      for (auto i = 0; i < 100; ++i) {
-        new client(service, *iterator);
+  io_service service[1];
+  boost::thread_group g;
+  for (auto i = 0; i < 1; ++i) {
+    g.create_thread([ s = &service[i], argc, argv ] {
+      tcp::resolver resolver(*s);
+      if (string(argv[1]) == "-s") {
+        new server(*s, atoi(argv[2]));
+      } else {
+        tcp::resolver::query query(argv[1], argv[2]);
+        resolver.async_resolve(query, [s](auto error, auto iterator) {
+          for (auto i = 0; i < 100; ++i) {
+            new client(*s, *iterator);
+          }
+        });
       }
+      s->run();
     });
   }
 
-  service.run();
+  g.join_all();
 
   return 0;
 }

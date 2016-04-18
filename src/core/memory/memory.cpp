@@ -255,11 +255,11 @@ namespace core {
 
     static constexpr unsigned log2ceil(unsigned n) {
       return std::numeric_limits< unsigned >::digits -
-             count_leading_zeros(n - 1);
+             count_leading_zeroes(n - 1);
     }
 
     static constexpr unsigned log2floor(unsigned n) {
-      return std::numeric_limits< unsigned >::digits - count_leading_zeros(n) -
+      return std::numeric_limits< unsigned >::digits - count_leading_zeroes(n) -
              1;
     }
 
@@ -380,7 +380,7 @@ namespace core {
     // Free spans are store in the largest index i such that nr_pages >= 1 << i.
     static inline unsigned index_of(unsigned pages) {
       return std::numeric_limits< unsigned >::digits -
-             count_leading_zeros(pages) - 1;
+             count_leading_zeroes(pages) - 1;
     }
 
     // Smallest index i such that all spans stored in the index are >= pages.
@@ -389,7 +389,7 @@ namespace core {
         return 0;
       }
       return std::numeric_limits< unsigned >::digits -
-             count_leading_zeros(pages - 1);
+             count_leading_zeroes(pages - 1);
     }
 
     void cpu_pages::unlink(page_list& list, page* span) {

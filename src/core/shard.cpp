@@ -1,8 +1,18 @@
 #include "xi/core/shard.h"
-#include "xi/core/kernel.h"
+#include "xi/core/bootstrap.h"
+#include "xi/core/epoll/reactor.h"
+#include "xi/core/message_bus.h"
+#include "xi/core/message_bus_impl.h"
+#include "xi/core/signals.h"
 
 namespace xi {
+mut< core::shard >
+shard_at(u16 id) {
+  return core::bootstrap::shard_at(id);
+}
+
 namespace core {
+
   class deferred_poller : public poller {
     deque< own< task > > _deferred_tasks;
     mut< task_queue > _task_queue;
@@ -25,10 +35,10 @@ namespace core {
   };
 
   class reactor_poller : public poller {
-    own< core::reactor > _reactor;
+    mut< core::reactor > _reactor;
 
   public:
-    reactor_poller(own< core::reactor > reactor) : _reactor(reactor) {
+    reactor_poller(mut< core::reactor > reactor) : _reactor(reactor) {
     }
     unsigned poll() noexcept override {
       try {
@@ -39,22 +49,60 @@ namespace core {
     }
   };
 
+  class message_bus_poller : public poller {
+    u8 _cpu;
+    message_bus **_buses;
+
+  public:
+    message_bus_poller(u8 cpu, message_bus **mb) : _cpu(cpu), _buses(mb) {
+      std::cout << "Buses: " << _buses << std::endl;
+    }
+
+    unsigned poll() noexcept override {
+      for (auto i : range::to(bootstrap::cpus())) {
+        if (i != _cpu) {
+          _buses[i][_cpu].process_pending();
+          _buses[_cpu][i].process_complete();
+        }
+      }
+      return 0;
+    }
+  };
+
   thread_local mut< shard > this_shard = nullptr;
 
-  shard::shard(mut< kernel > k) : _core_id(0), _kernel(k) {
+  shard::shard(u8 core, message_bus **mb) : _core_id(core), _buses(mb) {
     std::cout << "Starting shard @" << _core_id << " in thread "
               << pthread_self() << std::endl;
+    std::cout << "Buses: " << _buses << std::endl;
+    _reactor = make< epoll::reactor >(this);
   }
 
-  void shard::start() {
+  void shard::init() {
+    register_poller(make< reactor_poller >(edit(_reactor)));
+
+    auto sig = make< signals >();
+    _signals = edit(sig);
+    register_poller(move(sig));
+
     auto dp          = make< deferred_poller >(edit(_task_queue));
     _deferred_poller = edit(dp);
     register_poller(move(dp));
+
+    // if (bootstrap::cpus() > 1 && _buses) {
+    //   register_poller(make< message_bus_poller >(_core_id, _buses));
+    // run
   }
 
-  void shard::attach_reactor(own< core::reactor > r) {
-    _reactor = edit(r);
-    register_poller(make< reactor_poller >(move(r)));
+  void shard::run() {
+    std::cout << "Shard @" << _core_id << " is running." << std::endl;
+    _running = true;
+    while (true) {
+      poll();
+      if (XI_UNLIKELY(!_running)) {
+        break;
+      }
+    }
   }
 
   usize shard::register_poller(own< poller > poller) {
@@ -69,7 +117,7 @@ namespace core {
     dispatch([poller_id, this] {
       _pollers.erase(remove_if(begin(_pollers),
                                end(_pollers),
-                               [&](auto const &poller) {
+                               [poller_id](auto const &poller) {
                                  return reinterpret_cast< usize >(
                                             address_of(poller)) == poller_id;
                                }),
@@ -86,32 +134,34 @@ namespace core {
       _task_queue.process_tasks();
 
       if (XI_UNLIKELY(!_inbound.tasks.empty())) {
-        auto &tasks = _inbound.tasks;
-        while (!tasks.empty()) {
-          task *next_task = nullptr;
-          if (tasks.pop(next_task) && next_task) {
-            XI_SCOPE(exit) {
-              delete next_task;
-            };
-            next_task->run();
-          }
-        }
+        _inbound.tasks.consume_all([](task *t) {
+          XI_SCOPE(exit) {
+            delete t;
+          };
+          t->run();
+        });
       }
     } catch (...) {
       _handle_exception();
     }
   }
 
-  void shard::_push_task_to_inbound_queue(own< task > t) {
+  void shard::shutdown() {
+    _running = false;
+  }
+
+  void shard::_push_task_to_inbound_queue(u16 remote_cpu, own< task > t) {
     _inbound.tasks.push(t.release());
+    // _buses[cpu()][remote_cpu].submit([t = move(t)] { t->run(); });
   }
 
   void shard::_post_task(own< task > t) {
-    if (nullptr == this_shard || this != this_shard) {
+    assert(this_shard);
+    if (this != this_shard) {
       // local thread is not managed by the kernel
       // or is a remote thread
       // , so we must use a common input queue
-      _push_task_to_inbound_queue(move(t));
+      _push_task_to_inbound_queue(this_shard->cpu(), move(t));
     } else {
       // _task_queue.submit(move(t));
       _deferred_poller->push(move(t));
@@ -119,7 +169,7 @@ namespace core {
   }
 
   void shard::_handle_exception() {
-    _kernel->handle_exception(current_exception());
+    bootstrap::initiate_shutdown();
   }
 }
 }

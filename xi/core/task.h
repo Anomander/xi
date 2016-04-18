@@ -13,6 +13,11 @@ namespace core {
     return t;
   }
 
+  template < class T, XI_REQUIRE_DECL(is_base_of<task, decay_t<T>>) >
+  auto make_task(T &&t) {
+    return t;
+  }
+
   template < class F, XI_UNLESS_DECL(is_base_of<task, decay_t<F>>) >
   auto make_task(F &&f) {
     struct delegate_task : public task {

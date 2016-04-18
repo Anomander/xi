@@ -14,12 +14,17 @@ namespace core {
 
   template < class U >
   future< U > make_ready_future(U &&value);
+
   template < class U >
   future< U > make_ready_future(future< U > &&value);
+
   future<> make_ready_future();
+
   future<> make_ready_future(meta::null);
+
   template < class U >
   future< U > make_ready_future(exception_ptr ex);
+
   future<> make_ready_future(exception_ptr ex);
 }
 }

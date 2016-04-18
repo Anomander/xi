@@ -1,6 +1,5 @@
-file(GLOB xi_hw_SRC "*.cpp")
-
-set(xi_SRC ${xi_SRC} ${xi_hw_SRC} PARENT_SCOPE)
+file(GLOB src "*.cpp")
+set(xi_src ${xi_src} ${src} PARENT_SCOPE)
 
 #add_library(xi-hw ${hw_SRC})
 #set(xi_hw_LIBRARIES)

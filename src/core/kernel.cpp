@@ -42,7 +42,7 @@ namespace core {
     assert(nullptr == _shards[id]);
     this_shard  = make_shard(id);
     _shards[id] = this_shard;
-    _shards[id]->start();
+    // _shards[id]->start();
   }
 
   void kernel::cleanup(u16 id) {
@@ -52,7 +52,8 @@ namespace core {
   }
 
   mut<shard> kernel::make_shard(u16 id) {
-    return new shard(this);
+    // return new shard(this);
+    return nullptr;
   }
 
   void kernel::initiate_shutdown() {

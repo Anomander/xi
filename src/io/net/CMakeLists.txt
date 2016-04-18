@@ -1,6 +1,5 @@
-file(GLOB xi_io_net_SRC "*.cpp")
-
-set(xi_io_SRC ${xi_io_SRC} ${xi_io_net_SRC} PARENT_SCOPE)
+file(GLOB src "*.cpp")
+set(xi_src ${xi_src} ${src} PARENT_SCOPE)
 
 register_test(socket_test xi)
 register_test(udp_socket_test xi)

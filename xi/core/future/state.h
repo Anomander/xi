@@ -3,6 +3,7 @@
 #include "xi/core/future/detail/callable_applier.h"
 #include "xi/core/future/detail/future_result.h"
 #include "xi/core/future/forward_definitions.h"
+#include "xi/core/shard.h"
 
 namespace xi {
 namespace core {

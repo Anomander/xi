@@ -1,7 +1,7 @@
-file(GLOB xi_io_pipes_SRC "*.cpp")
+file(GLOB src "*.cpp")
 
 add_subdirectory(detail)
 
-set(xi_io_SRC ${xi_io_SRC} ${xi_io_pipes_SRC} PARENT_SCOPE)
+set(xi_src ${xi_src} ${src} PARENT_SCOPE)
 
 register_test(pipes_test xi)

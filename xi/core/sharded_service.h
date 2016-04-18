@@ -6,14 +6,8 @@
 namespace xi {
 namespace core {
 
-  struct thread_local_service : public virtual ownership::unique {
-    virtual ~thread_local_service() = default;
-    virtual future<> start()        = 0;
-    virtual void stop()             = 0;
-  };
-
   template < class I >
-  class sharded_service : public thread_local_service {
+  class sharded_service : public virtual ownership::unique  {
     /// TODO: add concept check.
     static thread_local I *_local_impl;
 
@@ -28,7 +22,7 @@ namespace core {
     }
 
   public:
-    future<> start() override {
+    future<> start() {
       XI_SCOPE(failure) {
         _implementations.clear();
       };
@@ -50,7 +44,7 @@ namespace core {
       return _stop_promise.get_future();
     }
 
-    void stop() override {
+    void stop() {
       auto l = make_shared< latch >(_pool->size());
       l->await().then(
           [ impl = move(_implementations), p = move(_stop_promise) ]() mutable {

@@ -3,18 +3,17 @@
 #include "xi/ext/lockfree.h"
 #include "xi/core/reactor.h"
 #include "xi/core/task_queue.h"
-#include "xi/util/spin_lock.h"
 
 namespace xi {
 namespace core {
+
+  class message_bus;
+  class deferred_poller;
 
   struct alignas(64) poller : public virtual ownership::unique {
     virtual ~poller()                = default;
     virtual unsigned poll() noexcept = 0;
   };
-  class deferred_poller;
-
-  class kernel;
 
   class alignas(64) shard final {
     u16 _core_id = -1;
@@ -23,18 +22,21 @@ namespace core {
       lockfree::queue< task * > tasks{128};
     } _inbound;
 
+    class signals;
+
+    volatile bool _running = false;
     task_queue _task_queue;
-    mut<deferred_poller> _deferred_poller;
+    mut< deferred_poller > _deferred_poller;
+    mut< signals > _signals;
     vector< own< poller > > _pollers;
-    mut< core::reactor > _reactor;
-    mut< kernel > _kernel;
+    own< core::reactor > _reactor;
+    message_bus **_buses;
 
   public:
-    shard(mut< kernel >);
-    void start();
-    void attach_reactor(own< core::reactor >);
+    shard(u8, message_bus **);
+    void init();
+    void shutdown();
 
-  public:
     template < class F >
     void dispatch(F &&func);
     template < class F >
@@ -53,8 +55,14 @@ namespace core {
 
     mut< core::reactor > reactor();
 
+    u16 cpu() const;
+
   private:
-    void _push_task_to_inbound_queue(own< task >);
+    friend class bootstrap;
+    void run();
+
+  private:
+    void _push_task_to_inbound_queue(u16 cpu, own< task >);
     void _post_task(own< task >);
     void _handle_exception();
   };
@@ -62,7 +70,11 @@ namespace core {
   extern thread_local mut< shard > this_shard;
 
   inline mut< core::reactor > shard::reactor() {
-    return _reactor;
+    return edit(_reactor);
+  }
+
+  inline u16 shard::cpu() const {
+    return _core_id;
   }
 
   template < class F >
@@ -107,4 +119,6 @@ shard() {
   assert(core::this_shard);
   return core::this_shard;
 }
+
+mut< core::shard > shard_at(u16);
 }

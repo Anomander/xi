@@ -87,6 +87,9 @@ namespace io {
         return path();
       }
     };
+
+    using ip4_endpoint = endpoint<kInet>;
+    using unix_endpoint = endpoint<kUnix>;
   }
 }
 }

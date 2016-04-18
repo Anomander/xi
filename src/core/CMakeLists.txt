@@ -1,13 +1,13 @@
-file(GLOB xi_core_SRC "*.cpp")
+file(GLOB src "*.cpp")
 
 add_subdirectory(epoll)
 # add_subdirectory(libevent)
 add_subdirectory(memory)
 add_subdirectory(time)
 
-set(xi_SRC ${xi_SRC} ${xi_core_SRC} PARENT_SCOPE)
+set(xi_src ${xi_src} ${src} PARENT_SCOPE)
 
 register_test(future_test xi)
-register_test(kernel_test xi)
+# register_test(kernel_test xi)
 register_test(latch_test xi)
 register_test(task_queue_test xi)

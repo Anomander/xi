@@ -8,11 +8,16 @@ namespace xi {
 namespace core {
 
   template < class T, class F >
-  void defer(xi::core::async<T> * a, F &&f) {
-    if (!is_valid(a->shard())) {
+  void defer(async< T > *a, F &&f) {
+    if (!a || !is_valid(a->shard())) {
       throw std::logic_error("Invalid async object state.");
     }
-    a->shard()->post(forward< F >(f));
+    a->shard()->post(
+        make_task([ context = a->async_context(), f = move(f) ]() mutable {
+          if (auto lock = context.lock()) {
+            f();
+          }
+        }));
   }
 }
 }

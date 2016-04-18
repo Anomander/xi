@@ -2,7 +2,6 @@
 
 #include "xi/ext/configure.h"
 #include "xi/core/task.h"
-#include "xi/util/circular_buffer.h"
 
 namespace xi {
 namespace core {

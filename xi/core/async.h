@@ -9,7 +9,7 @@ namespace core {
 namespace core {
 
   template < class T >
-  class async {
+  class async : public virtual ownership::std_shared {
     mut< core::shard > _shard;
 
   protected:
@@ -23,6 +23,10 @@ namespace core {
     mut< core::shard > shard() {
       assert(is_valid(_shard));
       return _shard;
+    }
+
+    auto async_context() const {
+      return weak_ptr<const async<T>>(share(this));
     }
   };
 }

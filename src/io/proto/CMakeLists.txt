@@ -1,6 +1,6 @@
-file(GLOB xi_io_proto_SRC "*.cpp")
+file(GLOB src "*.cpp")
 
 add_subdirectory(http)
 add_subdirectory(http2)
 
-set(xi_io_SRC ${xi_io_SRC} ${xi_io_proto_SRC} PARENT_SCOPE)
+set(xi_src ${xi_src} ${src} PARENT_SCOPE)
