@@ -24,11 +24,11 @@ matrix:
     - os: linux
       addons:
         apt:
-          sources: ['kalakris-cmake', 'boost-latest', 'ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
-          packages: ['clang-3.8', 'cmake', 'libhwloc-dev', 'libstdc++-4.9-dev','libboost1.55-all-dev']
+          sources: ['kalakris-cmake', 'boost-latest', 'ubuntu-toolchain-r-test', 'llvm-toolchain-precise']
+          packages: ['clang-3.9', 'cmake', 'libhwloc-dev', 'libstdc++-5-dev','libboost1.55-all-dev']
       after_success:
         - make test
-      env: COMPILER=clang++-3.8
+      env: COMPILER=clang++-3.9
 
 script:
   - CXX=$COMPILER cmake . -DHWLOC=ON -DNUMA=OFF -DEMULATE_MADVISE=ON -DCMAKE_BUILD_TYPE=Debug
