@@ -70,7 +70,7 @@ namespace core {
     }
 
   public:
-    void run();
+    void run(function<void()> = nullptr);
 
     static u8 cpus() {
       return INSTANCE->_cpu_count;

@@ -27,8 +27,10 @@ inline namespace ext {
   using ::std::is_integral;
   using ::std::is_unsigned;
   using ::std::is_signed;
+  using ::std::is_enum;
   using ::std::has_virtual_destructor;
   using ::std::is_nothrow_destructible;
+  using ::std::is_convertible;
 
   using ::std::aligned_storage_t;
 

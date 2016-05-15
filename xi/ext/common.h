@@ -28,6 +28,7 @@ inline namespace ext {
   using ::std::forward;
 
   using ::std::function;
+  using ::std::bind;
 
   using ::std::map;
   using ::std::array;

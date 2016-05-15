@@ -1,1 +1,2 @@
 register_test(polymorphic_sp_sc_ring_buffer_test)
+register_test(result_test)

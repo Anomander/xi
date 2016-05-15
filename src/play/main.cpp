@@ -98,12 +98,12 @@ int
 main(int argc, char* argv[]) {
   server_bootstrap::create()
       .configure< core::boost_po_backend >(argc, argv)
-      .bind< net::tcp_acceptor_pipe >(19999,
+      .bind< net::tcp_acceptor_pipe >((argc > 2 ? atoi(argv[1]) : 19999),
                                       [](mut< net::tcp_acceptor_pipe > pipe) {
                                         pipe->set_pipe_factory(
                                             make< http2_pipe_factory >());
                                       })
-      .bind< net::udp_datagram_pipe >(19999,
+      .bind< net::udp_datagram_pipe >((argc > 2 ? atoi(argv[1]) : 19999),
                                       [](mut< net::udp_datagram_pipe > pipe) {
                                         pipe->push_back(make< range_echo >());
                                       })
@@ -125,5 +125,13 @@ main(int argc, char* argv[]) {
                     << "\nfree_memory : " << mstats.free_memory << std::endl;
         });
       })
-      .run();
+      .run([argc, argv] {
+        // std::cout << "I'm running!" << std::endl;
+        // auto conn = make< net::tcp_connector_pipe >();
+        // auto ep = net::ip4_endpoint(argc > 2 ? atoi(argv[1]) : 19999);
+        // std::cout << "ep: " << ep.to_string() << std::endl;
+        // conn->connect(move(ep)).then([](auto) {
+        //   std::cout << "Connected!" << std::endl;
+        // });
+      });
 }

@@ -32,25 +32,21 @@ namespace core {
     return _event && _event->is_active();
   }
 
-  void io_handler::handle(event_state state) {
-    if (state & kWrite) {
-      handle_write();
-    }
-
-    if (!is_active()) {
-      return;
-    }
-
+  void io_handler::handle(u16 state) {
     if (state & kRead) {
       handle_read();
     }
 
-    if (state & kClose) {
-      handle_close();
+    if (state & kWrite) {
+      handle_write();
     }
 
     if (state & kError) {
       handle_error();
+    }
+
+    if (state & kClose) {
+      handle_close();
     }
   }
 

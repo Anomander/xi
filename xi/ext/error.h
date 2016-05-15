@@ -15,6 +15,8 @@ inline namespace ext {
   using ::std::system_category;
   using ::std::generic_category;
 
+  using ::std::is_error_code_enum;
+
   namespace detail {
     class undefined_boost_error_category final : public error_category {
     public:

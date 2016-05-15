@@ -27,6 +27,7 @@ namespace io {
         using oob_inline  = bool_opt< SOL_SOCKET, SO_OOBINLINE >;
         using timestamp   = bool_opt< SOL_SOCKET, SO_TIMESTAMP >;
 
+        using error                = num_opt< SOL_SOCKET, SO_ERROR >;
         using priority             = num_opt< SOL_SOCKET, SO_PRIORITY >;
         using receive_buffer       = num_opt< SOL_SOCKET, SO_RCVBUF >;
         using receive_buffer_force = num_opt< SOL_SOCKET, SO_RCVBUFFORCE >;

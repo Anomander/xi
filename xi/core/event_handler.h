@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xi/ext/configure.h"
+#include "xi/ext/coroutine.h"
 #include "xi/core/async.h"
 #include "xi/core/event.h"
 
@@ -17,7 +18,7 @@ namespace core {
     virtual void detach_reactor();
     virtual bool is_active() const noexcept;
 
-    virtual void handle(event_state)                              = 0;
+    virtual void handle(u16 state)                                = 0;
     virtual opt< milliseconds > expected_timeout() const noexcept = 0;
     virtual event_state expected_state() const noexcept           = 0;
     virtual int descriptor() const noexcept                       = 0;
@@ -38,7 +39,7 @@ namespace core {
     virtual void handle_close() = 0;
     virtual void handle_error() = 0;
 
-    void handle(event_state) override;
+    void handle(u16 state) override;
     opt< milliseconds > expected_timeout() const noexcept override;
     int descriptor() const noexcept override {
       return _descriptor;
@@ -52,6 +53,28 @@ namespace core {
 
   private:
     int _descriptor = -1;
+  };
+
+  class coro_io_handler : public io_handler {
+    using coro_t = symmetric_coroutine< void >::call_type;
+
+    coro_t _routine;
+
+  public:
+    coro_io_handler(coro_t&& c) : _routine(move(c)) {
+    }
+    void handle_read() override {
+      _routine();
+    }
+    void handle_write() override {
+      _routine();
+    }
+    void handle_close() override {
+      _routine();
+    }
+    void handle_error() override {
+      _routine();
+    }
   };
 }
 }

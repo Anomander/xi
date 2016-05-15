@@ -1,6 +1,7 @@
 #pragma once
 
 #include "xi/ext/configure.h"
+#include "xi/ext/coroutine.h"
 #include "xi/io/buffer.h"
 #include "xi/io/error.h"
 #include "xi/io/net/endpoint.h"
@@ -22,16 +23,16 @@ namespace io {
     protected:
       i32 _descriptor = -1;
 
-    protected:
+    public:
+      using yield_t = symmetric_coroutine< void >::yield_type;
+
+      XI_CLASS_DEFAULTS(socket, no_copy);
+
       socket(i32 descriptor) : _descriptor(descriptor) {
         if (-1 == _descriptor) {
           throw system_error(error_from_errno());
         }
       }
-
-    public:
-      XI_CLASS_DEFAULTS(socket, no_copy);
-
       socket(socket &&);
       socket(i32 af, i32 socktype, i32 proto);
       virtual ~socket();
@@ -47,6 +48,8 @@ namespace io {
       expected< usize > readable_bytes();
 
       i32 native_handle() const;
+
+      expected< void > connect(posix_endpoint remote);
     };
 
     inline i32 socket::native_handle() const {
@@ -59,15 +62,29 @@ namespace io {
 
       expected< i32 > write(mut< buffer > b,
                             opt< posix_endpoint > remote = none) const;
+      expected< i32 > write(yield_t &yield,
+                            mut< buffer > b,
+                            opt< posix_endpoint > remote = none) const;
 
       expected< i32 > read(mut< buffer > b,
+                           opt< posix_endpoint > remote = none) const;
+      expected< i32 > read(yield_t &yield,
+                           mut< buffer > b,
                            opt< posix_endpoint > remote = none) const;
 
       expected< i32 > write_iov(struct iovec *iov,
                                 usize iov_len,
                                 opt< posix_endpoint > remote = none) const;
+      expected< i32 > write_iov(yield_t &yield,
+                                struct iovec *iov,
+                                usize iov_len,
+                                opt< posix_endpoint > remote = none) const;
 
       expected< i32 > read_iov(struct iovec *iov,
+                               usize iov_len,
+                               opt< posix_endpoint > remote = none) const;
+      expected< i32 > read_iov(yield_t &yield,
+                               struct iovec *iov,
                                usize iov_len,
                                opt< posix_endpoint > remote = none) const;
     };
@@ -128,6 +145,11 @@ namespace io {
         this->set_child_options_list(
             initializer_list< option_t >{make_tuple_from_option(options)...});
       }
+    };
+
+    struct connecting_socket {
+    public:
+      connecting_socket(i32 desc);
     };
 
     template < class O >

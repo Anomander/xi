@@ -5,13 +5,13 @@
 namespace xi {
 namespace core {
 
-  enum event_state : short {
+  enum event_state : u16 {
     kNone      = 0,
     kRead      = 1,
-    kWrite     = 1 >> 1,
-    kTimeout   = 1 >> 2,
-    kClose     = 1 >> 3,
-    kError     = 1 >> 4,
+    kWrite     = 1 << 1,
+    kTimeout   = 1 << 2,
+    kClose     = 1 << 3,
+    kError     = 1 << 4,
     kReadWrite = kRead | kWrite,
   };
 

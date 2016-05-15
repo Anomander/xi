@@ -1,14 +1,17 @@
 #pragma once
 
 #include "xi/ext/configure.h"
+#include "xi/ext/coroutine.h"
 #include "xi/core/async_defer.h"
 #include "xi/core/bootstrap.h"
 #include "xi/core/event_handler.h"
+#include "xi/core/future.h"
 #include "xi/io/basic_buffer_allocator.h"
 #include "xi/io/buffer.h"
 #include "xi/io/buffer_allocator.h"
 #include "xi/io/channel_interface.h"
 #include "xi/io/error.h"
+#include "xi/io/net/channel_options.h"
 #include "xi/io/net/endpoint.h"
 #include "xi/io/net/enumerations.h"
 #include "xi/io/net/socket.h"
@@ -29,6 +32,60 @@ namespace io {
 
     using socket_pipe_base =
         pipes::pipe< socket_event, pipes::in< error_code > >;
+
+    template < address_family af, socket_type sock, protocol proto = kNone >
+    class coro_socket : public xi::core::coro_io_handler,
+                        public channel_interface,
+                        public socket_pipe_base {
+      own< fragment_allocator > _alloc = make< simple_fragment_allocator >();
+      class data_sink;
+
+    public:
+      coro_socket()
+          : coro_io_handler([this](auto&& yield) { run(yield); })
+          , socket_pipe_base(this) {
+      }
+
+    private:
+      void run(symmetric_coroutine< void >::yield_type& yield) {
+        this->push_back(make< data_sink >(yield));
+        for (;;) {
+          this->read(socket_event::kReadable);
+        }
+      }
+    };
+
+    template < address_family af, socket_type sock, protocol proto >
+    class coro_socket< af, sock, proto >::data_sink
+        : public pipes::context_aware_filter< own< buffer > > {
+      using channel = coro_socket< af, sock, proto >;
+
+      symmetric_coroutine< void >::yield_type& _yield;
+      mut<channel> _pipe;
+
+    public:
+      data_sink(mut<channel> c, symmetric_coroutine< void >::yield_type& yield)
+        : _yield(yield), _pipe(c) {
+      }
+
+      void write(mut< context > cx, own< buffer > b) override {
+        while (!b->empty()) {
+          auto ret = _pipe->write_buffer(edit(b));
+          if (XI_UNLIKELY(ret.has_error())) {
+            auto error = ret.error();
+            if (error == error::kRetry) {
+              _pipe->expect_write(true);
+              _yield();
+            } else {
+              close = true;
+              if (XI_UNLIKELY(error != error::kEOF)) {
+                cx->forward_read(error);
+              }
+            }
+          }
+        }
+      }
+    };
 
     template < address_family af, socket_type sock, protocol proto = kNone >
     class socket_base : public xi::core::io_handler,
@@ -309,12 +366,13 @@ namespace io {
     template < address_family af, protocol proto = kNone >
     using pipe_acceptor_base =
         pipes::pipe< pipes::in< error_code >,
-                     pipes::in< exception_ptr > >;
+                     pipes::in< exception_ptr >,
+                     pipes::in< mut< client_pipe< af, proto > > > >;
 
     template < address_family af, protocol proto = kNone >
     class acceptor_pipe final : public xi::core::io_handler,
                                 public stream_server_socket,
-                                public pipe_acceptor_base<af, proto>,
+                                public pipe_acceptor_base< af, proto >,
                                 public virtual ownership::std_shared {
       using endpoint_type    = endpoint< af >;
       using client_pipe_type = client_pipe< af, proto >;
@@ -365,19 +423,146 @@ namespace io {
             static u16 run_on = 0;
             run_on            = (run_on + 1) % core::bootstrap::cpus();
             shard_at(run_on)->dispatch(
-                [ s = move(socket), factory = _pipe_factory ]() mutable {
+                [ this, s = move(socket), factory = _pipe_factory ]() mutable {
                   own< client_pipe_type > ch;
                   if (is_valid(factory)) {
                     ch = factory->create_pipe(move(s));
                   } else {
                     ch = make< client_pipe_type >(move(s));
                   }
+                  auto mut_ch = edit(ch);
                   xi::shard()->reactor()->attach_handler(move(ch));
+                  defer(this, [mut_ch, this] { this->read(mut_ch); });
                 });
           } catch (...) {
             this->read(current_exception());
           }
         }
+      }
+    };
+
+    template < address_family af, protocol proto = kNone >
+    using pipe_connector_base =
+        pipes::pipe< pipes::in< error_code >,
+                     pipes::in< exception_ptr >,
+                     pipes::in< mut< client_pipe< af, proto > > > >;
+
+    template < address_family af, protocol proto = kNone >
+    class connector_pipe final : public pipe_connector_base< af, proto >,
+                                 public virtual ownership::std_shared {
+      using endpoint_type    = endpoint< af >;
+      using client_pipe_type = client_pipe< af, proto >;
+
+      struct connecting_socket : public core::io_handler, socket {
+        core::promise< expected< i32 > > _future_descriptor;
+
+        connecting_socket() : socket(af, kStream, proto) {
+          xi::core::io_handler::descriptor(native_handle());
+        };
+
+        core::event_state expected_state() const noexcept final override {
+          return core::kWrite;
+        }
+
+        core::future< expected< i32 > > connect(endpoint_type ep) {
+          std::cout << "Connecting to " << ep.to_string() << std::endl;
+          auto ret = socket::connect(ep.to_posix());
+          if (ret.has_error()) {
+            auto error = ret.error();
+            if (error == io::error::kRetry) {
+              std::cout << "Expecting write" << std::endl;
+              expect_write(true);
+              return _future_descriptor.get_future();
+            }
+            std::cout << "Connection error: " << ret.error().message()
+                      << std::endl;
+            XI_SCOPE(exit) {
+              close();
+            };
+            return core::make_ready_future(expected< i32 >(ret.error()));
+          }
+          auto desc                 = native_handle();
+          this->socket::_descriptor = -1;
+          io_handler::cancel();
+          return core::make_ready_future(expected< i32 >(desc));
+        }
+
+      private:
+        void close() {
+          io_handler::cancel();
+          socket::close();
+        }
+
+        void handle_write() final override {
+          std::cout << __PRETTY_FUNCTION__ << std::endl;
+          auto err = get_option< net::option::socket::error >();
+          if (err.value() == 0) {
+            _future_descriptor.set(native_handle());
+            socket::_descriptor = -1;
+            io_handler::cancel();
+          } else {
+            std::cout << "Connection error: " << err.value() << std::endl;
+            _future_descriptor.set(error_from_value(err.value()));
+            close(); // TODO: handle socket errors
+          }
+        }
+
+        void handle_read() final override {
+          std::cout << __PRETTY_FUNCTION__ << std::endl;
+        }
+
+        void handle_error() final override {
+          std::cout << __PRETTY_FUNCTION__ << std::endl;
+          close(); // TODO: handle socket errors
+        }
+
+        void handle_close() final override {
+          std::cout << __PRETTY_FUNCTION__ << std::endl;
+          close();
+        }
+      };
+
+      own< pipe_factory< af, proto > > _pipe_factory;
+
+    public:
+      connector_pipe() : pipe_connector_base< af, proto >(nullptr) {
+      }
+
+      void set_pipe_factory(own< pipe_factory< af, proto > > f) {
+        _pipe_factory = move(f);
+      }
+
+      core::future< mut< client_pipe_type > > connect(endpoint_type ep) {
+        auto promise =
+            make_shared< core::promise< mut< client_pipe_type > > >();
+        auto s     = make< connecting_socket >();
+        auto mut_s = edit(s);
+        xi::shard()->reactor()->attach_handler(move(s));
+        auto fut = promise->get_future();
+        mut_s->connect(ep).then([ this,
+                                  p = move(promise) ](expected< i32 > ret) {
+          if (XI_UNLIKELY(ret.has_error())) {
+            // TODO: Handle error
+          } else {
+            std::cout << "Ret " << ret << std::endl;
+            static u16 run_on = 0;
+            run_on            = (run_on + 1) % core::bootstrap::cpus();
+            std::cout << "Will run on " << run_on << std::endl;
+            shard_at(run_on)->dispatch(
+                [ this, s = ret, p = move(p) ]() mutable {
+                  own< client_pipe_type > ch;
+                  if (is_valid(_pipe_factory)) {
+                    ch = _pipe_factory->create_pipe(stream_client_socket(s));
+                  } else {
+                    ch = make< client_pipe_type >(stream_client_socket(s));
+                  }
+                  auto mut_ch = edit(ch);
+                  xi::shard()->reactor()->attach_handler(move(ch));
+                  p->set(mut_ch);
+                });
+          }
+        });
+        return fut;
       }
     };
 
@@ -388,6 +573,7 @@ namespace io {
     using unix_datagram_pipe = datagram_pipe< kUnix >;
     using tcp_acceptor_pipe  = acceptor_pipe< kInet, kTCP >;
     using unix_acceptor_pipe = acceptor_pipe< kUnix >;
+    using tcp_connector_pipe = connector_pipe< kInet, kTCP >;
   }
 }
 }

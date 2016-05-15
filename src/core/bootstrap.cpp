@@ -20,8 +20,11 @@ namespace core {
 
   bootstrap* bootstrap::INSTANCE = nullptr;
 
-  void bootstrap::run() {
+  void bootstrap::run(function< void() > r) {
     _shards[0]->_signals->handle(SIGINT, [] { initiate_shutdown(); });
+    if (r) {
+      _shards[0]->post(move(r));
+    }
     _run_shard();
     _launcher.join_all();
   }

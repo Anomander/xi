@@ -35,6 +35,10 @@ namespace core {
       epoll_event ev[256];
       auto n = ::epoll_wait(_epoll_descriptor, ev, 256, blocking ? -1 : 0);
       for (auto i : range::to(n)) {
+        // std::cout << "Event active " << ev[i].data.fd
+        //           << " handler " << ev[i].data.ptr
+        //           << " flags " << ev[i].events
+        //           << std::endl;
         event_callback(ev[i].data.fd, ev[i].events, ev[i].data.ptr);
       }
     }
@@ -51,6 +55,10 @@ namespace core {
     void event_loop::arm_event(i32 desc,
                                event_state state,
                                mut< xi::core::event_handler > h) {
+      // std::cout << "Event added " << desc
+      //           << " handler " << h
+      //           << " flags " << detail::event_state_to_short(state)
+      //           << std::endl;
       epoll_ctl(_epoll_descriptor,
                 EPOLL_CTL_ADD,
                 desc,

@@ -53,6 +53,7 @@
 #include "xi/ext/configure.h"
 #include "xi/ext/error.h"
 
+#define DEFAULT_ALLOCATOR
 #ifndef DEFAULT_ALLOCATOR
 
 #ifdef XI_HAS_NUMA

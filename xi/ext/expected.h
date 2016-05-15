@@ -91,7 +91,7 @@ inline namespace ext {
     template < class F >
     struct expected_from_return< void, F, result_of_t< F() > > {
       using type = expected< result_of_t< F() > >;
-      static expected< result_of_t< F() > > create(expected< void > const &val,
+      static expected< result_of_t< F() > > create(expected< void > const &,
                                                    F &f) {
         return f();
       }

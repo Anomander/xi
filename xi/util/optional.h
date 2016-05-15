@@ -1,5 +1,6 @@
 #pragma once
 
+#include "xi/ext/class_semantics.h"
 #include "xi/ext/scope.h"
 #include "xi/ext/string.h"
 #include "xi/ext/variant.h"
@@ -27,6 +28,10 @@ inline namespace ext {
     struct optional_of< optional< T > > {
       using type = optional< T >;
     };
+    template <>
+    struct optional_of< void > {
+      using type = optional< meta::null >;
+    };
   }
 
   template < class T >
@@ -41,11 +46,8 @@ inline namespace ext {
     variant_t _value = none;
 
   public:
-    optional()                      = default;
-    optional(optional< T > const &) = default;
-    optional(optional< T > &&)      = default;
-    optional &operator=(optional< T > const &) = default;
-    optional &operator=(optional< T > &&) = default;
+    XI_CLASS_DEFAULTS(optional, ctor, copy, move);
+
     explicit optional(T value) : _value(move(value)) {
     }
     optional(none_t) : _value(none) {
@@ -54,6 +56,7 @@ inline namespace ext {
     bool is_none() const {
       return (nullptr != ext::get< none_t >(&_value));
     }
+
     bool is_some() const {
       return (!is_none());
     }

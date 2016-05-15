@@ -7,6 +7,7 @@
 #include "xi/ext/chrono.h"
 #include "xi/ext/class_semantics.h"
 #include "xi/ext/common.h"
+#include "xi/ext/concept.h"
 #include "xi/ext/container.h"
 #include "xi/ext/error.h"
 #include "xi/ext/exception.h"

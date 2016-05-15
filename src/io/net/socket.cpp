@@ -45,7 +45,8 @@ namespace io {
         return {};
       }
       std::cout << "Closing socket " << _descriptor << std::endl;
-      auto ret = ::close(_descriptor);
+      auto ret    = ::close(_descriptor);
+      _descriptor = -1;
       if (-1 == ret) {
         return error_from_errno();
       }
@@ -58,6 +59,17 @@ namespace io {
         return error_from_errno();
       }
       return socket{ret};
+    }
+
+    expected< void > socket::connect(posix_endpoint remote) {
+      auto ret = ::connect(_descriptor, remote.addr, remote.length);
+      if (XI_UNLIKELY(-1 == ret)) {
+        if (XI_LIKELY(EINPROGRESS == errno)) {
+          return error_code{io::error::kRetry};
+        }
+        return error_from_errno();
+      }
+      return {};
     }
 
     void bindable_socket_adapter::bind(posix_endpoint local) {
@@ -87,11 +99,11 @@ namespace io {
       }
       for (auto &&o : _child_options) {
         auto res = posix_to_expected(setsockopt,
-                          retval,
-                          get< 0 >(o),
-                          get< 1 >(o),
-                          &get< 2 >(o),
-                          get< 3 >(o));
+                                     retval,
+                                     get< 0 >(o),
+                                     get< 1 >(o),
+                                     &get< 2 >(o),
+                                     get< 3 >(o));
         if (res.has_error()) {
           return res.error();
         }
@@ -104,8 +116,19 @@ namespace io {
       _child_options.insert(end(_child_options), options);
     }
 
-    expected< i32 > data_socket::write_iov(struct iovec *iov,
+    expected< i32 > data_socket::write_iov(yield_t &yield,
+                                           struct iovec *iov,
                                            usize iov_len,
+                                           opt< posix_endpoint > remote) const {
+      while (true) {
+        auto r = write_iov(iov, iov_len, move(remote));
+        if (r.has_error() && r.error() != io::error::kRetry) {
+          return r;
+        }
+      }
+    }
+
+    expected< i32 > data_socket::write_iov(struct iovec *iov, usize iov_len,
                                            opt< posix_endpoint > remote) const {
       if (0 == iov_len) {
         return 0;

@@ -20,19 +20,19 @@ namespace core {
         return result;
       }
 
-      inline event_state short_to_event_state(i32 state) noexcept {
-        event_state result = kNone;
+      inline u16 short_to_event_state(i32 state) noexcept {
+        u16 result = kNone;
         if (state & EPOLLOUT) {
-          result = (event_state)(result | kWrite);
+          result |= kWrite;
         }
         if (state & EPOLLIN) {
-          result = (event_state)(result | kRead);
+          result |= kRead;
         }
         if (state & EPOLLRDHUP) {
-          result = (event_state)(result | kClose);
+          result |= kClose;
         }
         if (state & (EPOLLHUP | EPOLLERR)) {
-          result = (event_state)(result | kError);
+          result |= kError;
         }
 
         return result;

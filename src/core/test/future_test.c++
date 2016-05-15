@@ -331,12 +331,11 @@ TEST(continuation, future_from_continuation_is_unwrapped_Exception_Promise) {
 }
 
 TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
-  auto k    = make< test::mock_kernel >();
+  auto k = make< test::mock_kernel >();
 
-  int i = 0;
-  auto r =
-      make_ready_future(42).then(k->shard_for_core(test::kCurrentThread),
-                                 [&i](int j) { i = j * j; });
+  int i  = 0;
+  auto r = make_ready_future(42).then(k->shard_for_core(test::kCurrentThread),
+                                      [&i](int j) { i = j * j; });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.is_ready());
@@ -357,7 +356,7 @@ TEST(executable_test, async_continuation_launches_asynchronously_Ready_future) {
 
 TEST(executable_test,
      async_continuation_launches_asynchronously_Ready_promise) {
-  auto k    = make< test::mock_kernel >();
+  auto k = make< test::mock_kernel >();
 
   int i = 0;
   promise< int > p;
@@ -380,7 +379,7 @@ TEST(executable_test,
 
 TEST(executable_test,
      async_continuation_launches_asynchronously_Promise_set_value) {
-  auto k    = make< test::mock_kernel >();
+  auto k = make< test::mock_kernel >();
 
   int i = 0;
   promise< int > p;
@@ -400,12 +399,11 @@ TEST(executable_test,
 }
 
 TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
-  auto k    = make< test::mock_kernel >();
+  auto k = make< test::mock_kernel >();
 
-  int i = 0;
-  auto r =
-      make_ready_future(42).then(k->shard_for_core(test::kCurrentThread),
-                                 [&i](int j) { throw std::exception(); });
+  int i  = 0;
+  auto r = make_ready_future(42).then(k->shard_for_core(test::kCurrentThread),
+                                      [&i](int j) { throw std::exception(); });
 
   ASSERT_EQ(0, i);
   ASSERT_FALSE(r.is_ready());
@@ -420,7 +418,7 @@ TEST(executable_test, async_continuation_propagates_exceptions_Ready_promise) {
 
 TEST(executable_test,
      async_continuation_propagates_exceptions_Promise_set_value) {
-  auto k    = make< test::mock_kernel >();
+  auto k = make< test::mock_kernel >();
 
   int i = 0;
   promise< int > p;
@@ -440,7 +438,7 @@ TEST(executable_test,
 }
 
 TEST(executable_test, async_promise_set_value_Propagates_value) {
-  auto k    = make< test::mock_kernel >();
+  auto k = make< test::mock_kernel >();
 
   int i = 0;
   promise< int > p;
@@ -460,7 +458,7 @@ TEST(executable_test, async_promise_set_value_Propagates_value) {
 }
 
 TEST(executable_test, async_promise_set_value_Propagates_exception) {
-  auto k    = make< test::mock_kernel >();
+  auto k = make< test::mock_kernel >();
 
   int i = 0;
   promise< int > p;
