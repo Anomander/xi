@@ -105,7 +105,7 @@ namespace core {
         }
         // neither receivers, nor space in buffer are available,
         // must block until it frees up
-        auto self = runtime.coordinator().current_thread_resumable();
+        auto self = runtime.local_worker().current_resumable();
         _blocked_senders.push_back(self);
         lock.unlock();
         self->block();
@@ -118,7 +118,7 @@ namespace core {
         maybe_fill();
         return; // received from buffer
       }
-      auto self = runtime.coordinator().current_thread_resumable();
+      auto self = runtime.local_worker().current_resumable();
       _blocked_receivers.push_back({value, self});
       maybe_fill();
       lock.unlock();

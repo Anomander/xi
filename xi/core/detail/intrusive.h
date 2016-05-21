@@ -6,12 +6,12 @@
 namespace xi {
 namespace core {
   namespace detail {
-    using block_queue_type =
-      intrusive::list< resumable,
-                       intrusive::member_hook< resumable,
-                                               block_hook_type,
-                                               &resumable::block_hook >,
-                       intrusive::constant_time_size< false > >;
+    // using block_queue_type =
+    //   intrusive::list< resumable,
+    //                    intrusive::member_hook< resumable,
+    //                                            block_hook_type,
+    //                                            &resumable::block_hook >,
+    //                    intrusive::constant_time_size< false > >;
 
     using ready_queue_type =
         intrusive::list< resumable,

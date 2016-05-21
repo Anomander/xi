@@ -316,7 +316,7 @@ public:
     while (s < size) {
       auto ret = read_some(p, size - s);
       if (ret.is_error()) {
-        return ret;
+        return move(ret);
       }
       auto r = ret.unwrap();
       p += r;
@@ -331,7 +331,7 @@ public:
     while (s < size) {
       auto ret = write_some(p, size - s);
       if (ret.is_error()) {
-        return ret;
+        return move(ret);
       }
       auto r = ret.unwrap();
       p += r;
@@ -417,7 +417,7 @@ class resumable_fd {
 
 protected:
   resumable_fd(i32 fd, core::resumable* p) : _fd(fd), _process(p) {
-    _reactor = core::runtime.coordinator().attach_pollable(_process, _fd);
+    _reactor = core::runtime.local_worker().attach_pollable(_process, _fd);
   }
 
   ~resumable_fd() {
@@ -486,7 +486,7 @@ protected:
     while (s < size) {
       auto ret = write_some(p, size - s);
       if (ret.is_error()) {
-        return ret;
+        return move(ret);
       }
       auto r = ret.unwrap();
       p += r;
@@ -505,7 +505,7 @@ struct channel2 : public resumable_fd, public core::generic_resumable {
     std::vector< char > data(4 << 12);
     for (;;) {
       auto r = read_some(data.data(), data.size()).then([&](int size) {
-        return write_some(data.data(), size);
+        return write_exactly(data.data(), size);
       });
       if (r.is_error()) {
         break;
@@ -522,7 +522,7 @@ namespace core {
   void spawn(Args&&... args) {
     auto& coordinator = runtime.coordinator();
     auto maker        = [](Args&&... args) {
-      runtime.coordinator().schedule(new F(forward< Args >(args)...));
+      runtime.local_worker().spawn_resumable< F >(forward< Args >(args)...);
     };
     // coordinator.schedule(new F(forward< Args >(args)...));
     coordinator.schedule(make_lambda_blocking_resumable(
@@ -564,7 +564,9 @@ struct acceptor2 : public core::generic_resumable, public resumable_fd {
         int sock = ::accept4(
             fd(), (sockaddr*)&addr, &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
         if (sock < 0) {
-          if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          printf("Sock: %d\n", sock);
+          printf("Errno: %d\n", errno);
+          if (errno == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
             break;
           }
           perror("accept");
@@ -588,16 +590,16 @@ public:
 };
 
 class ping_resumable : public core::generic_resumable {
-  xi::core::channel< unique_ptr<foo> > _ch;
+  xi::core::channel< unique_ptr< foo > > _ch;
 
 public:
-  ping_resumable(xi::core::channel< unique_ptr<foo> > ch) : _ch(move(ch)) {
+  ping_resumable(xi::core::channel< unique_ptr< foo > > ch) : _ch(move(ch)) {
   }
 
 protected:
   void call() {
     for (;;) {
-      _ch.send(make_unique<foo>());
+      _ch.send(make_unique< foo >());
       printf("Ping got %p.\n", _ch.recv().get());
       sleep_for(1s);
     }
@@ -605,17 +607,17 @@ protected:
 };
 
 class pong_resumable : public core::generic_resumable {
-  xi::core::channel< unique_ptr<foo> > _ch;
+  xi::core::channel< unique_ptr< foo > > _ch;
 
 public:
-  pong_resumable(xi::core::channel< unique_ptr<foo> > ch) : _ch(move(ch)) {
+  pong_resumable(xi::core::channel< unique_ptr< foo > > ch) : _ch(move(ch)) {
   }
 
 protected:
   void call() {
-    for (auto && i : _ch) {
+    for (auto&& i : _ch) {
       printf("Pong got %p.\n", i.get());
-      _ch.send(make_unique<foo>());
+      _ch.send(make_unique< foo >());
       // sleep_for(1s);
     }
   }

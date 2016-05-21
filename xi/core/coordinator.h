@@ -65,6 +65,7 @@ namespace core {
       for (auto cpu : range::to(cores)) {
         _threads.emplace_back([this, cpu] {
           auto w = this->policy.start_worker(this);
+          runtime.current_worker = w;
           // printf("Pinning thread %p to core %d.\n", pthread_self(), cpu);
           pin(cpu);
           _barrier->wait();
@@ -82,53 +83,9 @@ namespace core {
       }
     }
 
-    execution_context* current_thread_worker() override {
-      return this->policy.current_worker(this);
-    }
-
-    resumable* current_thread_resumable() override {
-      auto w = this->policy.current_worker(this);
-      // printf("Worker for thread %p is %p.\n", pthread_self(), w);
-      assert(w != nullptr);
-      return w->current_resumable();
-    }
-
-    void attach_resumable(resumable* r) override {
-      // assert(COORDINATOR == this);
-      auto w = this->policy.current_worker(this);
-      assert(w != nullptr);
-      w->attach_resumable(r);
-    }
-
-    void detach_resumable(resumable* r) override {
-      // assert(COORDINATOR == this);
-      auto w = this->policy.current_worker(this);
-      assert(w != nullptr);
-      w->detach_resumable(r);
-    }
-
-    abstract_reactor* attach_pollable(resumable* r, i32 poll) override {
-      // assert(COORDINATOR == this);
-      auto w = this->policy.current_worker(this);
-      assert(w != nullptr);
-      return w->attach_pollable(r, poll);
-    }
-
-    void detach_pollable(resumable* r, i32 poll) override {
-      // assert(COORDINATOR == this);
-      auto w = this->policy.current_worker(this);
-      assert(w != nullptr);
-      w->detach_pollable(r, poll);
-    }
     void schedule(resumable* r) override {
       // assert(COORDINATOR == this);
       this->policy.central_schedule(this, r);
-    }
-    void sleep_for(resumable* r, milliseconds ms) override {
-      // assert(COORDINATOR == this);
-      auto w = this->policy.current_worker(this);
-      assert(w != nullptr);
-      w->sleep_for(r, ms);
     }
   };
 }

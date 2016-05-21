@@ -14,6 +14,7 @@ set(COVERAGE_SRCS "${COVERAGE_SRCS}" "${xi_src}" CACHE STRING "" FORCE)
 if (HWLOC)
   target_link_libraries(xi hwloc)
 endif ()
+target_link_libraries(xi rt)
 
 # play test
 add_subdirectory (play)

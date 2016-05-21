@@ -4,7 +4,7 @@
 
 namespace xi {
 namespace core {
-  class execution_context;
+  class abstract_worker;
 
   namespace detail {
     using ready_hook_type = intrusive::list_member_hook<
@@ -18,7 +18,7 @@ namespace core {
   }
 
   class resumable {
-    execution_context* _executor          = nullptr;
+    abstract_worker* _worker              = nullptr;
     steady_clock::time_point _wakeup_time = steady_clock::time_point::max();
 
   public:
@@ -29,7 +29,6 @@ namespace core {
     };
 
     detail::ready_hook_type ready_hook;
-    detail::block_hook_type block_hook;
     detail::sleep_hook_type sleep_hook;
 
     enum resume_result {
@@ -40,11 +39,11 @@ namespace core {
 
     XI_CLASS_DEFAULTS(resumable, no_move, no_copy, virtual_dtor, ctor);
 
-    virtual resume_result resume() = 0;
+    virtual resume_result resume()    = 0;
     virtual void yield(resume_result) = 0;
 
-    virtual void attach_executor(execution_context* e);
-    virtual void detach_executor(execution_context* e);
+    virtual void attach_executor(abstract_worker* e);
+    virtual void detach_executor(abstract_worker* e);
     virtual void unblock();
     virtual void block();
 

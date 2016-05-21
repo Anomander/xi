@@ -7,9 +7,12 @@ namespace xi {
 namespace core {
 
   class generic_resumable : public resumable {
-    using coro_t  = symmetric_coroutine< void >::call_type;
-    using yield_t = symmetric_coroutine< void >::yield_type;
+    using coro_t    = symmetric_coroutine< void >::call_type;
+    using yield_t   = symmetric_coroutine< void >::yield_type;
+    using context_t = ext::execution_context;
 
+    // context_t _yield_ctx;
+    // context_t _my_ctx;
     coro_t _coro;
     yield_t* _yield       = nullptr;
     resume_result _result = resume_later;
@@ -24,6 +27,15 @@ namespace core {
       return _result;
     }
 
+    // resume_result resume() final override {
+    //   printf("Resuming from %p.\n", pthread_self());
+    //   if (!_is_running) {
+    //     _is_running = true;
+    //     return *reinterpret_cast< resume_result* >(_my_ctx());
+    //   }
+    //   return resume_later;
+    // }
+
     void yield(resume_result result) final override {
       if (_is_running) {
         _is_running = false;
@@ -32,10 +44,27 @@ namespace core {
       }
     }
 
+    // void yield(resume_result result) final override {
+    //   if (_is_running) {
+    //     _is_running = false;
+    //     _result     = result;
+    //     _yield_ctx(&_result);
+    //   }
+    // }
+
     virtual void call() = 0;
 
     generic_resumable()
-        : _coro(
+        :
+      // _yield_ctx(context_t::current())
+      //   , _my_ctx([this](void*) {
+      //     _is_running = true;
+      //     call();
+      //     _result = done;
+      //     _yield_ctx(&_result);
+      //   })
+        // ,
+      _coro(
               [this](yield_t& y) {
                 _yield      = &y;
                 _is_running = true;
@@ -44,7 +73,8 @@ namespace core {
               },
               attributes(),
               standard_stack_allocator()) {
-      printf("%s %p\n", __PRETTY_FUNCTION__, this);
+      // printf("Created in %p : %p.\n", pthread_self(), this);
+      // printf("%s %p\n", __PRETTY_FUNCTION__, this);
     }
 
     ~generic_resumable() {

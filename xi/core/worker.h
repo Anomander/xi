@@ -1,6 +1,6 @@
 #pragma once
 
-#include "xi/core/execution_context.h"
+#include "xi/core/abstract_worker.h"
 #include "xi/core/policy/access.h"
 #include "xi/core/resumable.h"
 #include "xi/core/runtime.h"
@@ -10,7 +10,7 @@ namespace core {
 
   template < class Policy >
   class worker final : public policy::worker_access< Policy >,
-                       public execution_context {
+                       public abstract_worker {
     thread _thread;
     resumable* _current_task;
 
@@ -32,27 +32,32 @@ namespace core {
     }
 
     void schedule(resumable* r) override {
-      if (runtime.coordinator().current_thread_worker() == this) {
+      if (&runtime.local_worker() == this) {
         this->policy.push_internally(this, r);
       } else {
         this->policy.push_externally(this, r);
       }
     }
 
+    void schedule_locally(resumable* r) override {
+      this->policy.push_internally(this, r);
+    }
+
     void sleep_for(resumable* r, milliseconds ms) final override {
       this->policy.sleep_for(this, r, ms);
     }
 
-    resumable* current_resumable() {
+    resumable* current_resumable() override {
       return _current_task;
+    }
+
+    void destroy(resumable* r) {
+      detach_resumable(r);
+      delete r;
     }
 
   public:
     void run() {
-      assert(WORKER == nullptr);
-      WORKER = this;
-      assert(WORKER == this);
-
       for (;;) {
         _current_task = this->policy.pop(this);
         this->policy.begin_task(this, _current_task);
@@ -63,7 +68,7 @@ namespace core {
 
         switch (result) {
           case resumable::done:
-            this->policy.destroy(_current_task);
+            this->destroy(_current_task);
             break;
           case resumable::blocked:
             break;

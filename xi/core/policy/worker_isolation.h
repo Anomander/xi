@@ -21,20 +21,20 @@ namespace core {
         return time_point_type::max();
       }
 
-      static milliseconds max_duration() noexcept {
-        return duration_cast< milliseconds >(max() - now());
+      static nanoseconds max_duration() noexcept {
+        return (max() - now());
       }
 
-      static milliseconds duration_till(time_point_type tp) noexcept {
-        return duration_cast< milliseconds >(tp - steady_clock::now());
+      static nanoseconds duration_till(time_point_type tp) noexcept {
+        return (tp - steady_clock::now());
       }
 
       static time_point_type now() noexcept {
         return steady_clock::now();
       }
 
-      static time_point_type now_plus(milliseconds ms) noexcept {
-        return steady_clock::now() + ms;
+      static time_point_type now_plus(nanoseconds ns) noexcept {
+        return steady_clock::now() + ns;
       }
     };
 
@@ -83,35 +83,13 @@ namespace core {
       resumable* pop(worker_access_t* w) {
         auto& data = w->data();
         for (;;) {
-          data.external_queue.consume_all(
-              [&](resumable* r) { data.ready_queue.push_back(*r); });
-          auto now = data.time.now() + 100us;
-          if (now >= data.next_wakeup) {
-            auto i   = data.sleep_queue.begin();
-            auto end = data.sleep_queue.end();
-            for (; i != end;) {
-              if (XI_LIKELY(i->wakeup_time() <= now)) {
-                auto r = &(*i);
-                i      = data.sleep_queue.erase(i);
-                push_internally(w, r);
-              } else {
-                data.next_wakeup = i->wakeup_time();
-                break;
-              }
-            }
-            if (i == end) {
-              data.next_wakeup = data.time.max();
-            }
-          }
-          auto sleep_for = data.ready_queue.empty()
-                               ? data.time.duration_till(data.next_wakeup)
-                               : (0ms);
-          data.reactor.poll_for(sleep_for);
+          _drain_external_queue(w);
+          _drain_sleep_queue(w);
+          _poll_reactor(w);
           if (XI_LIKELY(!data.ready_queue.empty())) {
-            XI_SCOPE(exit) {
-              return data.ready_queue.pop_front();
-            };
-            return &data.ready_queue.front();
+            auto r = &data.ready_queue.front();
+            r->ready_unlink();
+            return r;
           }
         }
       }
@@ -131,9 +109,7 @@ namespace core {
       }
 
       void push_internally(worker_access_t* w, resumable* r) {
-        if (r->is_sleep_linked()) {
-          r->sleep_unlink();
-        }
+        r->sleep_unlink();
         w->data().ready_queue.push_back(*r);
       }
 
@@ -155,15 +131,10 @@ namespace core {
         w->data().reactor.maybe_wakeup();
       }
 
-      void destroy(resumable* r) {
-        delete r;
-      }
-
       worker_t* start_worker(coordinator_access_t* c) {
         printf("Start worker\n");
         auto w   = make_unique< worker_t >();
         auto ret = w.get();
-        w->data().reactor.attach_executor(ret);
         {
           auto lock = make_unique_lock(c->data().lock);
           c->data().workers.emplace_back(move(w));
@@ -180,7 +151,7 @@ namespace core {
       }
 
       worker_t* current_worker(coordinator_access_t*) {
-        return reinterpret_cast< worker_t* >(WORKER);
+        return reinterpret_cast< worker_t* >(runtime.local_worker());
       }
 
       worker_t* next_worker(coordinator_access_t* c) {
@@ -201,6 +172,41 @@ namespace core {
         w->attach_resumable(r);
         push_externally(w, r);
         maybe_wakeup(w);
+      }
+
+    private:
+      void _poll_reactor(worker_access_t* w) {
+        auto& data     = w->data();
+        auto sleep_for = data.ready_queue.empty()
+                             ? data.time.duration_till(data.next_wakeup)
+                             : (0ms);
+        data.reactor.poll_for(sleep_for);
+      }
+      void _drain_external_queue(worker_access_t* w) {
+        auto& data = w->data();
+        data.external_queue.consume_all(
+            [&](resumable* r) { data.ready_queue.push_back(*r); });
+      }
+      void _drain_sleep_queue(worker_access_t* w) {
+        auto& data = w->data();
+        auto now   = data.time.now() + 100us;
+        if (now >= data.next_wakeup) {
+          auto i   = data.sleep_queue.begin();
+          auto end = data.sleep_queue.end();
+          for (; i != end;) {
+            if (XI_LIKELY(i->wakeup_time() <= now)) {
+              auto r = &(*i);
+              i      = data.sleep_queue.erase(i);
+              push_internally(w, r);
+            } else {
+              data.next_wakeup = i->wakeup_time();
+              break;
+            }
+          }
+          if (i == end) {
+            data.next_wakeup = data.time.max();
+          }
+        }
       }
     };
 

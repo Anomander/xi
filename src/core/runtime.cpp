@@ -9,6 +9,7 @@ namespace core {
     static abstract_coordinator* COORDINATOR = nullptr;
   }
 
+  thread_local abstract_worker* runtime_context::current_worker = 0;
   runtime_context runtime;
 
   class runtime_context::coordinator_builder {
@@ -61,6 +62,10 @@ namespace core {
     once::call_lambda(
         [] { COORDINATOR = runtime._coordinator_builder->build(); });
     return *COORDINATOR;
+  }
+
+  abstract_worker& runtime_context::local_worker() {
+    return *current_worker;
   }
 }
 }

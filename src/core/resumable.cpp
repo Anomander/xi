@@ -1,20 +1,20 @@
 #include "xi/core/resumable.h"
-#include "xi/core/execution_context.h"
+#include "xi/core/abstract_worker.h"
 
 namespace xi {
 namespace core {
 
-  void resumable::attach_executor(execution_context* e) {
-    _executor = e;
+  void resumable::attach_executor(abstract_worker* e) {
+    _worker = e;
   }
 
-  void resumable::detach_executor(execution_context* e) {
-    assert(_executor == e);
-    _executor = nullptr;
+  void resumable::detach_executor(abstract_worker* e) {
+    assert(_worker == e);
+    _worker = nullptr;
   }
 
   void resumable::unblock() {
-    _executor->schedule(this);
+    _worker->schedule(this);
   }
 
   void resumable::block() {
@@ -30,8 +30,8 @@ namespace core {
   }
 
   void resumable::sleep_for(milliseconds ms) {
-    assert(_executor != nullptr);
-    _executor->sleep_for(this, ms);
+    assert(_worker != nullptr);
+    _worker->sleep_for(this, ms);
     block();
   }
 

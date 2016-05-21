@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/syscall.h>
+#include <sys/timerfd.h>
 
 namespace xi {
 namespace core {
@@ -50,8 +51,8 @@ namespace core {
 
       void yield_current_task(int signo) {
         // printf("Task quota reached.\n");
-        xi::core::runtime.coordinator().current_thread_resumable()->yield(
-                                                                          resumable::resume_later);
+        xi::core::runtime.local_worker().current_resumable()->yield(
+            resumable::resume_later);
       }
 
       void action(int signo, siginfo_t* siginfo, void* ignore) {
@@ -79,13 +80,13 @@ namespace core {
         r         = ::pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
         assert(r == 0);
       }
-
     }
 
     epoll::epoll()
         : _epoll(::epoll_create1(EPOLL_CLOEXEC))
         , _wakeup_fd(::eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK))
-        , _signal_queues(new detail::block_queue_type[SIGRTMAX])
+        , _timer_fd(
+              ::timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK))
         , _thread_id(::pthread_self()) {
       assert(_epoll >= 0);
       epoll_event ev;
@@ -95,11 +96,18 @@ namespace core {
         ::perror("epoll_ctl: wakeup_fd");
         ::exit(EXIT_FAILURE); // FIXME
       }
+      ev.data.fd = _timer_fd;
+      if (::epoll_ctl(_epoll, EPOLL_CTL_ADD, _timer_fd, &ev) == -1) {
+        ::perror("epoll_ctl: timer_fd");
+        ::exit(EXIT_FAILURE); // FIXME
+      }
       sigevent sev;
       sev.sigev_notify   = SIGEV_THREAD_ID;
       sev._sigev_un._tid = syscall(SYS_gettid);
       sev.sigev_signo    = QUOTA_SIGNAL;
-      assert(0 <= ::timer_create(CLOCK_THREAD_CPUTIME_ID, &sev, &_quota_timer));
+      auto ret = ::timer_create(CLOCK_THREAD_CPUTIME_ID, &sev, &_quota_timer);
+      perror("timer_create");
+      assert(0 <= ret);
       block_all_signals();
       handle_signal(WAKEUP_SIGNAL);
       handle_signal(QUOTA_SIGNAL);
@@ -117,7 +125,7 @@ namespace core {
       unblock_all_signals();
     }
 
-    void epoll::poll_for(milliseconds ms) {
+    void epoll::poll_for(nanoseconds ns) {
       constexpr u16 MAX_EVENTS = 1024;
       epoll_event events[MAX_EVENTS];
       // sigset_t block_all, active_sigmask;
@@ -126,7 +134,20 @@ namespace core {
       // sigfillset(&block_all);
       // sigdelset(&block_all, WAKEUP_SIGNAL);
       // ::pthread_sigmask(SIG_SETMASK, &block_all, &active_sigmask);
-      auto n = ::epoll_pwait(_epoll, events, MAX_EVENTS, ms.count(), &mask);
+      auto timeout = 0;
+      if (ns > 0ns) {
+        auto tv_nsec         = ns.count() % 1000'000'000;
+        auto tv_sec          = ns.count() / 1000'000'000;
+        itimerspec its       = {};
+        its.it_value.tv_nsec = tv_nsec;
+        its.it_value.tv_sec  = tv_sec;
+        // its.it_interval      = its.it_value;
+        its.it_interval = {};
+        auto r          = timerfd_settime(_timer_fd, 0, &its, nullptr);
+        assert(r >= 0);
+        timeout = -1;
+      }
+      auto n = ::epoll_pwait(_epoll, events, MAX_EVENTS, timeout, &mask);
       // ::pthread_sigmask(SIG_SETMASK, &active_sigmask, nullptr);
 
       if (n == -1 && errno == EINTR) {
@@ -138,10 +159,11 @@ namespace core {
         if (XI_UNLIKELY(events[i].data.fd == _wakeup_fd)) {
           u64 val;
           ::eventfd_read(_wakeup_fd, &val);
+        } else if (XI_LIKELY(events[i].data.fd == _timer_fd)) {
+          // do nothing
         } else {
-          // printf("Handling resumable %p\n", events[i].data.ptr);
-          executor()->schedule(
-              reinterpret_cast< resumable* >(events[i].data.ptr));
+          // printf("Thread %p Handling resumable %p\n", pthread_self(), events[i].data.ptr);
+          reinterpret_cast< resumable* >(events[i].data.ptr)->unblock();
         }
       }
     }
@@ -199,8 +221,8 @@ namespace core {
       // pthread_kill(_thread_id, WAKEUP_SIGNAL);
     }
     void epoll::begin_task_quota_monitor(nanoseconds ns) {
-      auto tv_nsec = ns.count() % 1000'000'000;
-      auto tv_sec  = ns.count() / 1000'000'000;
+      auto tv_nsec         = ns.count() % 1000'000'000;
+      auto tv_sec          = ns.count() / 1000'000'000;
       itimerspec its       = {};
       its.it_value.tv_nsec = tv_nsec;
       its.it_value.tv_sec  = tv_sec;
