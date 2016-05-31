@@ -10,6 +10,11 @@
 namespace xi {
 namespace core {
 
+  extern thread_local struct worker_stats {
+    u64 tasks_ready     = 0;
+    u64 max_tasks_ready = 0;
+  } WORKER_STATS;
+
   namespace policy {
 
     class steady_clock_authority {
@@ -41,8 +46,8 @@ namespace core {
     template < class Reactor, class TimeAuthority >
     class generic_worker_isolation {
       struct worker_data {
-        detail::ready_queue_type ready_queue;
-        detail::sleep_queue_type sleep_queue;
+        detail::ready_queue_type<resumable> ready_queue;
+        detail::sleep_queue_type<resumable> sleep_queue;
         lockfree::queue< resumable* > external_queue{256};
         Reactor reactor;
         TimeAuthority time;
@@ -67,19 +72,6 @@ namespace core {
       using coordinator_data_type = coordinator_data;
 
     public:
-      abstract_reactor* attach_pollable(worker_access_t* w,
-                                        resumable* r,
-                                        i32 poll) {
-        auto& data = w->data();
-        data.reactor.attach_pollable(r, poll);
-        return &data.reactor;
-      }
-
-      void detach_pollable(worker_access_t* w, resumable* r, i32 poll) {
-        auto& data = w->data();
-        data.reactor.detach_pollable(r, poll);
-      }
-
       resumable* pop(worker_access_t* w) {
         auto& data = w->data();
         for (;;) {
@@ -89,17 +81,18 @@ namespace core {
           if (XI_LIKELY(!data.ready_queue.empty())) {
             auto r = &data.ready_queue.front();
             r->ready_unlink();
+            --WORKER_STATS.tasks_ready;
             return r;
           }
         }
       }
 
       void begin_task(worker_access_t* w, resumable*) {
-        w->data().reactor.begin_task_quota_monitor(10ms);
+        // w->data().reactor.begin_task_quota_monitor(10ms);
       }
 
       void end_task(worker_access_t* w, resumable*) {
-        w->data().reactor.end_task_quota_monitor();
+        // w->data().reactor.end_task_quota_monitor();
       }
 
       void push_externally(worker_access_t* w, resumable* r) {
@@ -109,14 +102,18 @@ namespace core {
       }
 
       void push_internally(worker_access_t* w, resumable* r) {
-        r->sleep_unlink();
+        auto tr = ++WORKER_STATS.tasks_ready;
+        if (tr > WORKER_STATS.max_tasks_ready) {
+          WORKER_STATS.max_tasks_ready = tr;
+        }
+        // r->sleep_unlink();
         w->data().ready_queue.push_back(*r);
       }
 
-      void sleep_for(worker_access_t* w, resumable* r, milliseconds ms) {
+      void sleep_for(worker_access_t* w, resumable* r, nanoseconds ns) {
         auto&& data = w->data();
         r->ready_unlink();
-        auto wakeup_time = data.time.now_plus(ms);
+        auto wakeup_time = data.time.now_plus(ns);
         r->wakeup_time(wakeup_time);
         data.sleep_queue.insert(*r);
         if (data.next_wakeup > wakeup_time) {
@@ -129,6 +126,10 @@ namespace core {
       void maybe_wakeup(worker_access_t* w) {
         atomic_signal_fence(memory_order_seq_cst);
         w->data().reactor.maybe_wakeup();
+      }
+
+      abstract_reactor& reactor(worker_access_t* w) {
+        return w->data().reactor;
       }
 
       worker_t* start_worker(coordinator_access_t* c) {
@@ -160,10 +161,10 @@ namespace core {
           printf("Workers empty\n");
           return nullptr;
         }
-        printf("Workers: %lu\n", data.workers.size());
+        // printf("Workers: %lu\n", data.workers.size());
         auto idx = data.next_worker.fetch_add(1, memory_order_relaxed) %
                    data.workers.size();
-        printf("Worker: %lu\n", idx);
+        // printf("Worker: %lu\n", idx);
         return data.workers[idx].get();
       }
 
@@ -185,7 +186,7 @@ namespace core {
       void _drain_external_queue(worker_access_t* w) {
         auto& data = w->data();
         data.external_queue.consume_all(
-            [&](resumable* r) { data.ready_queue.push_back(*r); });
+            [&](resumable* r) { push_internally(w, r); });
       }
       void _drain_sleep_queue(worker_access_t* w) {
         auto& data = w->data();

@@ -5,6 +5,7 @@
 #include "xi/ext/pointer.h"
 #include "xi/ext/require.h"
 #include "xi/ext/test.h"
+#include "xi/ext/tuple.h"
 #include "xi/ext/type_traits.h"
 
 namespace xi {
@@ -232,7 +233,7 @@ inline namespace util {
   }
 
   template < class T, class deleter >
-  bool is_shared(unique_ptr< T, deleter > const &t) {
+  bool is_shared(unique_ptr< T, deleter > const &) {
     return false;
   }
 
@@ -242,7 +243,7 @@ inline namespace util {
   }
 
   template < class T >
-  bool is_valid(T const &t) {
+  bool is_valid(T const &) {
     return true;
   }
 
@@ -273,6 +274,16 @@ inline namespace util {
     return detail::maker< T, meta::enabled >::make(forward< A >(args)...);
   }
 
+  template < class T, class... A >
+  own< T > make(piecewise_construct_t, tuple< A... > &&args) {
+    return apply(
+        [](auto &&... args) {
+          return detail::template maker< T, meta::enabled >::make(
+              move(args)...);
+        },
+        move(args));
+  }
+
   template < class T >
   inline mut< T > edit(T &t) {
     return &(t);
@@ -295,13 +306,13 @@ inline namespace util {
   inline mut< T > edit(unique_ptr< T > const &t) = delete;
 
   template < class T >
-  inline void release(unique_ptr< T > t) { /* no-op */
+  inline void release(unique_ptr< T >) { /* no-op */
   }
   template < class T >
-  inline void release(shared_ptr< T > t) { /* no-op */
+  inline void release(shared_ptr< T >) { /* no-op */
   }
   template < class T >
-  inline void release(intrusive_ptr< T > t) { /* no-op */
+  inline void release(intrusive_ptr< T >) { /* no-op */
   }
 
   template < class T >

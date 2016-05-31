@@ -4,6 +4,7 @@
 #include "xi/ext/lockfree.h"
 #include "xi/core/detail/intrusive.h"
 #include "xi/core/runtime.h"
+#include "xi/core/resumable.h"
 #include "xi/util/spin_lock.h"
 
 namespace xi {
@@ -223,6 +224,9 @@ namespace core {
     void send(T value) {
       this->bus()->put(move(value));
     }
+
+    channel_iterator<T> begin() { return {*this}; }
+    channel_iterator<T> end() { return {*this}; }
   };
 
   template < class T >

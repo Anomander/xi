@@ -23,11 +23,8 @@ namespace core {
       ~epoll();
 
       void poll_for(nanoseconds) override;
-      void attach_pollable(resumable*, i32) override;
-      void detach_pollable(resumable*, i32) override;
-      void await_signal(resumable*, i32) override;
-      void await_readable(resumable*, i32) override;
-      void await_writable(resumable*, i32) override;
+      void await_readable(i32) override;
+      void await_writable(i32) override;
       void maybe_wakeup();
       void begin_task_quota_monitor(nanoseconds);
       void end_task_quota_monitor();

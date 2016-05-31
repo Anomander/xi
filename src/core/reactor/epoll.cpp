@@ -2,6 +2,7 @@
 #include "xi/ext/configure.h"
 #include "xi/core/execution_context.h"
 #include "xi/core/runtime.h"
+#include "xi/core/resumable.h"
 
 #include <signal.h>
 #include <sys/epoll.h>
@@ -16,6 +17,8 @@ namespace core {
       atomic< u64 > SIGNALS;
       const auto WAKEUP_SIGNAL = SIGRTMIN;
       const auto QUOTA_SIGNAL  = WAKEUP_SIGNAL + 1;
+      constexpr u16 MAX_EVENTS = 1024;
+      thread_local epoll_event events[MAX_EVENTS];
 
       auto make_full_sigset_mask() {
         sigset_t set;
@@ -51,8 +54,8 @@ namespace core {
 
       void yield_current_task(int signo) {
         // printf("Task quota reached.\n");
-        xi::core::runtime.local_worker().current_resumable()->yield(
-            resumable::resume_later);
+        // xi::core::runtime.local_worker().current_resumable()->yield(
+        //     resumable::resume_later);
       }
 
       void action(int signo, siginfo_t* siginfo, void* ignore) {
@@ -126,8 +129,6 @@ namespace core {
     }
 
     void epoll::poll_for(nanoseconds ns) {
-      constexpr u16 MAX_EVENTS = 1024;
-      epoll_event events[MAX_EVENTS];
       // sigset_t block_all, active_sigmask;
       // auto mask = make_sigset_mask(WAKEUP_SIGNAL);
       auto mask = make_empty_sigset_mask();
@@ -162,56 +163,42 @@ namespace core {
         } else if (XI_LIKELY(events[i].data.fd == _timer_fd)) {
           // do nothing
         } else {
+          auto r = reinterpret_cast< resumable* >(events[i].data.ptr);
+          assert(!r->is_ready_linked());
           // printf("Thread %p Handling resumable %p\n", pthread_self(), events[i].data.ptr);
-          reinterpret_cast< resumable* >(events[i].data.ptr)->unblock();
+          r->unblock();
         }
       }
     }
 
-    void epoll::attach_pollable(resumable* r, i32 fd) {
-      epoll_event ev;
-      ev.events   = EPOLLERR;
-      ev.data.fd  = fd;
-      ev.data.ptr = r;
-      if (::epoll_ctl(_epoll, EPOLL_CTL_ADD, fd, &ev) == -1) {
-        ::perror("epoll_ctl: attach_pollable");
-        ::exit(EXIT_FAILURE); // FIXME
-      }
-    }
-
-    void epoll::detach_pollable(resumable*, i32 fd) {
-      if (::epoll_ctl(_epoll, EPOLL_CTL_DEL, fd, nullptr) == -1) {
-        printf("Detaching %d failed.\n", fd);
-        ::perror("epoll_ctl: detach_pollable");
-        ::exit(EXIT_FAILURE); // FIXME
-      }
-    }
-
-    void epoll::await_signal(resumable*, i32) {
-      // TODO: Implement
-    }
-
-    void epoll::await_readable(resumable* r, i32 fd) {
-      // printf("Awaiting readability for resumable %p\n", r);
+    void epoll::await_readable(i32 fd) {
       epoll_event ev;
       ev.events = EPOLLIN | EPOLLONESHOT;
-      // ev.data.fd  = fd;
+      auto r = runtime.local_worker().current_resumable();
       ev.data.ptr = r;
-      if (epoll_ctl(_epoll, EPOLL_CTL_MOD, fd, &ev) == -1) {
-        perror("epoll_ctl: await_writable");
-        exit(EXIT_FAILURE);
+      auto ret = epoll_ctl(_epoll, EPOLL_CTL_MOD, fd, &ev);
+      if (-1 == ret && errno == ENOENT) {
+        ret =  epoll_ctl(_epoll, EPOLL_CTL_ADD, fd, &ev);
+        if (-1 == ret) {
+          perror("epoll_ctl: await_readable");
+          exit(EXIT_FAILURE);
+        }
       }
       r->block();
     }
 
-    void epoll::await_writable(resumable* r, i32 fd) {
+    void epoll::await_writable(i32 fd) {
       epoll_event ev;
       ev.events = EPOLLOUT | EPOLLONESHOT;
-      // ev.data.fd  = fd;
+      auto r = runtime.local_worker().current_resumable();
       ev.data.ptr = r;
-      if (epoll_ctl(_epoll, EPOLL_CTL_MOD, fd, &ev) == -1) {
-        perror("epoll_ctl: await_writable");
-        exit(EXIT_FAILURE);
+      auto ret = epoll_ctl(_epoll, EPOLL_CTL_MOD, fd, &ev);
+      if (-1 == ret && errno == ENOENT) {
+        ret =  epoll_ctl(_epoll, EPOLL_CTL_ADD, fd, &ev);
+        if (-1 == ret) {
+          perror("epoll_ctl: await_writable");
+          exit(EXIT_FAILURE);
+        }
       }
       r->block();
     }

@@ -23,14 +23,6 @@ namespace core {
       r->detach_executor(this);
     }
 
-    abstract_reactor* attach_pollable(resumable* r, i32 poll) override {
-      return this->policy.attach_pollable(this, r, poll);
-    }
-
-    void detach_pollable(resumable* r, i32 poll) override {
-      this->policy.detach_pollable(this, r, poll);
-    }
-
     void schedule(resumable* r) override {
       if (&runtime.local_worker() == this) {
         this->policy.push_internally(this, r);
@@ -43,12 +35,16 @@ namespace core {
       this->policy.push_internally(this, r);
     }
 
-    void sleep_for(resumable* r, milliseconds ms) final override {
-      this->policy.sleep_for(this, r, ms);
+    void sleep_for(resumable* r, nanoseconds ns) final override {
+      this->policy.sleep_for(this, r, ns);
     }
 
     resumable* current_resumable() override {
       return _current_task;
+    }
+
+    abstract_reactor& reactor() override {
+      return this->policy.reactor(this);
     }
 
     void destroy(resumable* r) {

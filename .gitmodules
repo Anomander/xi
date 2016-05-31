@@ -4,3 +4,6 @@
 [submodule "third-party/libevent"]
 	path = third-party/libevent
 	url = https://github.com/Anomander/libevent.git
+[submodule "third-party/range-v3"]
+	path = third-party/range-v3
+	url = https://github.com/ericniebler/range-v3.git

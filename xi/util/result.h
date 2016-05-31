@@ -101,7 +101,11 @@ inline namespace prelude {
     template < class U, XI_UNLESS_DECL(is_error_code_enum< U >) >
     bool operator>(U const &other) const;
 
-    template < class F >
+    template < class F,
+               XI_UNLESS_DECL(is_same< void, result_of_t< F(T &&) > >) >
+    auto then(F && f)->detail::result_of_call_t< F(T &&) >;
+    template < class F,
+               XI_REQUIRE_DECL(is_same< void, result_of_t< F(T &&) > >) >
     auto then(F && f)->detail::result_of_call_t< F(T &&) >;
 
   private:
@@ -142,7 +146,9 @@ inline namespace prelude {
       }
     }
 
-    template < class F >
+    template < class F, XI_UNLESS_DECL(is_same< void, result_of_t< F() > >) >
+    auto then(F &&f) -> detail::result_of_call_t< F() >;
+    template < class F, XI_REQUIRE_DECL(is_same< void, result_of_t< F() > >) >
     auto then(F &&f) -> detail::result_of_call_t< F() >;
   };
 
@@ -247,7 +253,7 @@ inline namespace prelude {
   }
 
   template < class T >
-  template < class F >
+  template < class F, XI_UNLESS(is_same< void, result_of_t< F(T &&) > >) >
   auto result< T >::then(F &&f) -> detail::result_of_call_t< F(T &&) > {
     using return_t = detail::result_of_call_t< F(T &&) >;
     if (is_error()) {
@@ -256,7 +262,27 @@ inline namespace prelude {
     return return_t(f(extract< T >()));
   }
 
-  template < class F >
+  template < class T >
+  template < class F, XI_REQUIRE(is_same< void, result_of_t< F(T &&) > >) >
+  auto result< T >::then(F &&f) -> detail::result_of_call_t< F(T &&) > {
+    using return_t = detail::result_of_call_t< F(T &&) >;
+    if (is_error()) {
+      return return_t(extract< error_code >());
+    }
+    f(extract< T >());
+    return return_t();
+  }
+
+  template < class F, XI_UNLESS(is_same< void, result_of_t< F() > >) >
+  auto result< void >::then(F &&f) -> detail::result_of_call_t< F() > {
+    using return_t = detail::result_of_call_t< F() >;
+    if (is_error()) {
+      return return_t(extract< error_code >());
+    }
+    return return_t(f());
+  }
+
+  template < class F, XI_REQUIRE(is_same< void, result_of_t< F() > >) >
   auto result< void >::then(F &&f) -> detail::result_of_call_t< F() > {
     using return_t = detail::result_of_call_t< F() >;
     if (is_error()) {

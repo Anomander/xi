@@ -10,7 +10,7 @@ option(NUMA "Has NUMA support available" OFF)
 option(EMULATE_MADVISE "Emulate support for ::madvise flags" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
-set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -Wno-overloaded-virtual -Wno-attributes -ftemplate-backtrace-limit=0")
+set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O3 -g -Wno-overloaded-virtual -Wno-attributes -ftemplate-backtrace-limit=0 -fno-omit-frame-pointer")
 # set(CMAKE_CXX_FLAGS "-std=c++1y -Wall -O0 -g -Wno-overloaded-virtual -Wno-attributes -ftemplate-backtrace-limit=0")
 
 # include (Ragel)
@@ -39,6 +39,9 @@ find_package( Boost 1.55 REQUIRED context coroutine thread system program_option
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 set(XI_EXTERN_LIBRARIES ${XI_EXTERN_LIBRARIES} ${Boost_LIBRARIES})
+
+# ranges
+INCLUDE_DIRECTORIES( third-party/range-v3/include )
 
 # googletest
 add_subdirectory(third-party/googletest)

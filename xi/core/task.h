@@ -4,6 +4,7 @@
 
 namespace xi {
 namespace core {
+
   struct task : public virtual ownership::unique {
     virtual ~task()    = default;
     virtual void run() = 0;

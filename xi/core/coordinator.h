@@ -33,7 +33,6 @@ namespace core {
     }
 
     void call() final override {
-      printf("Calling blocking lambda\n");
       _f();
     }
   };

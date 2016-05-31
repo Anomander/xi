@@ -13,11 +13,10 @@ namespace core {
     virtual resumable* current_resumable() = 0;
     virtual void attach_resumable(resumable*) = 0;
     virtual void detach_resumable(resumable*) = 0;
-    virtual abstract_reactor* attach_pollable(resumable*, i32 poll) = 0;
-    virtual void detach_pollable(resumable*, i32 poll) = 0;
     virtual void schedule(resumable*) = 0;
     virtual void schedule_locally(resumable*) = 0;
-    virtual void sleep_for(resumable*, milliseconds) = 0;
+    virtual void sleep_for(resumable*, nanoseconds) = 0;
+    virtual abstract_reactor& reactor() = 0;
 
   public:
     template < class F,

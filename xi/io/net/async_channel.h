@@ -14,7 +14,7 @@
 #include "xi/io/net/channel_options.h"
 #include "xi/io/net/endpoint.h"
 #include "xi/io/net/enumerations.h"
-#include "xi/io/net/socket.h"
+#include "xi/io/net/socket2.h"
 #include "xi/io/pipes/all.h"
 
 namespace xi {

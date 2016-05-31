@@ -8,18 +8,21 @@
 namespace xi {
 inline namespace ext {
 
-  template < class mutex, class... A >
-  auto make_unique_lock(mutex &m, A &&... args) {
-    return ::std::unique_lock< mutex >(m, forward< args >(args)...);
+  using ::std::mutex;
+  using ::std::condition_variable;
+
+  template < class Mutex, class... A >
+  auto make_unique_lock(Mutex &m, A &&... args) {
+    return ::std::unique_lock< Mutex >(m, forward< args >(args)...);
   }
 
-  template < class mutex, class... A >
-  auto make_shared_lock(mutex &m, A &&... args) {
-    return ::std::shared_lock< mutex >(m, forward< args >(args)...);
+  template < class Mutex, class... A >
+  auto make_shared_lock(Mutex &m, A &&... args) {
+    return ::std::shared_lock< Mutex >(m, forward< args >(args)...);
   }
 
-  template < class mutex, class... A >
-  auto make_lock(mutex &m, A &&... args) {
+  template < class Mutex, class... A >
+  auto make_lock(Mutex &m, A &&... args) {
     return make_unique_lock(m, forward< args >(args)...);
   }
 
